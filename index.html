@@ -203,7 +203,8 @@ body.dark .chat-msg.them .chat-bubble{background:var(--border);color:var(--text)
 .onboard-step{display:none}.onboard-step.on{display:block}
 .tour-mask{display:none;position:fixed;inset:0;z-index:200;pointer-events:none}
 .tour-mask.on{display:block}
-.tour-mask-top,.tour-mask-bottom,.tour-mask-left,.tour-mask-right{position:fixed;background:rgba(0,0,0,.55);transition:all .3s cubic-bezier(.4,0,.2,1);pointer-events:all}
+.tour-mask-top,.tour-mask-bottom,.tour-mask-left,.tour-mask-right{position:fixed;background:rgba(0,0,0,.55);transition:all .3s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.tour-mask.on .tour-mask-top,.tour-mask.on .tour-mask-bottom,.tour-mask.on .tour-mask-left,.tour-mask.on .tour-mask-right{pointer-events:all}
 .tour-tooltip{display:none;position:fixed;z-index:201;background:var(--surface);border-radius:var(--radius);padding:18px 20px;max-width:300px;width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.2);border:1px solid var(--border)}
 .tour-tooltip.on{display:block}
 .tour-tooltip-arrow{width:10px;height:10px;background:var(--surface);border:1px solid var(--border);position:absolute;transform:rotate(45deg)}
@@ -712,10 +713,10 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 
 <!-- TOUR -->
 <div id="tour-mask" class="tour-mask">
-  <div id="tour-mask-top" class="tour-mask-top"></div>
-  <div id="tour-mask-bottom" class="tour-mask-bottom"></div>
-  <div id="tour-mask-left" class="tour-mask-left"></div>
-  <div id="tour-mask-right" class="tour-mask-right"></div>
+  <div id="tour-mask-top" class="tour-mask-top" style="height:0"></div>
+  <div id="tour-mask-bottom" class="tour-mask-bottom" style="top:100%"></div>
+  <div id="tour-mask-left" class="tour-mask-left" style="width:0"></div>
+  <div id="tour-mask-right" class="tour-mask-right" style="left:100%"></div>
 </div>
 <div id="tour-tooltip" class="tour-tooltip">
   <div class="tour-tip-label" id="tour-tip-label"></div>
