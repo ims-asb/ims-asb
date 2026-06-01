@@ -111,6 +111,25 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .event-info{flex:1;min-width:0}
 .event-title{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .event-sub{font-size:12px;color:var(--hint);font-family:'DM Mono',monospace;margin-top:2px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:12px}
+.cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+.cal-day-label{text-align:center;font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);padding:4px 0}
+.cal-cell{min-height:40px;background:var(--bg);border-radius:var(--radius-sm);padding:4px;cursor:default;position:relative;border:1px solid transparent}
+.cal-cell.today{border-color:var(--accent)}
+.cal-cell.has-event{background:var(--accent);cursor:pointer}
+.cal-cell.has-event:hover{opacity:.85}
+.cal-cell.other-month{opacity:.3}
+.cal-cell.past{opacity:.5}
+.cal-num{font-size:12px;font-weight:500;color:var(--text);line-height:1}
+.cal-cell.has-event .cal-num{color:#fff}
+.cal-event-dot{font-size:10px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cal-nav h3{font-size:15px;font-weight:500;flex:1;text-align:center}
+.cal-nav button{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 10px;cursor:pointer;font-size:14px;color:var(--text)}
+.cal-nav button:hover{background:var(--bg)}
+.view-toggle{display:flex;gap:3px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px}
+.vtab{padding:4px 10px;font-size:12px;cursor:pointer;border-radius:4px;border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif}
+.vtab.on{background:var(--bg);color:var(--text);font-weight:500}
 .ai-box{background:var(--bg);border:1px dashed var(--border-strong);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px}
 .ai-box p{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6}
 .ai-result{font-size:14px;color:var(--text);line-height:1.75;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);white-space:pre-wrap}
@@ -459,11 +478,35 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     </div>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <h2 style="font-size:16px;font-weight:500">Events</h2>
+    <div style="display:flex;align-items:center;gap:10px">
+      <h2 style="font-size:16px;font-weight:500">Events</h2>
+      <div class="view-toggle">
+        <button class="vtab on" id="vt-cal" onclick="setEventsView('cal')">📅 Calendar</button>
+        <button class="vtab" id="vt-list" onclick="setEventsView('list')">☰ List</button>
+      </div>
+    </div>
     <button class="btn sm primary" onclick="showForm('event-form')">+ Add event</button>
   </div>
-  <div id="events-list" class="card" style="display:none"></div>
-  <div id="events-empty" class="empty"><div class="ico">📅</div><p style="margin-bottom:6px">No events scheduled yet.</p><p style="font-size:12px;color:var(--hint);margin-bottom:12px">Add dances, fundraisers, assemblies, and meetings to keep the team on track.</p><button class="btn primary" onclick="showForm('event-form')">+ Add first event</button></div>
+  <!-- Calendar view -->
+  <div id="ev-cal-view">
+    <div class="cal-nav">
+      <button onclick="calPrev()">←</button>
+      <h3 id="cal-month-label"></h3>
+      <button onclick="calNext()">→</button>
+    </div>
+    <div class="cal-header">
+      <div class="cal-day-label">Sun</div><div class="cal-day-label">Mon</div>
+      <div class="cal-day-label">Tue</div><div class="cal-day-label">Wed</div>
+      <div class="cal-day-label">Thu</div><div class="cal-day-label">Fri</div>
+      <div class="cal-day-label">Sat</div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+  <!-- List view -->
+  <div id="ev-list-view" style="display:none">
+    <div id="events-list" class="card" style="display:none"></div>
+    <div id="events-empty" class="empty"><div class="ico">📅</div><p style="margin-bottom:6px">No events scheduled yet.</p><p style="font-size:12px;color:var(--hint);margin-bottom:12px">Add dances, fundraisers, assemblies, and meetings.</p><button class="btn primary" onclick="showForm('event-form')">+ Add first event</button></div>
+  </div>
   <div class="ai-box">
     <div class="card-title" style="margin-bottom:8px">🤖 AI date suggester</div>
     <p>Describe an event and the AI will suggest 3 dates based on your existing schedule.</p>
@@ -1086,13 +1129,71 @@ function addTxn(){
 function delTxn(id){if(!confirm('Delete?'))return;data.txns=data.txns.filter(t=>t.id!==id);save();renderAll();toast('Deleted');}
 
 // ── EVENTS ────────────────────────────────────────────────────────────
-function eventRowHTML(e,del){
+// ── CALENDAR ──────────────────────────────────────────────────────────
+let calYear=new Date().getFullYear();
+let calMonth=new Date().getMonth();
+
+function setEventsView(v){
+  document.getElementById('ev-cal-view').style.display=v==='cal'?'block':'none';
+  document.getElementById('ev-list-view').style.display=v==='list'?'block':'none';
+  document.getElementById('vt-cal').classList.toggle('on',v==='cal');
+  document.getElementById('vt-list').classList.toggle('on',v==='list');
+  if(v==='cal')renderCal();
+}
+
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
+
+function renderCal(){
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent=months[calMonth]+' '+calYear;
+  const grid=document.getElementById('cal-grid');
+  if(!grid)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  // build event map for fast lookup
+  const evMap={};
+  data.events.forEach(e=>{evMap[e.date]=evMap[e.date]||[];evMap[e.date].push(e);});
+  let html='';
+  const total=Math.ceil((firstDay+daysInMonth)/7)*7;
+  for(let i=0;i<total;i++){
+    let day,month,year,otherMonth=false;
+    if(i<firstDay){day=daysInPrev-firstDay+i+1;month=calMonth-1;year=calYear;if(month<0){month=11;year--;}otherMonth=true;}
+    else if(i>=firstDay+daysInMonth){day=i-firstDay-daysInMonth+1;month=calMonth+1;year=calYear;if(month>11){month=0;year++;}otherMonth=true;}
+    else{day=i-firstDay+1;month=calMonth;year=calYear;}
+    const iso=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const cellDate=new Date(year,month,day);
+    const isToday=cellDate.getTime()===today.getTime();
+    const isPast=cellDate<today&&!isToday;
+    const evs=evMap[iso]||[];
+    const hasEv=evs.length>0;
+    const classes=['cal-cell',otherMonth?'other-month':'',isToday?'today':'',hasEv?'has-event':'',isPast&&!hasEv?'past':''].filter(Boolean).join(' ');
+    const onclickAttr=hasEv?(' data-date="'+iso+'"'):'';
+    let cellHtml='<div class="'+classes+'"'+onclickAttr+'><div class="cal-num">'+day+'</div>';
+    if(evs.length>0)cellHtml+='<div class="cal-event-dot">'+evs[0].name+'</div>';
+    if(evs.length>1)cellHtml+='<div class="cal-event-dot">+'+(evs.length-1)+' more</div>';
+    cellHtml+='</div>';
+    html+=cellHtml;
+  }
+  grid.innerHTML=html;
+  grid.onclick=function(e){
+    const cell=e.target.closest('[data-date]');
+    if(cell)calCellClick(cell.dataset.date);
+  };
+}
+
+function calCellClick(iso){const evs=data.events.filter(e=>e.date===iso);if(!evs.length)return;const info=evs.map(e=>e.name+(e.notes?' - '+e.notes:'')).join(', ');toast(info);}
+
+function renderEvents(){
   const d=daysUntil(e.date),past=d<0;
   const dateStr=new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'});
   const cc=ECHIPS[e.type]||'';
   return `<div class="event-item"><div class="event-countdown ${past?'past':''}"><div class="num">${Math.abs(d)}</div><div class="unit">${past?'ago':'days'}</div></div><div class="event-info"><div class="event-title">${e.name}</div><div class="event-sub">${dateStr}${e.estimatedCost?` · est. ${fmt(e.estimatedCost)}`:''}${e.notes?` · ${e.notes}`:''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><span class="chip ${cc}">${e.type}</span>${del?`<button class="del-btn" onclick="delEvent(${e.id})" title="Delete">✕</button>`:''}</div></div>`;
 }
 function renderEvents(){
+  renderCal();
   const sorted=[...data.events].sort((a,b)=>new Date(a.date)-new Date(b.date));
   const el=document.getElementById('events-list'),ee=document.getElementById('events-empty');
   if(!sorted.length){el.style.display='none';ee.style.display='block';return;}
