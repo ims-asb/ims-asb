@@ -264,14 +264,14 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 
 <div class="nav">
   <div class="tabs">
-    <button class="tab on" onclick="go('home')">🏠 Home</button>
-    <button class="tab" onclick="go('budget')">💰 Budget</button>
+    <button class="tab on" id="tab-home" onclick="go('home')">🏠 Home</button>
+    <button class="tab" id="tab-budget" onclick="go('budget')">💰 Budget</button>
     <button class="tab" id="tab-finances" onclick="go('finances')">💰 Finances</button>
-    <button class="tab" onclick="go('events')">📅 Events</button>
-    <button class="tab" onclick="go('notes')">📝 Notes</button>
-    <button class="tab" onclick="go('ideas')">💡 Ideas</button>
-    <button class="tab" onclick="go('chat')">💬 Chat</button>
-    <button class="tab" onclick="go('people')">👥 People</button>
+    <button class="tab" id="tab-events" onclick="go('events')">📅 Events</button>
+    <button class="tab" id="tab-notes" onclick="go('notes')">📝 Notes</button>
+    <button class="tab" id="tab-ideas" onclick="go('ideas')">💡 Ideas</button>
+    <button class="tab" id="tab-chat" onclick="go('chat')">💬 Chat</button>
+    <button class="tab" id="tab-people" onclick="go('people')">👥 People</button>
   </div>
   <select id="month-filter" onchange="renderBudget()" style="font-size:12px;padding:5px 8px;display:none">
     <option value="all">All time</option>
@@ -1799,21 +1799,17 @@ function renderTourStep(){
 }
 
 function positionTourStep(s){
-  // find target element to highlight
   let target=null;
   if(s.target){
-    // try to find the active section's first notable element
-    const sec=document.getElementById(s.target);
-    if(sec){
-      // highlight the tab button
-      const tabNames=['home','budget','finances','events','notes','ideas','chat','people'];
-      const tabIdx=tabNames.indexOf(s.target.replace('s-',''));
-      if(tabIdx>=0){
-        const tabBtns=document.querySelectorAll('.tab');
-        target=tabBtns[tabIdx]||sec;
-      } else {
-        target=sec;
-      }
+    // find the tab button by ID — reliable regardless of hidden tabs
+    const tabName=s.target.replace('s-','');
+    const tabBtn=document.getElementById('tab-'+tabName);
+    // only use tab as target if it's visible
+    if(tabBtn&&tabBtn.style.display!=='none'){
+      target=tabBtn;
+    } else {
+      // fall back to highlighting the section itself
+      target=document.getElementById(s.target)||null;
     }
   } else if(s.action){
     target=s.action();
