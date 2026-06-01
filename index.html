@@ -201,19 +201,22 @@ body.dark .chat-msg.them .chat-bubble{background:var(--border);color:var(--text)
 .activity-what{color:var(--text);flex:1}
 .activity-when{color:var(--hint);font-family:'DM Mono',monospace;font-size:11px;flex-shrink:0}
 .onboard-step{display:none}.onboard-step.on{display:block}
-.tour-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;align-items:center;justify-content:center}
-.tour-overlay.on{display:flex}
-.tour-card{background:var(--surface);border-radius:var(--radius);padding:28px 28px 20px;max-width:400px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.2);position:relative}
-.tour-icon{font-size:40px;margin-bottom:12px;display:block}
-.tour-step-label{font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
-.tour-title{font-size:20px;font-weight:600;color:var(--text);margin-bottom:10px}
-.tour-desc{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px}
-.tour-footer{display:flex;align-items:center;gap:10px}
-.tour-dots{display:flex;gap:5px;flex:1}
-.tour-dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:background .2s}
-.tour-dot.on{background:var(--accent)}
-.tour-skip{font-size:13px;color:var(--hint);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0}
+.tour-mask{display:none;position:fixed;inset:0;z-index:200;pointer-events:none}
+.tour-mask.on{display:block}
+.tour-mask-top,.tour-mask-bottom,.tour-mask-left,.tour-mask-right{position:fixed;background:rgba(0,0,0,.55);transition:all .3s cubic-bezier(.4,0,.2,1);pointer-events:all}
+.tour-tooltip{display:none;position:fixed;z-index:201;background:var(--surface);border-radius:var(--radius);padding:18px 20px;max-width:300px;width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.2);border:1px solid var(--border)}
+.tour-tooltip.on{display:block}
+.tour-tooltip-arrow{width:10px;height:10px;background:var(--surface);border:1px solid var(--border);position:absolute;transform:rotate(45deg)}
+.tour-tip-label{font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.tour-tip-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px}
+.tour-tip-desc{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:16px}
+.tour-tip-footer{display:flex;align-items:center;gap:8px}
+.tour-tip-dots{display:flex;gap:4px;flex:1}
+.tour-tip-dot{width:6px;height:6px;border-radius:50%;background:var(--border)}
+.tour-tip-dot.on{background:var(--accent)}
+.tour-skip{font-size:12px;color:var(--hint);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0}
 .tour-skip:hover{color:var(--muted)}
+.tour-highlight-ring{outline:3px solid var(--accent) !important;outline-offset:3px;border-radius:var(--radius-sm);z-index:201 !important;position:relative;}
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
 .role-btn{padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;text-align:center;transition:all .15s}
 .role-btn:hover,.role-btn.on{border-color:var(--accent);background:var(--accent);color:#fff}
@@ -708,17 +711,21 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 <div class="toast" id="toast"></div>
 
 <!-- TOUR -->
-<div id="tour-overlay" class="tour-overlay">
-  <div class="tour-card">
-    <span class="tour-step-label" id="tour-step-label"></span>
-    <span class="tour-icon" id="tour-icon"></span>
-    <div class="tour-title" id="tour-title"></div>
-    <div class="tour-desc" id="tour-desc"></div>
-    <div class="tour-footer">
-      <div class="tour-dots" id="tour-dots"></div>
-      <button class="tour-skip" onclick="endTour()">Skip tour</button>
-      <button class="btn primary" id="tour-next-btn" onclick="tourNext()" style="padding:8px 18px;font-size:14px">Next →</button>
-    </div>
+<div id="tour-mask" class="tour-mask">
+  <div id="tour-mask-top" class="tour-mask-top"></div>
+  <div id="tour-mask-bottom" class="tour-mask-bottom"></div>
+  <div id="tour-mask-left" class="tour-mask-left"></div>
+  <div id="tour-mask-right" class="tour-mask-right"></div>
+</div>
+<div id="tour-tooltip" class="tour-tooltip">
+  <div class="tour-tip-label" id="tour-tip-label"></div>
+  <div class="tour-tip-title" id="tour-tip-title"></div>
+  <div class="tour-tip-desc" id="tour-tip-desc"></div>
+  <div class="tour-tip-footer">
+    <div class="tour-tip-dots" id="tour-tip-dots"></div>
+    <button class="tour-skip" onclick="endTour()">Skip</button>
+    <button class="btn sm" id="tour-back-btn" onclick="tourBack()" style="display:none">← Back</button>
+    <button class="btn primary sm" id="tour-next-btn" onclick="tourNext()">Next →</button>
   </div>
 </div>
 
@@ -1537,48 +1544,55 @@ function applyPrefs(){
   const pn=document.getElementById('pref-name');if(pn)pn.value=prefs.name||'';
   const pr=document.getElementById('pref-role');if(pr)pr.value=prefs.role||'';
 
-  // role-based access
-  // tabs: 0=Home, 1=Budget, 2=Events, 3=Notes, 4=Ideas, 5=Chat
+  // ── ROLE-BASED ACCESS ──────────────────────────────────────────────
   const tabs=document.querySelectorAll('.tab');
-  // reset all visible first
-  tabs.forEach(t=>t.style.display='');
-  // finances tab: show to non-treasurer, hide to treasurer (they have full budget tab)
+  tabs.forEach(t=>t.style.display=''); // reset all
+
+  const isAdvisor=role==='Advisor';
+  const isTreasurer=role==='Treasurer';
+  const isSecretary=role==='Secretary';
+  const isSupporter=role==='Supporter';
+
+  // FINANCES tab (read-only): visible to non-treasurer, non-advisor
+  // BUDGET tab: Treasurer + Advisor (full edit access)
   const finTab=document.getElementById('tab-finances');
-  if(finTab)finTab.style.display=(role&&role!=='Treasurer')?'':'none';
+  if(finTab)finTab.style.display=(role&&!isTreasurer&&!isAdvisor)?'':'none';
   const finCard=document.getElementById('w-finances');
-  if(finCard)finCard.style.display='none'; // card on home no longer needed
-  // Budget tab: Treasurer only. Finances tab: everyone else.
-  if(role!=='Treasurer'){
-    tabs[1].style.display='none'; // hide Budget
+  if(finCard)finCard.style.display='none';
+  if(!isTreasurer&&!isAdvisor){
+    tabs[1].style.display='none'; // hide Budget for non-treasurer/advisor
     tabs[1].classList.remove('on');
-    if(document.getElementById('s-budget').classList.contains('on')){go('home');}
+    if(document.getElementById('s-budget').classList.contains('on'))go('home');
   }
-  // Notes: Secretary only
-  if(role!=='Secretary'){
+
+  // NOTES tab: Secretary + Advisor
+  if(!isSecretary&&!isAdvisor){
     tabs[3].style.display='none';
     tabs[3].classList.remove('on');
-    if(document.getElementById('s-notes').classList.contains('on')){go('home');}
+    if(document.getElementById('s-notes').classList.contains('on'))go('home');
   }
-  // Supporter: also hide del buttons
-  if(role==='Supporter'){
-    applyReadOnly(['del-btn']);
-  }
-  // Advisor: show activity log
-  if(role==='Advisor'){
+
+  // SUPPORTER: hide delete buttons
+  if(isSupporter)applyReadOnly(['del-btn']);
+
+  // ADVISOR: full content access + activity log, no technical buttons
+  if(isAdvisor){
     const act=document.getElementById('activity-section');
     if(act)act.style.display='block';
   }
-  // hide Firebase/Groq buttons from non-Treasurer
-  const fbBtn=document.getElementById('btn-firebase');
-  const groqBtn=document.getElementById('btn-groq');
-  const keysVisible=role==='Treasurer';
-  if(fbBtn)fbBtn.style.display=keysVisible?'':'none';
-  if(groqBtn)groqBtn.style.display=keysVisible?'':'none';
-  const settingsBtn=document.getElementById('btn-settings');if(settingsBtn)settingsBtn.style.display=keysVisible?'':'none';
+
+  // TECHNICAL BUTTONS: Treasurer only
+  const techOnly=isTreasurer;
+  document.getElementById('btn-firebase')?.style.setProperty('display',techOnly?'':'none');
+  document.getElementById('btn-groq')?.style.setProperty('display',techOnly?'':'none');
+  document.getElementById('btn-settings')?.style.setProperty('display',techOnly?'':'none');
+  document.querySelector('.test-btn')?.style.setProperty('display',techOnly?'':'none');
+
+  // NUCLEAR RESET + CLEAR CHAT: Treasurer + Advisor
   const nrw=document.getElementById('nuclear-reset-wrap');
-  if(nrw)nrw.style.display=(role==='Treasurer'||role==='Advisor')?'block':'none';
+  if(nrw)nrw.style.display=(isTreasurer||isAdvisor)?'block':'none';
   const ccw=document.getElementById('clear-chat-wrap');
-  if(ccw)ccw.style.display=(role==='Treasurer'||role==='Advisor')?'block':'none';
+  if(ccw)ccw.style.display=(isTreasurer||isAdvisor)?'block':'none';
 }
 function applyReadOnly(classes){
   // for advisor/supporter, hide edit-type buttons
@@ -1736,52 +1750,137 @@ function pwModalCancel(){
 
 // ── TOUR ─────────────────────────────────────────────────────────────────
 const ALL_TOUR_STEPS=[
-  {icon:'👋',title:'Welcome to IMS ASB Hub!',desc:"This is your team's command centre for ASB. Let's take a quick tour so you know where everything is.",roles:'all'},
-  {icon:'🏠',title:'Home',desc:'Your dashboard — see the current balance, next upcoming event, recent transactions, and quick shortcuts to add anything.',roles:'all'},
-  {icon:'💰',title:'Budget',desc:'Track every dollar in and out. Add transactions, view history by month, and generate talking points for your transparency emails.',roles:'Treasurer'},
-  {icon:'📅',title:'Events',desc:"Add and track all ASB events — dances, fundraisers, assemblies. The AI date suggester helps you pick dates that don't clash with your existing schedule.",roles:'all'},
-  {icon:'📝',title:'Notes',desc:'Keep meeting notes here. Click any note to expand the full content. Only the Secretary can add notes, but everyone can read them.',roles:'all'},
-  {icon:'💡',title:'Ideas',desc:'Drop ideas here and track their status — from Idea to In Progress to Done. Great for pitching new fundraisers or events to the team.',roles:'all'},
-  {icon:'💬',title:'Chat',desc:"Real-time team chat. Open # General for the full group, or click a teammate's name to DM them directly. Messages sync live for everyone.",roles:'all'},
-  {icon:'👥',title:'People',desc:"See everyone who's joined the hub, their role, and when they joined.",roles:'all'},
-  {icon:'⚙',title:'Customize your home',desc:'Hit the Customize home button on the home screen to toggle which widgets you see and update your name or role.',roles:'all'},
-  {icon:'🎉',title:"You're all set!",desc:"That's everything. If you ever get lost, replay this tour from the home screen. Good luck this year!",roles:'all'},
+  {icon:'👋',title:'Welcome to IMS ASB Hub!',desc:"Your team's command centre for ASB. Let's do a quick walkthrough — I'll highlight each part as we go.",target:null,roles:'all'},
+  {icon:'🏠',title:'Home',desc:'Your dashboard. See the balance, next event, recent transactions, and quick-add shortcuts all in one place.',target:'s-home',roles:'all'},
+  {icon:'💰',title:'Budget',desc:'Track every dollar in and out. Add transactions, view history by month, and generate talking points for your transparency email.',target:'s-budget',roles:'Treasurer'},
+  {icon:'💰',title:'Finances',desc:'A read-only view of the budget — balance, income, expenses, and a category breakdown. Updated in real time.',target:'s-finances',roles:'finances'},
+  {icon:'📅',title:'Events',desc:"Add and track all ASB events. The AI date suggester at the bottom helps you pick dates that don't clash with your schedule.",target:'s-events',roles:'all'},
+  {icon:'📝',title:'Notes',desc:'Meeting notes — Secretary and Advisors can add them, everyone can read them. Click any note to expand it.',target:'s-notes',roles:'all'},
+  {icon:'💡',title:'Ideas',desc:'Drop ideas and track their status from Idea → In Progress → Done. Great for pitching new events or fundraisers.',target:'s-ideas',roles:'all'},
+  {icon:'💬',title:'Chat',desc:'Real-time team chat. # General is the group chat. Click any teammate to DM them directly.',target:'s-chat',roles:'all'},
+  {icon:'👥',title:'People',desc:"See everyone who's joined, their role, and join date.",target:'s-people',roles:'all'},
+  {icon:'⚙',title:'Customize',desc:'Toggle which widgets show on your home screen and update your name or role anytime.',target:null,roles:'all',action:()=>document.querySelector('.customize-btn')},
+  {icon:'🎉',title:"You're all set!",desc:"That's the whole app. You can replay this tour anytime from the home screen. Good luck this year!",target:null,roles:'all'},
 ];
+
 let tourSteps=[];
 let tourIdx=0;
+let tourHighlighted=null;
 
 function startTour(){
-  // filter steps by role
   const role=prefs.role||'';
-  tourSteps=ALL_TOUR_STEPS.filter(s=>s.roles==='all'||s.roles===role);
+  tourSteps=ALL_TOUR_STEPS.filter(s=>{
+    if(s.roles==='all')return true;
+    if(s.roles==='finances')return role&&role!=='Treasurer'&&role!=='Advisor';
+    return s.roles===role;
+  });
   tourIdx=0;
+  document.getElementById('tour-mask').classList.add('on');
+  document.getElementById('tour-tooltip').classList.add('on');
   renderTourStep();
-  document.getElementById('tour-overlay').classList.add('on');
 }
 
 function renderTourStep(){
   const s=tourSteps[tourIdx];
   const total=tourSteps.length;
-  document.getElementById('tour-step-label').textContent='Step '+(tourIdx+1)+' of '+total;
-  document.getElementById('tour-icon').textContent=s.icon;
-  document.getElementById('tour-title').textContent=s.title;
-  document.getElementById('tour-desc').textContent=s.desc;
-  // dots
-  document.getElementById('tour-dots').innerHTML=tourSteps.map((_,i)=>`<div class="tour-dot${i===tourIdx?' on':''}"></div>`).join('');
-  // next btn
-  const btn=document.getElementById('tour-next-btn');
-  btn.textContent=tourIdx===total-1?'Done ✓':'Next →';
+  // clear previous highlight
+  if(tourHighlighted){tourHighlighted.classList.remove('tour-highlight-ring');tourHighlighted=null;}
+  // navigate to the right tab if step has a target section
+  if(s.target)go(s.target.replace('s-',''));
+  // update tooltip content
+  document.getElementById('tour-tip-label').textContent='Step '+(tourIdx+1)+' of '+total;
+  document.getElementById('tour-tip-title').textContent=s.icon+' '+s.title;
+  document.getElementById('tour-tip-desc').textContent=s.desc;
+  document.getElementById('tour-tip-dots').innerHTML=tourSteps.map((_,i)=>'<div class="tour-tip-dot'+(i===tourIdx?' on':'')+'"></div>').join('');
+  document.getElementById('tour-next-btn').textContent=tourIdx===total-1?'Done ✓':'Next →';
+  document.getElementById('tour-back-btn').style.display=tourIdx>0?'':'none';
+  // position tooltip and spotlight after a short delay for tab transition
+  setTimeout(()=>positionTourStep(s),200);
+}
+
+function positionTourStep(s){
+  // find target element to highlight
+  let target=null;
+  if(s.target){
+    // try to find the active section's first notable element
+    const sec=document.getElementById(s.target);
+    if(sec){
+      // highlight the tab button
+      const tabNames=['home','budget','finances','events','notes','ideas','chat','people'];
+      const tabIdx=tabNames.indexOf(s.target.replace('s-',''));
+      if(tabIdx>=0){
+        const tabBtns=document.querySelectorAll('.tab');
+        target=tabBtns[tabIdx]||sec;
+      } else {
+        target=sec;
+      }
+    }
+  } else if(s.action){
+    target=s.action();
+  }
+
+  const tooltip=document.getElementById('tour-tooltip');
+  if(!target){
+    // center tooltip
+    clearMask();
+    tooltip.style.top='50%';
+    tooltip.style.left='50%';
+    tooltip.style.transform='translate(-50%,-50%)';
+    return;
+  }
+  tooltip.style.transform='';
+  // highlight element
+  target.classList.add('tour-highlight-ring');
+  tourHighlighted=target;
+  // spotlight mask
+  const r=target.getBoundingClientRect();
+  const pad=8;
+  setMask(r.top-pad,r.bottom+pad,r.left-pad,r.right+pad);
+  // position tooltip below or above
+  const ttH=tooltip.offsetHeight||140;
+  const ttW=tooltip.offsetWidth||300;
+  const spaceBelow=window.innerHeight-(r.bottom+pad+12);
+  const spaceAbove=r.top-pad-12;
+  let top,left;
+  if(spaceBelow>=ttH||spaceBelow>=spaceAbove){
+    top=Math.min(r.bottom+pad+12, window.innerHeight-ttH-12);
+  } else {
+    top=Math.max(r.top-pad-12-ttH, 12);
+  }
+  left=Math.min(Math.max(r.left,12),window.innerWidth-ttW-12);
+  tooltip.style.top=top+'px';
+  tooltip.style.left=left+'px';
+}
+
+function setMask(top,bottom,left,right){
+  const W=window.innerWidth,H=window.innerHeight;
+  document.getElementById('tour-mask-top').style.cssText=`top:0;left:0;right:0;height:${Math.max(0,top)}px`;
+  document.getElementById('tour-mask-bottom').style.cssText=`bottom:0;left:0;right:0;top:${Math.min(H,bottom)}px`;
+  document.getElementById('tour-mask-left').style.cssText=`top:${Math.max(0,top)}px;bottom:${H-Math.min(H,bottom)}px;left:0;width:${Math.max(0,left)}px`;
+  document.getElementById('tour-mask-right').style.cssText=`top:${Math.max(0,top)}px;bottom:${H-Math.min(H,bottom)}px;right:0;left:${Math.min(W,right)}px`;
+}
+
+function clearMask(){
+  ['top','bottom','left','right'].forEach(d=>{
+    document.getElementById('tour-mask-'+d).style.cssText='top:0;left:0;right:0;bottom:0;width:0;height:0';
+  });
 }
 
 function tourNext(){
   if(tourIdx>=tourSteps.length-1){endTour();return;}
-  tourIdx++;
-  renderTourStep();
+  tourIdx++;renderTourStep();
 }
-
+function tourBack(){
+  if(tourIdx<=0)return;
+  tourIdx--;renderTourStep();
+}
 function endTour(){
-  document.getElementById('tour-overlay').classList.remove('on');
+  if(tourHighlighted){tourHighlighted.classList.remove('tour-highlight-ring');tourHighlighted=null;}
+  document.getElementById('tour-mask').classList.remove('on');
+  document.getElementById('tour-tooltip').classList.remove('on');
+  clearMask();
   localStorage.setItem('ims-tour-done','1');
+  go('home');
 }
 
 // ── THEME ────────────────────────────────────────────────────────────────
