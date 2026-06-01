@@ -1662,15 +1662,15 @@ function applyPrefs(){
   const finCard=document.getElementById('w-finances');
   if(finCard)finCard.style.display='none';
   if(!isTreasurer&&!isAdvisor){
-    tabs[1].style.display='none'; // hide Budget for non-treasurer/advisor
-    tabs[1].classList.remove('on');
+    const budgetTab=document.getElementById('tab-budget');
+    if(budgetTab){budgetTab.style.display='none';budgetTab.classList.remove('on');}
     if(document.getElementById('s-budget').classList.contains('on'))go('home');
   }
 
   // NOTES tab: Secretary + Advisor
   if(!isSecretary&&!isAdvisor){
-    tabs[3].style.display='none';
-    tabs[3].classList.remove('on');
+    const notesTab=document.getElementById('tab-notes');
+    if(notesTab){notesTab.style.display='none';notesTab.classList.remove('on');}
     if(document.getElementById('s-notes').classList.contains('on'))go('home');
   }
 
