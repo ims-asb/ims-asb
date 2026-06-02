@@ -241,6 +241,29 @@ body.dark .chat-msg.them .chat-bubble{background:var(--border);color:var(--text)
 .role-btn{padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;text-align:center;transition:all .15s}
 .role-btn:hover,.role-btn.on{border-color:var(--accent);background:var(--accent);color:#fff}
 body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var(--border)}
+
+.progress-wrap{background:var(--border);border-radius:20px;height:10px;overflow:hidden;margin:8px 0 4px}
+.progress-bar{height:10px;border-radius:20px;background:var(--green);transition:width .4s}
+.badge{display:inline-block;background:var(--red);color:#fff;border-radius:20px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 5px;margin-left:4px;vertical-align:middle;line-height:1.4}
+.announce-item{padding:12px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.announce-item:last-child{border-bottom:none}
+.announce-pin{font-size:18px;flex-shrink:0}
+.announce-body{flex:1}
+.announce-text{font-size:14px;color:var(--text);line-height:1.5}
+.announce-meta{font-size:11px;color:var(--hint);font-family:'DM Mono',monospace;margin-top:3px}
+.search-bar{display:flex;gap:8px;margin-bottom:16px}
+.search-bar input{flex:1;font-size:14px;padding:9px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text)}
+.search-result{padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.search-result:last-child{border-bottom:none}
+.search-result:hover{opacity:.75}
+.search-result-type{font-size:10px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;margin-bottom:2px}
+.search-result-title{font-size:14px;color:var(--text)}
+.search-result-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.agenda-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.agenda-item:last-child{border-bottom:none}
+.agenda-check{width:16px;height:16px;cursor:pointer;flex-shrink:0}
+.agenda-text{font-size:14px;color:var(--text);flex:1}
+.agenda-text.done{text-decoration:line-through;color:var(--hint)}
 </style>
 </head>
 <body>
@@ -257,7 +280,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <span class="sync-dot" id="sync-dot"></span><span id="sync-label">Not connected to Firebase</span>
     </span>
     <button id="theme-btn" class="test-btn" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
-    <button class="test-btn" onclick="loadTest()">⚗ test</button>
+    <button class="test-btn" id="btn-test" onclick="loadTest()">⚗ test</button>
     <button id="btn-firebase" class="icon-btn" onclick="openModal('firebase-modal')">🔥 Firebase</button>
     <button id="btn-groq" class="icon-btn" onclick="openModal('groq-modal')">⚙ Groq</button>
     <button id="btn-settings" class="icon-btn" onclick="openModal('settings-modal')" style="display:none">🔑 Passwords</button>
@@ -290,7 +313,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <button class="tab" id="tab-events" onclick="go('events')">📅 Events</button>
     <button class="tab" id="tab-notes" onclick="go('notes')">📝 Notes</button>
     <button class="tab" id="tab-ideas" onclick="go('ideas')">💡 Ideas</button>
-    <button class="tab" id="tab-chat" onclick="go('chat')">💬 Chat</button>
+    <button class="tab" id="tab-chat" onclick="go('chat');clearChatBadge()">💬 Chat<span id="chat-badge" class="badge" style="display:none">0</span></button>
     <button class="tab" id="tab-people" onclick="go('people')">👥 People</button>
   </div>
   <select id="month-filter" onchange="renderBudget()" style="font-size:12px;padding:5px 8px;display:none">
@@ -300,10 +323,30 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 
 <!-- HOME -->
 <div id="s-home" class="sec on">
+  <div id="w-announce" style="display:none;margin-bottom:14px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="card-title" style="margin-bottom:0">📢 Announcements</span>
+        <button id="announce-add-btn" class="btn sm primary" style="display:none" onclick="showAnnounceForm()">+ Post</button>
+      </div>
+      <div id="announce-form" style="display:none;margin-bottom:10px">
+        <textarea id="announce-input" rows="2" style="width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);resize:none;margin-bottom:6px" placeholder="Write an announcement..."></textarea>
+        <div style="display:flex;gap:6px">
+          <button class="btn sm primary" onclick="postAnnouncement()">Post</button>
+          <button class="btn sm" onclick="document.getElementById('announce-form').style.display='none'">Cancel</button>
+        </div>
+      </div>
+      <div id="announce-list"></div>
+    </div>
+  </div>
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
     <button class="customize-btn" onclick="startTour()" style="margin-right:6px">? Tour</button>
     <button class="customize-btn" onclick="openModal('customize-modal')">⚙ Customize home</button>
   </div>
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="🔍  Search events, budget, ideas, notes..." oninput="renderSearch(this.value)">
+  </div>
+  <div id="search-results" class="card" style="display:none;padding:8px 16px;margin-bottom:14px"></div>
   <div class="grid3" id="w-metrics">
     <div class="metric"><div class="metric-lbl">Balance</div><div class="metric-val neu" id="h-bal">$0.00</div></div>
     <div class="metric"><div class="metric-lbl">Upcoming events</div><div class="metric-val neu" id="h-events">0</div></div>
@@ -535,6 +578,14 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <button class="btn" onclick="hideForm('note-form')">Cancel</button>
     </div>
   </div>
+  <div id="agenda-section" class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span class="card-title" style="margin-bottom:0">📋 Meeting agenda</span>
+      <button class="btn sm" onclick="addAgendaItem()">+ Item</button>
+    </div>
+    <div id="agenda-list"></div>
+    <div id="agenda-empty" style="font-size:13px;color:var(--hint);padding:4px 0">No agenda items yet.</div>
+  </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <h2 style="font-size:16px;font-weight:500">Meeting notes</h2>
     <button class="btn sm primary" onclick="showForm('note-form')">+ Add note</button>
@@ -634,8 +685,10 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       </div>
     </div>
     <div id="nuclear-reset-wrap" style="display:none;padding-top:14px;border-top:1px solid var(--border);margin-top:14px">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Requires approval from you + both advisors.</p>
-      <button class="btn danger full" onclick="requestNuclearReset()" id="nuclear-btn">☢ Request full data reset</button>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Requires approval from you + both advisors.</p>
+      <button class="btn danger full" onclick="requestNuclearReset()" id="nuclear-btn" style="margin-bottom:8px">☢ Request full data reset</button>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Archive saves this year's data before clearing.</p>
+      <button class="btn full" style="border-color:var(--accent);color:var(--accent)" onclick="archiveYear()">🗄 Archive this year & start fresh</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
       <button class="btn danger" onclick="resetProfile()" title="Clear your name and role and go through setup again">Reset profile</button>
@@ -940,9 +993,10 @@ function startListener(){
   },(e)=>{setSyncStatus(false);toast('Sync error: '+e.message);});
   // chat list updates (so convo list stays fresh)
   db.ref('ims-asb/chat/general').on('value',(snap)=>{
-    if(testMode||activeConvo!=='general')return;
+    if(testMode)return;
     const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
-    renderMsgs(msgs);
+    updateChatBadge(msgs);
+    if(activeConvo==='general')renderMsgs(msgs);
   });
   // activity listener
   db.ref('ims-asb/activity').on('value',(snap)=>{
@@ -952,6 +1006,19 @@ function startListener(){
   });
   isConnected=true;setSyncStatus(true);
   renderConvoList();
+  // announcements listener
+  db.ref('ims-asb/announcements').on('value',(snap)=>{
+    if(testMode)return;
+    const items=snap.val()?Object.values(snap.val()).sort((a,b)=>b.id-a.id):[];
+    renderAnnouncements(items);
+    const addBtn=document.getElementById('announce-add-btn');
+    if(addBtn)addBtn.style.display=(prefs.role==='Treasurer'||prefs.role==='Advisor')?'':'none';
+  });
+  // goal sync
+  db.ref('ims-asb/goal').once('value').then(snap=>{
+    if(snap.val())localStorage.setItem('ims-goal',snap.val());
+    updateGoalBar();
+  });
   // listen for nuclear reset requests
   db.ref('ims-asb/reset-request').on('value',(snap)=>{
     if(testMode)return;
@@ -1011,12 +1078,15 @@ function closeModal(id){document.getElementById(id).classList.remove('on');}
 function showForm(id){document.getElementById(id).style.display='block';}
 function hideForm(id){document.getElementById(id).style.display='none';}
 function go(t){
-  ['home','budget','finances','events','notes','ideas','chat','people'].forEach((n,i)=>{
-    document.querySelectorAll('.tab')[i].classList.toggle('on',n===t);
-    document.getElementById('s-'+n).classList.toggle('on',n===t);
+  ['home','budget','finances','events','notes','ideas','chat','people'].forEach(n=>{
+    const tab=document.getElementById('tab-'+n);
+    const sec=document.getElementById('s-'+n);
+    if(tab)tab.classList.toggle('on',n===t);
+    if(sec)sec.classList.toggle('on',n===t);
   });
   document.getElementById('month-filter').style.display=t==='budget'?'block':'none';
   if(t==='chat')scrollChat();
+  if(t==='events')renderCal();
 }
 function showStab(id){
   ['overview','add-txn','history','talking'].forEach(n=>{
@@ -1029,7 +1099,9 @@ function updateCats(){
   document.getElementById('f-cat').innerHTML='<option value="">Select...</option>'+TCATS[type].map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 function daysUntil(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/(864e5));}
-function renderAll(){renderHome();renderBudget();renderEvents();renderNotes();renderIdeas();}
+function renderAll(){
+  updateGoalBar();
+  renderAgenda();renderHome();renderBudget();renderEvents();renderNotes();renderIdeas();}
 
 // ── HOME ──────────────────────────────────────────────────────────────
 function renderHome(){
@@ -1186,12 +1258,7 @@ function renderCal(){
 
 function calCellClick(iso){const evs=data.events.filter(e=>e.date===iso);if(!evs.length)return;const info=evs.map(e=>e.name+(e.notes?' - '+e.notes:'')).join(', ');toast(info);}
 
-function renderEvents(){
-  const d=daysUntil(e.date),past=d<0;
-  const dateStr=new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'});
-  const cc=ECHIPS[e.type]||'';
-  return `<div class="event-item"><div class="event-countdown ${past?'past':''}"><div class="num">${Math.abs(d)}</div><div class="unit">${past?'ago':'days'}</div></div><div class="event-info"><div class="event-title">${e.name}</div><div class="event-sub">${dateStr}${e.estimatedCost?` · est. ${fmt(e.estimatedCost)}`:''}${e.notes?` · ${e.notes}`:''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><span class="chip ${cc}">${e.type}</span>${del?`<button class="del-btn" onclick="delEvent(${e.id})" title="Delete">✕</button>`:''}</div></div>`;
-}
+
 function renderEvents(){
   renderCal();
   const sorted=[...data.events].sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -1356,6 +1423,10 @@ function updateIdeaStatus(id,s){const i=data.ideas.find(x=>x.id===id);if(i){i.st
 function delIdea(id){if(!confirm('Delete?'))return;data.ideas=data.ideas.filter(i=>i.id!==id);save();renderIdeas();renderHome();toast('Deleted');}
 
 // ── GROQ KEY ──────────────────────────────────────────────────────────
+function toggleGroqVisible(){
+  const inp=document.getElementById('groq-key');
+  if(inp)inp.type=inp.type==='password'?'text':'password';
+}
 function saveGroqKey(){
   const k=document.getElementById('groq-key').value.trim();
   if(!k.startsWith('gsk_')){document.getElementById('groq-status').className='key-status err';document.getElementById('groq-status').textContent='✗ Should start with gsk_';return;}
@@ -1381,12 +1452,6 @@ function clearGroqKey(){
 
 // ── TEST MODE ─────────────────────────────────────────────────────────
 function loadTest(){
-  showPwModal('Test mode','Enter the test mode password.',(pw)=>{
-    if(pw!=='lukelitreasurer2026'){toast('Wrong password');return;}
-    _loadTestData();
-  });
-}
-function _loadTestData(){
   testMode=true;
   data={txns:TEST.txns.map(t=>({...t})),events:TEST.events.map(e=>({...e})),notes:TEST.notes.map(n=>({...n})),ideas:TEST.ideas.map(i=>({...i}))};
   document.getElementById('test-banner').classList.add('on');
@@ -1686,6 +1751,7 @@ function applyPrefs(){
   // TECHNICAL BUTTONS: Treasurer only
   const techOnly=isTreasurer;
   document.getElementById('btn-firebase')?.style.setProperty('display',techOnly?'':'none');
+  document.getElementById('btn-test')?.style.setProperty('display',techOnly?'':'none');
   document.getElementById('btn-groq')?.style.setProperty('display',techOnly?'':'none');
   document.getElementById('btn-settings')?.style.setProperty('display',techOnly?'':'none');
   document.querySelector('.test-btn')?.style.setProperty('display',techOnly?'':'none');
@@ -1996,6 +2062,211 @@ function loadTheme(){
   const saved=localStorage.getItem('ims-theme');
   const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
   applyTheme(saved==='dark'||(saved===null&&prefersDark));
+}
+
+
+// ── ANNOUNCEMENTS ──────────────────────────────────────────────────────
+function showAnnounceForm(){
+  document.getElementById('announce-form').style.display='block';
+  document.getElementById('announce-input').focus();
+}
+function postAnnouncement(){
+  const text=document.getElementById('announce-input').value.trim();
+  if(!text){toast('Write something first');return;}
+  if(!db||!isConnected){toast('Not connected');return;}
+  const id=Date.now();
+  db.ref('ims-asb/announcements/'+id).set({id,text,author:prefs.name,role:prefs.role,at:new Date().toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})});
+  document.getElementById('announce-input').value='';
+  document.getElementById('announce-form').style.display='none';
+  logActivity('Posted announcement',text.slice(0,40));
+}
+function delAnnouncement(id){
+  if(!confirm('Delete this announcement?'))return;
+  if(db&&isConnected)db.ref('ims-asb/announcements/'+id).remove();
+}
+function renderAnnouncements(items){
+  const wrap=document.getElementById('w-announce');
+  const list=document.getElementById('announce-list');
+  const addBtn=document.getElementById('announce-add-btn');
+  if(!items||!items.length){if(wrap)wrap.style.display='none';return;}
+  if(wrap)wrap.style.display='block';
+  const canEdit=prefs.role==='Treasurer'||prefs.role==='Advisor';
+  if(addBtn)addBtn.style.display=canEdit?'':'none';
+  list.innerHTML=items.map(a=>`<div class="announce-item">
+    <span class="announce-pin">📌</span>
+    <div class="announce-body">
+      <div class="announce-text">${a.text}</div>
+      <div class="announce-meta">${a.author} · ${a.at}${canEdit?' · <span style="cursor:pointer;color:var(--red)" onclick="delAnnouncement('+a.id+')">remove</span>':''}</div>
+    </div>
+  </div>`).join('');
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────
+function renderSearch(q){
+  const res=document.getElementById('search-results');
+  if(!q||q.length<2){res.style.display='none';return;}
+  const ql=q.toLowerCase();
+  const results=[];
+  data.txns.filter(t=>t.description.toLowerCase().includes(ql)||t.category.toLowerCase().includes(ql)).slice(0,3).forEach(t=>{
+    results.push({type:'Budget',title:t.description,sub:t.type+' · '+fmt(t.amount)+' · '+t.date,action:()=>{go('budget');showStab('history');}});
+  });
+  data.events.filter(e=>e.name.toLowerCase().includes(ql)||(e.notes&&e.notes.toLowerCase().includes(ql))).slice(0,3).forEach(e=>{
+    results.push({type:'Event',title:e.name,sub:e.date+' · '+e.type,action:()=>go('events')});
+  });
+  data.ideas.filter(i=>i.title.toLowerCase().includes(ql)||(i.desc&&i.desc.toLowerCase().includes(ql))).slice(0,3).forEach(i=>{
+    results.push({type:'Idea',title:i.title,sub:i.status,action:()=>go('ideas')});
+  });
+  data.notes.filter(n=>n.title.toLowerCase().includes(ql)||(n.content&&n.content.toLowerCase().includes(ql))).slice(0,3).forEach(n=>{
+    results.push({type:'Note',title:n.title,sub:n.date,action:()=>go('notes')});
+  });
+  if(!results.length){res.style.display='block';res.innerHTML='<p style="font-size:13px;color:var(--hint);padding:8px 0">No results for "'+q+'"</p>';return;}
+  res.style.display='block';
+  res.innerHTML=results.map((r,i)=>`<div class="search-result" onclick="searchResultClick(${i})">
+    <div class="search-result-type">${r.type}</div>
+    <div class="search-result-title">${r.title}</div>
+    ${r.sub?`<div class="search-result-sub">${r.sub}</div>`:''}
+  </div>`).join('');
+  res._results=results;
+}
+function searchResultClick(i){
+  const res=document.getElementById('search-results');
+  if(res._results&&res._results[i])res._results[i].action();
+  res.style.display='none';
+  document.getElementById('search-input').value='';
+}
+
+// ── BUDGET GOAL ───────────────────────────────────────────────────────
+function toggleGoalForm(){
+  const f=document.getElementById('goal-form');
+  f.style.display=f.style.display==='none'?'block':'none';
+  if(f.style.display==='block'){
+    const g=localStorage.getItem('ims-goal')||'';
+    document.getElementById('goal-input').value=g;
+  }
+}
+function saveGoal(){
+  const g=parseFloat(document.getElementById('goal-input').value)||0;
+  localStorage.setItem('ims-goal',g);
+  if(db&&isConnected)db.ref('ims-asb/goal').set(g);
+  document.getElementById('goal-form').style.display='none';
+  updateGoalBar();
+  toast('Goal saved');
+}
+function updateGoalBar(){
+  const goal=parseFloat(localStorage.getItem('ims-goal')||'0');
+  const income=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const gp=document.getElementById('goal-progress');
+  const gb=document.getElementById('goal-bar');
+  const gpct=document.getElementById('goal-pct');
+  const gr=document.getElementById('goal-raised');
+  const gt=document.getElementById('goal-target');
+  if(!goal||!gp){if(gp)gp.style.display='none';return;}
+  gp.style.display='block';
+  const pct=Math.min(100,Math.round((income/goal)*100));
+  if(gb)gb.style.width=pct+'%';
+  if(gpct)gpct.textContent=pct+'%';
+  if(gr)gr.textContent=fmt(income)+' raised';
+  if(gt)gt.textContent='goal: '+fmt(goal);
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────
+function exportCSV(){
+  if(!data.txns.length){toast('No transactions to export');return;}
+  const rows=[['Date','Type','Category','Description','Amount']];
+  data.txns.slice().sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(t=>{
+    rows.push([t.date,t.type,t.category,t.description,(t.type==='expense'?'-':'')+t.amount.toFixed(2)]);
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'\"\"')+'"').join(',')).join(String.fromCharCode(10));
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='ims-asb-budget-'+new Date().getFullYear()+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('CSV downloaded');
+}
+
+// ── AGENDA ────────────────────────────────────────────────────────────
+function renderAgenda(){
+  const items=JSON.parse(localStorage.getItem('ims-agenda')||'[]');
+  const list=document.getElementById('agenda-list');
+  const empty=document.getElementById('agenda-empty');
+  if(!list)return;
+  if(!items.length){list.innerHTML='';if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  list.innerHTML=items.map((item,i)=>`<div class="agenda-item">
+    <input type="checkbox" class="agenda-check" ${item.done?'checked':''} onchange="toggleAgendaItem(${i})">
+    <span class="agenda-text${item.done?' done':''}">${item.text}</span>
+    <span style="cursor:pointer;color:var(--hint);font-size:12px" onclick="deleteAgendaItem(${i})">✕</span>
+  </div>`).join('');
+}
+function addAgendaItem(){
+  showPwModal('New agenda item','What should be on the agenda?',(text)=>{
+    if(!text.trim())return;
+    const items=JSON.parse(localStorage.getItem('ims-agenda')||'[]');
+    items.push({text:text.trim(),done:false});
+    localStorage.setItem('ims-agenda',JSON.stringify(items));
+    renderAgenda();
+  });
+  // repurpose modal as text input
+  setTimeout(()=>{
+    document.getElementById('pw-modal-title').textContent='New agenda item';
+    document.getElementById('pw-modal-hint').textContent='Type the agenda item then click Confirm.';
+    const inp=document.getElementById('pw-modal-input');
+    inp.type='text';inp.placeholder='e.g. Review Q3 budget';inp.value='';inp.focus();
+  },50);
+}
+function toggleAgendaItem(i){
+  const items=JSON.parse(localStorage.getItem('ims-agenda')||'[]');
+  if(items[i])items[i].done=!items[i].done;
+  localStorage.setItem('ims-agenda',JSON.stringify(items));
+  renderAgenda();
+}
+function deleteAgendaItem(i){
+  const items=JSON.parse(localStorage.getItem('ims-agenda')||'[]');
+  items.splice(i,1);
+  localStorage.setItem('ims-agenda',JSON.stringify(items));
+  renderAgenda();
+}
+
+// ── UNREAD BADGE ──────────────────────────────────────────────────────
+let lastSeenMsgId=parseInt(localStorage.getItem('ims-last-seen-msg')||'0');
+function updateChatBadge(msgs){
+  if(!msgs||!msgs.length)return;
+  const latest=msgs[msgs.length-1].id;
+  const unseen=msgs.filter(m=>m.id>lastSeenMsgId&&m.name!==prefs.name).length;
+  const badge=document.getElementById('chat-badge');
+  if(!badge)return;
+  const onChat=document.getElementById('s-chat')&&document.getElementById('s-chat').classList.contains('on');
+  if(onChat){clearChatBadge();return;}
+  if(unseen>0){badge.style.display='inline-block';badge.textContent=unseen>9?'9+':unseen;}
+  else{badge.style.display='none';}
+}
+function clearChatBadge(){
+  const msgs=[];
+  lastSeenMsgId=Date.now();
+  localStorage.setItem('ims-last-seen-msg',lastSeenMsgId);
+  const badge=document.getElementById('chat-badge');
+  if(badge)badge.style.display='none';
+}
+
+// ── ARCHIVE ───────────────────────────────────────────────────────────
+function archiveYear(){
+  if(!db||!isConnected){toast('Must be connected to Firebase');return;}
+  const year=new Date().getFullYear();
+  if(!confirm('Archive '+year+' data and start fresh? The archive will be saved to Firebase and you can access it any time.')){return;}
+  db.ref('ims-asb').once('value').then(snap=>{
+    const current=snap.val();
+    if(!current){toast('Nothing to archive');return;}
+    return db.ref('ims-asb-archive-'+year).set({...current,archivedAt:new Date().toISOString()});
+  }).then(()=>{
+    return db.ref('ims-asb').remove();
+  }).then(()=>{
+    data={txns:[],events:[],notes:[],ideas:[]};
+    renderAll();
+    toast('Archived! Starting fresh for '+(year+1));
+    closeModal('customize-modal');
+  }).catch(e=>toast('Error: '+e.message));
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
