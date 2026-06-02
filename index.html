@@ -917,22 +917,50 @@ const TEST={
     {id:7,type:'expense',date:'2026-10-22',category:'Club Activities',description:'Chess club tournament fees',amount:60.00},
     {id:8,type:'income',date:'2026-11-01',category:'PTSA Funds',description:'PTSA November allocation',amount:400.00},
     {id:9,type:'expense',date:'2026-11-10',category:'Events & Dances',description:'Winter formal venue deposit',amount:200.00},
+    {id:10,type:'income',date:'2026-11-20',category:'Fundraiser',description:'Turkey Trot fun run sponsorships',amount:315.00},
+    {id:11,type:'expense',date:'2026-12-01',category:'Supplies',description:'Holiday decoration supplies',amount:78.50},
+    {id:12,type:'income',date:'2026-12-05',category:'Fundraiser',description:'Holiday cookie sales',amount:412.00},
   ],
   events:[
     {id:1,name:'Fall Dance',date:'2026-10-16',type:'Dance',estimatedCost:300,notes:'Gym, 6-8pm'},
     {id:2,name:'Spirit Week',date:'2026-11-04',type:'Spirit Week',estimatedCost:50,notes:'Mon-Fri themes'},
     {id:3,name:'Winter Formal',date:'2026-12-12',type:'Dance',estimatedCost:500,notes:'Cafeteria'},
     {id:4,name:'Holiday Fundraiser',date:'2026-12-05',type:'Fundraiser',estimatedCost:0,notes:'Cookie sales'},
+    {id:5,name:'Spring Dance',date:'2027-04-18',type:'Dance',estimatedCost:400,notes:'Gym, 7-9pm'},
+    {id:6,name:'IMS Got Talent',date:'2027-02-20',type:'Assembly',estimatedCost:100,notes:'Auditorium'},
+    {id:7,name:'End of Year BBQ',date:'2027-06-06',type:'Other',estimatedCost:250,notes:'Outdoor courtyard'},
   ],
   notes:[
     {id:1,date:'2026-09-08',title:'First ASB meeting of the year',content:'Introduced ourselves. Discussed goals for the year. Agreed on Fall Dance as first big event. Action items: Luke to draft budget proposal by 9/15.'},
     {id:2,date:'2026-10-01',title:'October planning meeting',content:'Fall Dance prep confirmed. Reviewed candy gram sales. Discussed Spirit Week themes. Balance looking healthy.'},
+    {id:3,date:'2026-11-05',title:'November check-in',content:'Spirit Week was a success. Holiday fundraiser planning underway. Luke presented budget update — on track for surplus. Discussed IMS Got Talent concept.'},
+    {id:4,date:'2026-12-03',title:'Winter Formal logistics',content:'Venue confirmed. DJ booked. Tickets to go on sale Dec 8. Decorating committee: Jionni + 2 volunteers. Budget approved by Mrs. Gale.'},
   ],
   ideas:[
     {id:1,title:'Boba fundraiser',description:'Partner with a local boba shop for a percentage of sales day.',status:'idea'},
     {id:2,title:'Monthly budget post on Canvas',description:'Short transparency update every month.',status:'progress'},
     {id:3,title:'Spirit store (IMS merch)',description:'Sell IMS hoodies and stickers. Needs PTSA approval.',status:'shelved'},
-  ]
+    {id:4,title:'Trivia night fundraiser',description:'Charge entry fee per team. Could raise $200-400.',status:'idea'},
+    {id:5,title:'Student appreciation week',description:'Small gifts and activities to celebrate students before finals.',status:'progress'},
+    {id:6,title:'Locker decoration contest',description:'Decorate your locker for a theme, winners get prizes.',status:'done'},
+  ],
+  announcements:[
+    {id:1001,text:'Welcome back IMS! ASB has big plans for 2026-27. Stay tuned for updates.',author:'Luke Li',role:'Treasurer',at:'Sep 5, 2026'},
+    {id:1002,text:'Fall Dance tickets on sale now — $5 at the door or pre-buy from any ASB member!',author:'Luke Li',role:'Treasurer',at:'Oct 10, 2026'},
+  ],
+  users:[
+    {name:'Luke Li',role:'Treasurer',joinedAt:'2026-09-01'},
+    {name:'Joodal Jabi',role:'President',joinedAt:'2026-09-01'},
+    {name:'Nathan Green',role:'Vice President',joinedAt:'2026-09-02'},
+    {name:'Jionni Tolosa',role:'Secretary',joinedAt:'2026-09-01'},
+    {name:'Mrs. Gale',role:'Advisor',joinedAt:'2026-09-01'},
+    {name:'Mz. Weed',role:'Advisor',joinedAt:'2026-09-01'},
+  ],
+  goal:1500,
+  votes:{
+    1:{'luke-li':'Luke Li','joodal-jabi':'Joodal Jabi'},
+    4:{'nathan-green':'Nathan Green'},
+  }
 };
 
 // ── FIREBASE ──────────────────────────────────────────────────────────
@@ -1426,13 +1454,23 @@ function renderIdeas(){
   if(!data.ideas.length){il.style.display='none';ie.style.display='block';return;}
   ie.style.display='none';il.style.display='block';
   const order={idea:0,progress:1,done:2,shelved:3};
-  il.innerHTML=[...data.ideas].sort((a,b)=>order[a.status]-order[b.status]).map(i=>`<div class="idea-item">
-    <div class="idea-content"><div class="idea-title">${i.title}</div>${i.description?`<div class="idea-desc">${i.description}</div>`:''}</div>
+  const sorted=[...data.ideas].sort((a,b)=>order[a.status]-order[b.status]);
+  il.innerHTML=sorted.map(i=>`<div class="idea-item" id="idea-${i.id}">
+    <div class="idea-content">
+      <div class="idea-title">${i.title}</div>
+      ${i.description?`<div class="idea-desc">${i.description}</div>`:''}
+      <div class="vote-row" id="votes-${i.id}"></div>
+    </div>
     <div class="idea-actions">
       <select class="status-sel" onchange="updateIdeaStatus(${i.id},this.value)">${Object.entries(STATUS_LABELS).map(([v,l])=>`<option value="${v}"${i.status===v?' selected':''}>${l}</option>`).join('')}</select>
       <button class="del-btn" onclick="delIdea(${i.id})">✕</button>
     </div>
   </div>`).join('');
+  // render vote buttons after HTML is in DOM
+  sorted.forEach(i=>{
+    const el=document.getElementById('votes-'+i.id);
+    if(el)renderIdeaVotes(i.id,el);
+  });
 }
 function addIdea(){
   const title=document.getElementById('id-title').value.trim();if(!title){toast('Title required');return;}
@@ -1475,6 +1513,13 @@ function clearGroqKey(){
 function loadTest(){
   testMode=true;
   data={txns:TEST.txns.map(t=>({...t})),events:TEST.events.map(e=>({...e})),notes:TEST.notes.map(n=>({...n})),ideas:TEST.ideas.map(i=>({...i}))};
+  // populate announcements
+  if(TEST.announcements)renderAnnouncements(TEST.announcements);
+  // populate people
+  if(TEST.users)renderPeople(TEST.users);
+  if(TEST.users)renderConvoList(TEST.users);
+  // goal
+  if(TEST.goal){localStorage.setItem('ims-goal',TEST.goal);}
   document.getElementById('test-banner').classList.add('on');
   document.getElementById('month-filter').value='all';
   renderAll();go('home');toast('Test data loaded!');
@@ -1723,9 +1768,17 @@ function applyPrefs(){
   document.getElementById('hdr-name').textContent=(role||'ASB')+': '+(prefs.name||'You')+' · 2026–2027';
   // widgets
   const w=prefs.widgets||{};
+  const canSeeBudget=role==='Treasurer'||role==='Advisor';
   ['metrics','dash','recent','upcoming'].forEach(id=>{
     const el=document.getElementById('w-'+id);
-    if(el)el.style.display=(w[id]===false)?'none':'';
+    // metrics and recent are budget data — hide for non-treasurer/advisor
+    if(el){
+      if((id==='metrics'||id==='recent')&&!canSeeBudget){
+        el.style.display='none';
+      } else {
+        el.style.display=(w[id]===false)?'none':'';
+      }
+    }
     const cb=document.getElementById('wt-'+id);
     if(cb)cb.checked=(w[id]!==false);
   });
