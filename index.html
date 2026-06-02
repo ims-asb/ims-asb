@@ -356,7 +356,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
   </div>
   <div id="search-results" class="card" style="display:none;padding:8px 16px;margin-bottom:14px"></div>
   <div class="grid3" id="w-metrics">
-    <div class="metric"><div class="metric-lbl">Balance</div><div class="metric-val neu" id="h-bal">$0.00</div></div>
+    <div class="metric" id="w-balance"><div class="metric-lbl">Balance</div><div class="metric-val neu" id="h-bal">$0.00</div></div>
     <div class="metric"><div class="metric-lbl">Upcoming events</div><div class="metric-val neu" id="h-events">0</div></div>
     <div class="metric"><div class="metric-lbl">Open ideas</div><div class="metric-val neu" id="h-ideas">0</div></div>
   </div>
@@ -368,9 +368,9 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <div class="card">
       <div class="card-title">Quick add</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn full" onclick="go('budget');showStab('add-txn')">+ Transaction</button>
+        <button class="btn full" id="qa-txn" onclick="go('budget');showStab('add-txn')">+ Transaction</button>
         <button class="btn full" onclick="go('events');showForm('event-form')">+ Event</button>
-        <button class="btn full" onclick="go('notes');showForm('note-form')">+ Meeting note</button>
+        <button class="btn full" id="qa-note" onclick="go('notes');showForm('note-form')">+ Meeting note</button>
         <button class="btn full" onclick="go('ideas');showForm('idea-form')">+ Idea</button>
       </div>
     </div>
@@ -1146,10 +1146,8 @@ function renderHome(){
   const inc=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const exp=data.txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const bal=inc-exp;
-  const hb=document.getElementById('h-bal');
   const canSeeMetrics=prefs.role==='Treasurer'||prefs.role==='Advisor';
-  const wMetrics=document.getElementById('w-metrics');
-  if(wMetrics)wMetrics.style.display=canSeeMetrics?'':'none';
+  const hb=document.getElementById('h-bal');
   if(hb&&canSeeMetrics){hb.textContent=fmt(bal);hb.className='metric-val '+(bal>=0?'pos':'neg');}
   const upcoming=data.events.filter(e=>daysUntil(e.date)>=0).sort((a,b)=>new Date(a.date)-new Date(b.date));
   document.getElementById('h-events').textContent=upcoming.length;
@@ -1160,8 +1158,6 @@ function renderHome(){
   // recent txns — Treasurer and Advisor only
   const ht=document.getElementById('home-txns'),hte=document.getElementById('home-txns-empty');
   const canSeeTxns=prefs.role==='Treasurer'||prefs.role==='Advisor';
-  const wRecent=document.getElementById('w-recent');
-  if(wRecent)wRecent.style.display=canSeeTxns?'':'none';
   if(canSeeTxns){
     if(!data.txns.length){ht.innerHTML='';hte.style.display='block';}
     else{hte.style.display='none';ht.innerHTML=data.txns.slice(0,4).map(t=>txnRowHTML(t,false)).join('');}
@@ -1770,19 +1766,31 @@ function applyPrefs(){
   // widgets
   const w=prefs.widgets||{};
   const canSeeBudget=role==='Treasurer'||role==='Advisor';
+  const canSeeNotes=role==='Secretary'||role==='Advisor'||role==='Treasurer';
+
+  // apply user widget prefs for non-restricted widgets
   ['metrics','dash','recent','upcoming'].forEach(id=>{
     const el=document.getElementById('w-'+id);
-    // metrics and recent are budget data — hide for non-treasurer/advisor
-    if(el){
-      if((id==='metrics'||id==='recent')&&!canSeeBudget){
-        el.style.display='none';
-      } else {
-        el.style.display=(w[id]===false)?'none':'';
-      }
-    }
+    if(el)el.style.display=(w[id]===false)?'none':'';
     const cb=document.getElementById('wt-'+id);
     if(cb)cb.checked=(w[id]!==false);
   });
+
+  // role-based: hide balance and recent txns from non-treasurer/advisor
+  const wBal=document.getElementById('w-balance');
+  if(wBal)wBal.style.display=canSeeBudget?'':'none';
+  const wRecent=document.getElementById('w-recent');
+  if(wRecent)wRecent.style.display=(canSeeBudget&&w.recent!==false)?'':'none';
+
+  // hide finances card on home (replaced by tab)
+  const wFin=document.getElementById('w-finances');
+  if(wFin)wFin.style.display='none';
+
+  // quick add buttons — hide restricted ones
+  const qaTxn=document.getElementById('qa-txn');
+  if(qaTxn)qaTxn.style.display=canSeeBudget?'':'none';
+  const qaNote=document.getElementById('qa-note');
+  if(qaNote)qaNote.style.display=canSeeNotes?'':'none';
   // fill customize fields
   const pn=document.getElementById('pref-name');if(pn)pn.value=prefs.name||'';
   const pr=document.getElementById('pref-role');if(pr)pr.value=prefs.role||'';
