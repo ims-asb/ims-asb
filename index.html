@@ -1783,12 +1783,12 @@ function resetProfile(){
   if(db&&isConnected&&prefs.name){
     const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
     db.ref('ims-asb/users/'+uid).remove();
-    // delete all chat messages from this user
-    db.ref('ims-asb/chat').once('value').then(snap=>{
+    // delete all general chat messages from this user
+    db.ref('ims-asb/chat/general').once('value').then(snap=>{
       if(!snap.val())return;
       const updates={};
       Object.entries(snap.val()).forEach(([k,v])=>{
-        if(v.name===prefs.name)updates['ims-asb/chat/'+k]=null;
+        if(v.name===prefs.name)updates['ims-asb/chat/general/'+k]=null;
       });
       if(Object.keys(updates).length)db.ref().update(updates);
     });
