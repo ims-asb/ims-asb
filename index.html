@@ -1118,15 +1118,26 @@ function renderHome(){
   const inc=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const exp=data.txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const bal=inc-exp;
-  const hb=document.getElementById('h-bal');hb.textContent=fmt(bal);hb.className='metric-val '+(bal>=0?'pos':'neg');
+  const hb=document.getElementById('h-bal');
+  const canSeeMetrics=prefs.role==='Treasurer'||prefs.role==='Advisor';
+  const wMetrics=document.getElementById('w-metrics');
+  if(wMetrics)wMetrics.style.display=canSeeMetrics?'':'none';
+  if(hb&&canSeeMetrics){hb.textContent=fmt(bal);hb.className='metric-val '+(bal>=0?'pos':'neg');}
   const upcoming=data.events.filter(e=>daysUntil(e.date)>=0).sort((a,b)=>new Date(a.date)-new Date(b.date));
   document.getElementById('h-events').textContent=upcoming.length;
   document.getElementById('h-ideas').textContent=data.ideas.filter(i=>i.status==='idea'||i.status==='progress').length;
   const nec=document.getElementById('next-event-content');
   if(upcoming.length){const e=upcoming[0];const d=daysUntil(e.date);nec.innerHTML=`<div class="days">${d}</div><div class="days-lbl">day${d!==1?'s':''} away</div><div class="event-name">${e.name}</div><div class="event-date">${new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})}</div>`;}
   else nec.innerHTML='<p style="font-size:13px;color:var(--muted)">No upcoming events.</p>';
+  // recent txns — Treasurer and Advisor only
   const ht=document.getElementById('home-txns'),hte=document.getElementById('home-txns-empty');
-  if(!data.txns.length){ht.innerHTML='';hte.style.display='block';}else{hte.style.display='none';ht.innerHTML=data.txns.slice(0,4).map(t=>txnRowHTML(t,false)).join('');}
+  const canSeeTxns=prefs.role==='Treasurer'||prefs.role==='Advisor';
+  const wRecent=document.getElementById('w-recent');
+  if(wRecent)wRecent.style.display=canSeeTxns?'':'none';
+  if(canSeeTxns){
+    if(!data.txns.length){ht.innerHTML='';hte.style.display='block';}
+    else{hte.style.display='none';ht.innerHTML=data.txns.slice(0,4).map(t=>txnRowHTML(t,false)).join('');}
+  }
   const hel=document.getElementById('home-events-list'),hee=document.getElementById('home-events-empty');
   if(!upcoming.length){hel.innerHTML='';hee.style.display='block';}else{hee.style.display='none';hel.innerHTML=upcoming.slice(0,4).map(e=>eventRowHTML(e,false)).join('');}
   // finances card (read-only, for non-treasurer)
