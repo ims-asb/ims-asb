@@ -1641,6 +1641,7 @@ async function sendMsg(){
   const inp=document.getElementById('chat-input');
   const text=inp.value.trim();
   if(!text||!activeConvo)return;
+  if(testMode){toast('Chat disabled in test mode');return;}
   if(!db||!isConnected){toast('Not connected');return;}
   if(hasProfanity(text)){toast('Message blocked — inappropriate content');inp.value='';return;}
   const now=Date.now();
@@ -1956,7 +1957,7 @@ function finishOnboard(){
   applyPrefs();
   toast('Welcome, '+prefs.name+'!');
   if(!localStorage.getItem('ims-tour-done'))setTimeout(startTour,600);
-  if(db&&isConnected&&prefs.name){
+  if(db&&isConnected&&prefs.name&&!testMode){
     const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
     db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role,joinedAt:(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
   }
@@ -2148,6 +2149,7 @@ function showAnnounceForm(){
 function postAnnouncement(){
   const text=document.getElementById('announce-input').value.trim();
   if(!text){toast('Write something first');return;}
+  if(testMode){toast('Disabled in test mode');return;}
   if(!db||!isConnected){toast('Not connected');return;}
   const id=Date.now();
   db.ref('ims-asb/announcements/'+id).set({id,text,author:prefs.name,role:prefs.role,at:new Date().toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})});
@@ -2222,7 +2224,7 @@ function toggleGoalForm(){
 function saveGoal(){
   const g=parseFloat(document.getElementById('goal-input').value)||0;
   localStorage.setItem('ims-goal',g);
-  if(db&&isConnected)db.ref('ims-asb/goal').set(g);
+  if(db&&isConnected&&!testMode)db.ref('ims-asb/goal').set(g);
   document.getElementById('goal-form').style.display='none';
   updateGoalBar();
   toast('Goal saved');
@@ -2413,7 +2415,7 @@ function launchConfetti(){
 
 // ── EVENT REMINDERS ───────────────────────────────────────────────────
 function checkEventReminders(){
-  if(!db||!isConnected)return;
+  if(!db||!isConnected||testMode)return;
   const today=new Date();today.setHours(0,0,0,0);
   const remindDays=[1,3,7];
   data.events.forEach(ev=>{
@@ -2436,6 +2438,7 @@ function checkEventReminders(){
 
 // ── IDEA VOTING ───────────────────────────────────────────────────────
 function voteIdea(id){
+  if(testMode){toast('Voting disabled in test mode');return;}
   if(!db||!isConnected){toast('Connect Firebase to vote');return;}
   const voter=prefs.name;
   if(!voter){toast('Set your name first');return;}
