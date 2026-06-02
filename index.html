@@ -1037,7 +1037,7 @@ function startListener(){
   // register this user in Firebase
   if(prefs.name){
     const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
-    db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role||'',joinedAt:new Date().toISOString().split('T')[0]});
+    db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role||'',joinedAt:(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
   }
 }
 
@@ -1309,7 +1309,7 @@ async function suggestDate(){
   if(!weekdays.length){toast('No available weekdays found');return;}
 
   const evList=[...data.events].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>`${e.date}: ${e.name}`).join(', ')||'none';
-  const today=new Date().toISOString().split('T')[0];
+  const today=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 
   // pass the list of valid dates so the model can only pick from real options
   const sample=weekdays.slice(0,120); // first ~4 months of valid days
@@ -1894,7 +1894,7 @@ function finishOnboard(){
   if(!localStorage.getItem('ims-tour-done'))setTimeout(startTour,600);
   if(db&&isConnected&&prefs.name){
     const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
-    db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role,joinedAt:new Date().toISOString().split('T')[0]});
+    db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role,joinedAt:(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
   }
 }
 
@@ -2400,7 +2400,7 @@ function renderIdeaVotes(id,el){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
-const today=new Date().toISOString().split('T')[0];
+const today=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 document.getElementById('f-date').value=today;
 document.getElementById('ev-date').value=today;
 document.getElementById('nt-date').value=today;
