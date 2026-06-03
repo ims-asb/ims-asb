@@ -276,6 +276,23 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .vote-btn.voted{background:var(--accent);border-color:var(--accent);color:#fff}
 .vote-count{font-size:12px;font-family:'DM Mono',monospace;color:var(--hint)}
 #confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:9999;display:none}
+
+.online-dot{width:8px;height:8px;border-radius:50%;background:#aaa;display:inline-block;margin-right:4px;flex-shrink:0}
+.online-dot.active{background:#2ecc87}
+.typing-indicator{font-size:12px;color:var(--hint);font-family:'DM Sans',sans-serif;padding:4px 16px;min-height:20px;font-style:italic}
+.read-receipt{font-size:11px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace;text-align:right;margin-top:2px}
+.chat-msg.them .read-receipt{color:var(--hint);text-align:left}
+.greeting-line{font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px}
+.greeting-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+.chart-bar-wrap{margin-bottom:16px}
+.chart-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.chart-bar-label{font-size:12px;color:var(--muted);width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart-bar-track{flex:1;background:var(--border);border-radius:4px;height:18px;overflow:hidden}
+.chart-bar-fill{height:18px;border-radius:4px;background:var(--accent);transition:width .4s}
+.chart-bar-val{font-size:12px;font-family:'DM Mono',monospace;color:var(--muted);width:70px;text-align:right;flex-shrink:0}
+.summary-stat{text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)}
+.summary-stat .s-val{font-size:24px;font-weight:700;color:var(--accent)}
+.summary-stat .s-lbl{font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;margin-top:2px}
 </style>
 </head>
 <body>
@@ -351,6 +368,10 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <div id="announce-list"></div>
     </div>
   </div>
+  <div id="home-greeting" style="margin-bottom:14px">
+    <div class="greeting-line" id="greeting-text"></div>
+    <div class="greeting-sub" id="greeting-sub"></div>
+  </div>
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
     <button class="customize-btn" onclick="startTour()" style="margin-right:6px">? Tour</button>
     <button class="customize-btn" onclick="openModal('customize-modal')">⚙ Customize home</button>
@@ -424,8 +445,10 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <div class="metric"><div class="metric-lbl">Expenses</div><div class="metric-val neg" id="fin-exp">$0.00</div></div>
   </div>
   <div id="fin-cat-card" class="card" style="display:none;margin-bottom:12px">
-    <div class="card-title">Expenses by category</div>
-    <div id="fin-cat-rows"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span class="card-title" style="margin-bottom:0">Expenses by category</span>
+    </div>
+    <div id="fin-cat-chart" class="chart-bar-wrap"></div>
   </div>
   <div class="card">
     <div class="card-title">Recent transactions</div>
@@ -445,6 +468,25 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <button class="stab" id="st-talking" onclick="showStab('talking')">📋 Talking points</button>
   </div>
   <div id="ss-overview" class="stab-sec on">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <button class="btn sm" onclick="toggleGoalForm()">🎯 Set goal</button>
+    </div>
+    <div id="goal-form" style="display:none;margin-bottom:12px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="font-size:13px;color:var(--muted);flex-shrink:0">Fundraising goal ($)</label>
+        <input type="number" id="goal-input" min="0" step="1" placeholder="e.g. 2000" style="flex:1;font-size:14px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)">
+        <button class="btn sm primary" onclick="saveGoal()">Save</button>
+      </div>
+    </div>
+    <div id="goal-progress" style="display:none;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px">
+        <span>Fundraising goal</span><span id="goal-pct">0%</span>
+      </div>
+      <div class="progress-wrap"><div class="progress-bar" id="goal-bar" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);margin-top:2px">
+        <span id="goal-raised">$0 raised</span><span id="goal-target">goal: $0</span>
+      </div>
+    </div>
     <div class="grid3">
       <div class="metric"><div class="metric-lbl">Income</div><div class="metric-val pos" id="b-inc">$0.00</div></div>
       <div class="metric"><div class="metric-lbl">Expenses</div><div class="metric-val neg" id="b-exp">$0.00</div></div>
@@ -640,7 +682,8 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <h2>👋 Welcome to IMS ASB Hub</h2>
       <p>Takes 30 seconds to set up. What's your name?</p>
       <div class="fg" style="margin-bottom:16px">
-        <input type="text" id="ob-name" placeholder="e.g. Luke Li" autofocus autocapitalize="words" oninput="this.value=this.value.replace(/\b\w/g,c=>c.toUpperCase())">
+        <input type="text" id="ob-name" placeholder="Enter your full name (e.g. Luke Li)" autofocus autocapitalize="words" oninput="this.value=this.value.replace(/\b\w/g,c=>c.toUpperCase())">
+        <p style="font-size:12px;color:var(--hint);margin-top:6px">Use your full name so teammates can find you.</p>
       </div>
       <button class="btn primary full" onclick="obNext1()">Continue →</button>
     </div>
@@ -660,7 +703,6 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
         <button class="role-btn" onclick="obSelectRole(this,'7th Grade Rep')">🎒 7th Grade Rep</button>
         <button class="role-btn" onclick="obSelectRole(this,'Advisor')">🏫 Advisor</button>
       </div>
-      <div id="role-hint" style="font-size:12px;color:var(--muted);margin-bottom:14px;min-height:32px;line-height:1.5"></div>
       <button class="btn primary full" onclick="obFinish()">Let's go →</button>
     </div>
   </div>
@@ -736,8 +778,9 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <div class="chat-msgs" id="chat-msgs">
         <div style="text-align:center;font-size:13px;color:var(--hint);margin:auto">No messages yet.</div>
       </div>
-      <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Message..." maxlength="300">
+      <div class="typing-indicator" id="typing-indicator"></div>
+    <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Message..." maxlength="300" oninput="onChatInput()" onblur="stopTyping()" onfocus="onChatInput()">
         <button class="btn primary" onclick="sendMsg()" style="padding:8px 16px;border-radius:20px;font-size:13px">Send</button>
       </div>
     </div>
@@ -888,9 +931,6 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
         <span>🏫 Advisor</span><span style="font-family:DM Mono,monospace;font-size:12px">mzweedandmsgalearecool</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;align-items:center">
-        <span>⚗ Test mode</span><span style="font-family:DM Mono,monospace;font-size:12px">lukelitreasurer2026</span>
       </div>
     </div>
     <div style="text-align:right"><button class="btn primary" onclick="closeModal('settings-modal')">Done</button></div>
@@ -1048,6 +1088,9 @@ function startListener(){
   isConnected=true;setSyncStatus(true);
   renderConvoList();
   migrateChatIfNeeded();
+  startOnlineHeartbeat();
+  // online status listener
+  db.ref('ims-asb/online').on('value',snap=>renderOnlineStatus(snap.val()));
   setTimeout(checkEventReminders,2000);
   // announcements listener
   db.ref('ims-asb/announcements').on('value',(snap)=>{
@@ -1147,7 +1190,9 @@ function updateCats(){
 function daysUntil(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/(864e5));}
 function renderAll(){
   updateGoalBar();
-  renderAgenda();renderHome();renderBudget();renderEvents();renderNotes();renderIdeas();}
+  updateGreeting();
+  renderAgenda();renderHome();renderBudget();renderEvents();renderNotes();renderIdeas();
+  renderBudgetChart();}
 
 // ── HOME ──────────────────────────────────────────────────────────────
 function renderHome(){
@@ -1186,7 +1231,7 @@ function renderHome(){
   if(fc)fc.textContent='';
   // populate finances tab
   const finCatCard=document.getElementById('fin-cat-card');
-  const finCatRows=document.getElementById('fin-cat-rows');
+  const finCatRows=document.getElementById('fin-cat-chart');
   const finTxnRows=document.getElementById('fin-txn-rows');
   const finTxnEmpty=document.getElementById('fin-txn-empty');
   if(finCatRows){
@@ -1573,15 +1618,23 @@ function renderConvoList(users){
   const cl=document.getElementById('convo-list');
   if(!cl)return;
   if(!db||!isConnected){cl.innerHTML='<p style="font-size:13px;color:var(--muted)">Connect to Firebase to start chatting.</p>';return;}
+  // verify this user's role matches Firebase before showing DMs
+  // (prevents seeing DMs from a previous role)
+  const myUid=prefs.name?prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-'):'';
+  const storedUser=knownUsers.find(u=>u.name===prefs.name);
+  const roleVerified=!storedUser||(storedUser.role===prefs.role);
   let html=`<div class="convo-item" onclick="openConvo('general')">
     <div class="convo-avatar group">💬</div>
     <div class="convo-info"><div class="convo-name"># General</div><div class="convo-preview">Team-wide chat</div></div>
   </div>`;
+  // only show DMs if role is verified
+  if(!roleVerified){cl.innerHTML=html;return;}
   knownUsers.filter(u=>u.name!==prefs.name).forEach(u=>{
     const initials=u.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
     const roleColors={Treasurer:'blue',President:'blue','Vice President':'blue',Secretary:'green',Advisor:'green'};
-    html+=`<div class="convo-item" onclick="openConvo('dm:${u.name}')">
-      <div class="convo-avatar">${initials}</div>
+    const duid=u.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
+    html+=`<div class="convo-item" onclick="openConvo('dm:${u.name}')" data-convo-uid="${duid}">
+      <div class="convo-avatar" style="position:relative">${initials}<span class="online-dot" style="position:absolute;bottom:1px;right:1px;border:2px solid var(--surface)"></span></div>
       <div class="convo-info"><div class="convo-name">${u.name}<span class="role-badge">${u.role||'Member'}</span></div></div>
     </div>`;
   });
@@ -1597,6 +1650,7 @@ function openConvo(id){
   if(id==='general'){
     title.textContent='# General';
     membersEl.textContent=knownUsers.length+' member'+(knownUsers.length!==1?'s':'');
+    listenTyping(id);
     if(!convoListeners.general&&db){
       convoListeners.general=true;
       db.ref('ims-asb/chat/general').on('value',snap=>{
@@ -1701,6 +1755,7 @@ function renderMsgs(msgs){
     el.appendChild(div);
   });
   scrollChat();
+  if(activeConvo&&msgs.length){markRead(activeConvo,msgs[msgs.length-1].id);renderReadReceipts(activeConvo,msgs);}
 }
 function deleteMsg(convo,msgId){
   if(!db||!isConnected){toast('Not connected');return;}
@@ -1983,12 +2038,41 @@ function saveProfilePrefs(){
 }
 
 // onboarding
+// known members for auto-detection (lowercase, flexible)
+const KNOWN_MEMBERS=[
+  {patterns:['luke li','luke'],role:'Treasurer'},
+  {patterns:['jood aljabi','jood','aljabi','joodal jabi'],role:'President'},
+  {patterns:['nathan garth green','nathan green','nathan'],role:'Vice President'},
+  {patterns:['jionni tolosa','jionni tolosa'],role:'Secretary'},
+  {patterns:['mz weed','mz. weed','ms weed','ms. weed','weed'],role:'Advisor'},
+  {patterns:['ms gale','ms. gale','mrs gale','mrs. gale','mz gale','mz. gale','gale'],role:'Advisor'},
+];
+function detectRole(name){
+  const lower=name.toLowerCase().trim();
+  for(const m of KNOWN_MEMBERS){
+    if(m.patterns.some(p=>lower===p||lower.includes(p)||p.includes(lower)))
+      return m.role;
+  }
+  return null;
+}
 function obNext1(){
   const n=document.getElementById('ob-name').value.trim();
   if(!n){toast('Enter your name first');return;}
   prefs.name=n;
   document.getElementById('ob-step-1').classList.remove('on');
   document.getElementById('ob-step-2').classList.add('on');
+  // auto-detect role — go straight to password for known members
+  const detected=detectRole(n);
+  document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
+  if(detected){
+    const btn=Array.from(document.querySelectorAll('.role-btn')).find(b=>b.textContent.includes(detected));
+    if(btn){setTimeout(()=>obSelectRole(btn,detected),200);return;}
+  } else {
+    document.querySelectorAll('.role-btn').forEach(b=>{
+      if(b.textContent.includes('Member')||b.textContent.includes('Supporter'))
+        b.style.borderColor='var(--accent)';
+    });
+  }
 }
 const ROLE_HINTS={
   'Treasurer':'Full access.',
@@ -2017,10 +2101,8 @@ function obSelectRole(btn,role){
     (pw)=>{
       if(pw!==ROLE_PWS[role]){toast('Wrong password');return;}
       obRole=role;
-      document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('on'));
+      document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
       btn.classList.add('on');
-      const hint=document.getElementById('role-hint');
-      if(hint)hint.textContent='✓ Verified — '+ROLE_HINTS[role];
     }
   );
 }
@@ -2028,15 +2110,20 @@ function obFinish(){
   if(!obRole){toast('Pick a role');return;}
   // check for duplicate name in Firebase
   if(db&&isConnected){
-    const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
+    const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
     db.ref('ims-asb/users/'+uid).once('value').then(snap=>{
-      if(snap.exists()&&snap.val().role!==obRole){
-        toast('Name "'+prefs.name+'" is already taken — try a different name');
-        document.getElementById('ob-step-2').classList.remove('on');
-        document.getElementById('ob-step-1').classList.add('on');
-        document.getElementById('ob-name').value='';
-        obRole='';
-        return;
+      if(snap.exists()){
+        const stored=snap.val();
+        if(stored.role!==obRole){
+          // name is taken by a different role — block entirely
+          toast('"'+prefs.name+'" is already registered as '+stored.role+'. Pick a different name, or select '+stored.role+' to log in as them.');
+          document.getElementById('ob-step-2').classList.remove('on');
+          document.getElementById('ob-step-1').classList.add('on');
+          document.getElementById('ob-name').value='';
+          obRole='';
+          return;
+        }
+        // same name + same role = returning user, allow
       }
       finishOnboard();
     });
@@ -2426,24 +2513,7 @@ function clearChatBadge(){
   if(badge)badge.style.display='none';
 }
 
-// ── ARCHIVE ───────────────────────────────────────────────────────────
-function archiveYear(){
-  if(!db||!isConnected){toast('Must be connected to Firebase');return;}
-  const year=new Date().getFullYear();
-  if(!confirm('Archive '+year+' data and start fresh? The archive will be saved to Firebase and you can access it any time.')){return;}
-  db.ref('ims-asb').once('value').then(snap=>{
-    const current=snap.val();
-    if(!current){toast('Nothing to archive');return;}
-    return db.ref('ims-asb-archive-'+year).set({...current,archivedAt:new Date().toISOString()});
-  }).then(()=>{
-    return db.ref('ims-asb').remove();
-  }).then(()=>{
-    data={txns:[],events:[],notes:[],ideas:[]};
-    renderAll();
-    toast('Archived! Starting fresh for '+(year+1));
-    closeModal('customize-modal');
-  }).catch(e=>toast('Error: '+e.message));
-}
+// archive moved to year summary section
 
 
 // ── PEOPLE ────────────────────────────────────────────────────────────
@@ -2463,11 +2533,17 @@ function renderPeople(users){
   const ICONS={Treasurer:'💰',President:'🎖',Secretary:'📋','Vice President':'⭐',Member:'👤',Supporter:'🤝',Advisor:'🏫','7th Grade Rep':'🎒'};
   pl.innerHTML='';
   users.forEach(u=>{
+    const uid=u.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
     const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)';
+    row.dataset.personUid=uid;
     const icon=document.createElement('div');
-    icon.style.cssText='width:36px;height:36px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0';
+    icon.style.cssText='width:36px;height:36px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;position:relative';
     icon.textContent=ICONS[u.role]||'👤';
+    const dot=document.createElement('span');
+    dot.className='online-dot';
+    dot.style.cssText='position:absolute;bottom:1px;right:1px;border:2px solid var(--surface)';
+    icon.appendChild(dot);
     const info=document.createElement('div');
     const name=document.createElement('div');
     name.style.cssText='font-size:14px;font-weight:500';
@@ -2589,6 +2665,164 @@ function migrateChatIfNeeded(){
       toast('Chat messages restored!');
     });
   });
+}
+
+
+// ── GREETING ──────────────────────────────────────────────────────────
+function updateGreeting(){
+  const h=new Date().getHours();
+  const part=h<12?'morning':h<17?'afternoon':'evening';
+  const emojis={morning:'☀️',afternoon:'👋',evening:'🌙'};
+  const name=prefs.name?', '+prefs.name.split(' ')[0]:'';
+  const gtxt=document.getElementById('greeting-text');
+  const gsub=document.getElementById('greeting-sub');
+  if(gtxt)gtxt.textContent='Good '+part+name+' '+emojis[part];
+  if(gsub){
+    const d=new Date();
+    gsub.textContent=d.toLocaleDateString('default',{weekday:'long',month:'long',day:'numeric'});
+  }
+}
+
+// ── BUDGET CHART ──────────────────────────────────────────────────────
+function renderBudgetChart(){
+  const el=document.getElementById('fin-cat-chart');
+  const card=document.getElementById('fin-cat-card');
+  if(!el)return;
+  const expenses=data.txns.filter(t=>t.type==='expense');
+  if(!expenses.length){if(card)card.style.display='none';return;}
+  if(card)card.style.display='block';
+  const byCat={};
+  expenses.forEach(t=>{byCat[t.category]=(byCat[t.category]||0)+t.amount;});
+  const entries=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const max=entries[0][1];
+  const colors=['var(--accent)','var(--green)','#e0b84a','#e05555','#9b59b6','#e67e22','#1abc9c'];
+  el.innerHTML='';
+  entries.forEach(([cat,amt],i)=>{
+    const row=document.createElement('div');
+    row.className='chart-bar-row';
+    row.innerHTML='<div class="chart-bar-label" title="'+cat+'">'+cat+'</div>'
+      +'<div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+(amt/max*100).toFixed(0)+'%;background:'+colors[i%colors.length]+'"></div></div>'
+      +'<div class="chart-bar-val">'+fmt(amt)+'</div>';
+    el.appendChild(row);
+  });
+}
+
+// ── ONLINE INDICATOR ──────────────────────────────────────────────────
+let onlineHeartbeat=null;
+function startOnlineHeartbeat(){
+  if(!db||!isConnected||!prefs.name)return;
+  const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
+  function ping(){
+    if(db&&isConnected&&!testMode)
+      db.ref('ims-asb/online/'+uid).set({name:prefs.name,at:Date.now()});
+  }
+  ping();
+  if(onlineHeartbeat)clearInterval(onlineHeartbeat);
+  onlineHeartbeat=setInterval(ping,60000);
+}
+function renderOnlineStatus(onlineData){
+  const now=Date.now();
+  const ONLINE_THRESH=5*60*1000; // 5 minutes
+  // update people tab dots
+  document.querySelectorAll('[data-person-uid]').forEach(el=>{
+    const uid=el.dataset.personUid;
+    const entry=onlineData&&onlineData[uid];
+    const isOnline=entry&&(now-entry.at)<ONLINE_THRESH;
+    const dot=el.querySelector('.online-dot');
+    if(dot)dot.className='online-dot'+(isOnline?' active':'');
+  });
+  // update convo list dots
+  document.querySelectorAll('[data-convo-uid]').forEach(el=>{
+    const uid=el.dataset.convoUid;
+    const entry=onlineData&&onlineData[uid];
+    const isOnline=entry&&(now-entry.at)<ONLINE_THRESH;
+    const dot=el.querySelector('.online-dot');
+    if(dot)dot.className='online-dot'+(isOnline?' active':'');
+  });
+}
+
+// ── TYPING INDICATOR ──────────────────────────────────────────────────
+let typingTimeout=null;
+function onChatInput(){
+  if(!db||!isConnected||!prefs.name||!activeConvo||testMode)return;
+  const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
+  db.ref('ims-asb/typing/'+activeConvo+'/'+uid).set({name:prefs.name,at:Date.now()});
+  if(typingTimeout)clearTimeout(typingTimeout);
+  typingTimeout=setTimeout(stopTyping,3000);
+}
+function stopTyping(){
+  if(!db||!isConnected||!prefs.name||!activeConvo)return;
+  const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
+  db.ref('ims-asb/typing/'+activeConvo+'/'+uid).remove();
+}
+function listenTyping(convoId){
+  if(!db||!isConnected)return;
+  db.ref('ims-asb/typing/'+convoId).on('value',snap=>{
+    const el=document.getElementById('typing-indicator');
+    if(!el||activeConvo!==convoId)return;
+    const typists=snap.val()?Object.values(snap.val()).filter(t=>
+      t.name!==prefs.name&&(Date.now()-t.at)<4000
+    ):[];
+    if(!typists.length){el.textContent='';return;}
+    el.textContent=typists.map(t=>t.name).join(', ')+(typists.length===1?' is':' are')+' typing...';
+  });
+}
+
+// ── READ RECEIPTS ─────────────────────────────────────────────────────
+function markRead(convoId,lastMsgId){
+  if(!db||!isConnected||!prefs.name||testMode)return;
+  const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
+  db.ref('ims-asb/read/'+convoId+'/'+uid).set({name:prefs.name,msgId:lastMsgId,at:Date.now()});
+}
+function renderReadReceipts(convoId,msgs){
+  if(!db||!isConnected||!msgs.length)return;
+  const lastMsg=msgs[msgs.length-1];
+  db.ref('ims-asb/read/'+convoId).once('value').then(snap=>{
+    if(!snap.val())return;
+    const readers=Object.values(snap.val()).filter(r=>
+      r.name!==prefs.name&&r.msgId>=lastMsg.id
+    ).map(r=>r.name);
+    // find the last sent message and add receipt
+    const myMsgs=document.querySelectorAll('.chat-msg.me');
+    if(!myMsgs.length)return;
+    const last=myMsgs[myMsgs.length-1];
+    let receipt=last.querySelector('.read-receipt');
+    if(!receipt){receipt=document.createElement('div');receipt.className='read-receipt';last.appendChild(receipt);}
+    receipt.textContent=readers.length?'Seen by '+readers.join(', '):'';
+  });
+}
+
+// ── YEAR SUMMARY ──────────────────────────────────────────────────────
+function archiveYear(){
+  if(!db||!isConnected){toast('Must be connected to Firebase');return;}
+  const year=new Date().getFullYear();
+  // compute stats
+  const totalInc=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const totalExp=data.txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const eventCount=data.events.length;
+  const doneIdeas=data.ideas.filter(i=>i.status==='done').length;
+  const topIdea=data.ideas.reduce((best,i)=>(!best||((i.votes||0)>(best.votes||0)))?i:best,null);
+  const lines=['Year '+year+' Summary','',
+    '💰 Total raised: '+fmt(totalInc),
+    '💸 Total spent: '+fmt(totalExp),
+    '📈 Net surplus: '+fmt(totalInc-totalExp),
+    '📅 Events held: '+eventCount,
+    '✅ Ideas completed: '+doneIdeas,
+    topIdea?'🏆 Top idea: '+topIdea.title:'',
+    '','Archive this year and start fresh for '+(year+1)+'?'];
+  const summary=lines.filter(Boolean).join(String.fromCharCode(10));
+  if(!confirm(summary))return;
+  db.ref('ims-asb').once('value').then(snap=>{
+    const current=snap.val();
+    if(!current){toast('Nothing to archive');return;}
+    return db.ref('ims-asb-archive-'+year).set({...current,archivedAt:new Date().toISOString(),summary:{totalInc,totalExp,eventCount,doneIdeas}});
+  }).then(()=>db.ref('ims-asb').remove())
+  .then(()=>{
+    data={txns:[],events:[],notes:[],ideas:[]};
+    renderAll();renderConvoList([]);renderPeople([]);
+    toast('Archived! Starting fresh for '+(year+1));
+    closeModal('customize-modal');
+  }).catch(e=>toast('Error: '+e.message));
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
