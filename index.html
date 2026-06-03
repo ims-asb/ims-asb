@@ -1131,7 +1131,7 @@ function go(t){
     if(sec)sec.classList.toggle('on',n===t);
   });
   document.getElementById('month-filter').style.display=t==='budget'?'block':'none';
-  if(t==='chat')scrollChat();
+  if(t==='chat'){renderConvoList();}
   if(t==='events')renderCal();
 }
 function showStab(id){
@@ -1566,6 +1566,87 @@ function clearTest(){
 let activeConvo=null;
 let convoListeners={};
 let knownUsers=[];
+function scrollChat(){const el=document.getElementById('chat-msgs');if(el)el.scrollTop=el.scrollHeight;}
+
+function renderConvoList(users){
+  if(users)knownUsers=users;
+  const cl=document.getElementById('convo-list');
+  if(!cl)return;
+  if(!db||!isConnected){cl.innerHTML='<p style="font-size:13px;color:var(--muted)">Connect to Firebase to start chatting.</p>';return;}
+  let html=`<div class="convo-item" onclick="openConvo('general')">
+    <div class="convo-avatar group">💬</div>
+    <div class="convo-info"><div class="convo-name"># General</div><div class="convo-preview">Team-wide chat</div></div>
+  </div>`;
+  knownUsers.filter(u=>u.name!==prefs.name).forEach(u=>{
+    const initials=u.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+    const roleColors={Treasurer:'blue',President:'blue','Vice President':'blue',Secretary:'green',Advisor:'green'};
+    html+=`<div class="convo-item" onclick="openConvo('dm:${u.name}')">
+      <div class="convo-avatar">${initials}</div>
+      <div class="convo-info"><div class="convo-name">${u.name}<span class="role-badge">${u.role||'Member'}</span></div></div>
+    </div>`;
+  });
+  cl.innerHTML=html;
+}
+
+function openConvo(id){
+  activeConvo=id;
+  document.getElementById('chat-list-view').style.display='none';
+  document.getElementById('chat-convo-view').style.display='block';
+  const title=document.getElementById('chat-convo-title');
+  const membersEl=document.getElementById('chat-members');
+  if(id==='general'){
+    title.textContent='# General';
+    membersEl.textContent=knownUsers.length+' member'+(knownUsers.length!==1?'s':'');
+    if(!convoListeners.general&&db){
+      convoListeners.general=true;
+      db.ref('ims-asb/chat/general').on('value',snap=>{
+        if(activeConvo!=='general')return;
+        const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
+        renderMsgs(msgs);
+      });
+    } else if(db){
+      // force fetch current messages
+      db.ref('ims-asb/chat/general').once('value').then(snap=>{
+        if(activeConvo!=='general')return;
+        const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
+        renderMsgs(msgs);
+      });
+    }
+  } else {
+    const partner=id.replace('dm:','');
+    title.textContent=partner;
+    membersEl.textContent='';
+    const path=dmPath(partner);
+    if(convoListeners[id])try{db.ref(convoListeners[id]).off();}catch(e){}
+    convoListeners[id]=path;
+    if(db)db.ref(path).on('value',snap=>{
+      if(activeConvo!==id)return;
+      const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
+      renderMsgs(msgs);
+    });
+  }
+  // chat-msgs click handler for delete buttons
+  const msgsEl=document.getElementById('chat-msgs');
+  if(msgsEl)msgsEl.onclick=function(e){
+    const btn=e.target.closest('.del-msg-btn');
+    if(btn)deleteMsg(btn.dataset.convo,parseInt(btn.dataset.id));
+  };
+  document.getElementById('chat-input').focus();
+}
+
+function backToList(){
+  activeConvo=null;
+  document.getElementById('chat-convo-view').style.display='none';
+  document.getElementById('chat-list-view').style.display='block';
+  // refresh convo list with latest users
+  if(db&&isConnected){
+    db.ref('ims-asb/users').once('value').then(snap=>{
+      const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):knownUsers;
+      renderConvoList(users);
+    });
+  }
+}
+
 
 // Profanity blocklist — instant block before AI check
 const BLOCKED=['nigger','nigga','n1gger','n1gga','faggot','fag','retard','chink','spic','kike','cunt','fuck','f*ck','sh1t','b1tch','whore','slut'];
@@ -1635,6 +1716,7 @@ function clearGeneralChat(){
     renderMsgs([]);
   }).catch(e=>toast('Error: '+e.message));
 }
+
 
 let lastMsg='';let lastMsgTime=0;
 async function sendMsg(){
