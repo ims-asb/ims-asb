@@ -1047,6 +1047,7 @@ function startListener(){
   });
   isConnected=true;setSyncStatus(true);
   renderConvoList();
+  migrateChatIfNeeded();
   setTimeout(checkEventReminders,2000);
   // announcements listener
   db.ref('ims-asb/announcements').on('value',(snap)=>{
@@ -1522,17 +1523,43 @@ function loadTest(){
   if(TEST.users)renderPeople(TEST.users);
   if(TEST.users)renderConvoList(TEST.users);
   // goal
-  if(TEST.goal){localStorage.setItem('ims-goal',TEST.goal);}
+  if(TEST.goal){localStorage.setItem('ims-goal-real',localStorage.getItem('ims-goal')||'0');localStorage.setItem('ims-goal',TEST.goal);}
   document.getElementById('test-banner').classList.add('on');
   document.getElementById('month-filter').value='all';
   renderAll();go('home');toast('Test data loaded!');
 }
 function clearTest(){
-  testMode=false;data={txns:[],events:[],notes:[],ideas:[]};
-  if(db&&isConnected){/* listener will repopulate */}
-  else{try{const s=localStorage.getItem('ims-asb-local');if(s)data=JSON.parse(s);}catch(e){}}
+  testMode=false;
+  data={txns:[],events:[],notes:[],ideas:[]};
   document.getElementById('test-banner').classList.remove('on');
-  renderAll();toast('Back to your real data');
+  // clear test-injected UI
+  renderAnnouncements([]);
+  renderPeople([]);
+  renderConvoList([]);
+  // restore real goal
+  const realGoal=localStorage.getItem('ims-goal-real')||'0';
+  localStorage.setItem('ims-goal',realGoal);
+  updateGoalBar();
+  // repopulate from Firebase or localStorage
+  if(db&&isConnected){
+    db.ref('ims-asb').once('value').then(snap=>{
+      const remote=snap.val();
+      if(remote){
+        data.txns=Object.values(remote.txns||{}).sort((a,b)=>b.id-a.id);
+        data.events=Object.values(remote.events||{});
+        data.notes=Object.values(remote.notes||{}).sort((a,b)=>b.id-a.id);
+        data.ideas=Object.values(remote.ideas||{});
+        if(remote.users){const users=Object.values(remote.users).sort((a,b)=>a.name.localeCompare(b.name));renderPeople(users);renderConvoList(users);}
+        if(remote.announcements)renderAnnouncements(Object.values(remote.announcements).sort((a,b)=>b.id-a.id));
+        if(remote.goal)localStorage.setItem('ims-goal',remote.goal);
+      }
+      renderAll();
+    });
+  } else {
+    try{const s=localStorage.getItem('ims-asb-local');if(s)data=JSON.parse(s);}catch(e){}
+    renderAll();
+  }
+  toast('Back to your real data');
 }
 
 // ── CHAT ──────────────────────────────────────────────────────────────
@@ -2451,6 +2478,34 @@ function renderIdeaVotes(id,el){
     el.innerHTML='';
     el.appendChild(btn);
     el.appendChild(ct);
+  });
+}
+
+
+// ── CHAT MIGRATION ────────────────────────────────────────────────────
+function migrateChatIfNeeded(){
+  if(!db||!isConnected)return;
+  if(localStorage.getItem('ims-chat-migrated'))return;
+  // check for old-style messages at ims-asb/chat (flat, not nested under /general or /dm)
+  db.ref('ims-asb/chat').once('value').then(snap=>{
+    const val=snap.val();
+    if(!val)return;
+    // old messages are numeric keys with {id,name,role,text} directly under /chat
+    // new structure has /chat/general/{id} and /chat/dm/{...}
+    const oldMsgs=Object.entries(val).filter(([k,v])=>
+      !isNaN(k)&&v&&typeof v==='object'&&v.text
+    );
+    if(!oldMsgs.length){localStorage.setItem('ims-chat-migrated','1');return;}
+    console.log('Migrating',oldMsgs.length,'old chat messages to /general...');
+    const updates={};
+    oldMsgs.forEach(([k,v])=>{
+      updates['ims-asb/chat/general/'+k]=v;
+      updates['ims-asb/chat/'+k]=null; // remove old
+    });
+    db.ref().update(updates).then(()=>{
+      localStorage.setItem('ims-chat-migrated','1');
+      toast('Chat messages restored!');
+    });
   });
 }
 
