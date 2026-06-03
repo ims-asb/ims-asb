@@ -209,6 +209,10 @@ body.dark .chat-msg.them .chat-bubble{background:var(--border);color:var(--text)
 .convo-name{font-size:14px;font-weight:500}
 .convo-preview{font-size:12px;color:var(--hint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
 .convo-time{font-size:11px;color:var(--hint);font-family:'DM Mono',monospace;flex-shrink:0}
+.del-msg-btn{cursor:pointer;color:rgba(255,255,255,.6);font-size:11px;padding:1px 4px;border-radius:4px;transition:color .15s}
+.del-msg-btn:hover{color:#fff}
+.chat-msg.them .del-msg-btn{color:var(--hint)}
+.chat-msg.them .del-msg-btn:hover{color:var(--red)}
 .chat-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface)}
 .chat-hdr-title{font-size:14px;font-weight:500;flex:1}
 .back-btn{background:none;border:none;cursor:pointer;color:var(--accent);font-size:14px;padding:4px;font-family:'DM Sans',sans-serif}
@@ -1065,7 +1069,10 @@ function startListener(){
   // register this user in Firebase
   if(prefs.name){
     const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
-    db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role||'',joinedAt:(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
+    db.ref('ims-asb/users/'+uid).once('value').then(snap=>{
+      const existing=snap.val()||{};
+      db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role||'',joinedAt:existing.joinedAt||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
+    });
   }
 }
 
@@ -1547,82 +1554,52 @@ function renderMsgs(msgs){
   const el=document.getElementById('chat-msgs');
   if(!msgs||!msgs.length){el.innerHTML='<div style="text-align:center;font-size:13px;color:var(--hint);margin:auto">No messages yet.</div>';return;}
   const myName=prefs.name||'';
-  el.innerHTML=msgs.map(m=>{
+  const now=Date.now();
+  el.innerHTML='';
+  msgs.forEach(m=>{
     const isMe=m.name===myName;
     const t=new Date(m.id);
     const time=t.toLocaleTimeString('default',{hour:'numeric',minute:'2-digit'});
     const day=t.toLocaleDateString('default',{month:'short',day:'numeric'});
-    return '<div class="chat-msg '+(isMe?'me':'them')+'">'
-      +(!isMe?'<div class="chat-meta">'+m.name+(m.role?' · '+m.role:'')+'</div>':'')
-      +'<div class="chat-bubble">'+m.text+'</div>'
-      +'<div class="chat-meta">'+day+' '+time+'</div>'
-      +'</div>';
-  }).join('');
+    const canDelete=isMe&&(now-m.id)<60000;
+    const secsLeft=canDelete?Math.ceil((60000-(now-m.id))/1000):0;
+    const div=document.createElement('div');
+    div.className='chat-msg '+(isMe?'me':'them');
+    div.id='cmsg-'+m.id;
+    if(!isMe){
+      const meta=document.createElement('div');
+      meta.className='chat-meta';
+      meta.textContent=m.name+(m.role?' · '+m.role:'');
+      div.appendChild(meta);
+    }
+    const bubble=document.createElement('div');
+    bubble.className='chat-bubble';
+    bubble.textContent=m.text;
+    div.appendChild(bubble);
+    const foot=document.createElement('div');
+    foot.className='chat-meta';
+    foot.style.cssText='display:flex;align-items:center;gap:6px';
+    foot.textContent=day+' '+time;
+    if(canDelete){
+      const btn=document.createElement('span');
+      btn.className='del-msg-btn';
+      btn.title='Delete ('+secsLeft+'s left)';
+      btn.textContent='✕';
+      btn.onclick=()=>deleteMsg(activeConvo,m.id);
+      foot.appendChild(btn);
+      setTimeout(()=>{if(btn.parentNode)btn.parentNode.removeChild(btn);},60000-(now-m.id)+100);
+    }
+    div.appendChild(foot);
+    el.appendChild(div);
+  });
   scrollChat();
 }
-
-function scrollChat(){const el=document.getElementById('chat-msgs');if(el)el.scrollTop=el.scrollHeight;}
-
-function renderConvoList(users){
-  if(users)knownUsers=users;
-  const cl=document.getElementById('convo-list');
-  if(!db||!isConnected){cl.innerHTML='<p style="font-size:13px;color:var(--muted)">Connect to Firebase to start chatting.</p>';return;}
-  let html=`<div class="convo-item" onclick="openConvo('general')">`
-    +`<div class="convo-avatar group">💬</div>`
-    +`<div class="convo-info"><div class="convo-name"># General</div><div class="convo-preview">Team-wide chat</div></div>`
-    +`</div>`;
-  knownUsers.filter(u=>u.name!==prefs.name).forEach(u=>{
-    const initials=u.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
-    const roleColors={Treasurer:'blue',President:'blue','Vice President':'blue',Secretary:'green',Advisor:'green','7th Grade Rep':'blue',Member:'',Supporter:''};
-    html+=`<div class="convo-item" onclick="openConvo('dm:${u.name}')">`
-      +`<div class="convo-avatar">${initials}</div>`
-      +`<div class="convo-info"><div class="convo-name">${u.name}<span class="role-badge">${u.role||'Member'}</span></div></div>`
-      +`</div>`;
-  });
-  cl.innerHTML=html;
+function deleteMsg(convo,msgId){
+  if(!db||!isConnected){toast('Not connected');return;}
+  if(Date.now()-msgId>60000){toast('Too late to delete');return;}
+  const path=convo==='general'?'ims-asb/chat/general/'+msgId:dmPath(convo.replace('dm:',''))+'/'+msgId;
+  db.ref(path).remove().catch(e=>toast('Error: '+e.message));
 }
-
-function openConvo(id){
-  activeConvo=id;
-  document.getElementById('chat-list-view').style.display='none';
-  document.getElementById('chat-convo-view').style.display='block';
-  const title=document.getElementById('chat-convo-title');
-  const membersEl=document.getElementById('chat-members');
-  if(id==='general'){
-    title.textContent='# General';
-    membersEl.textContent=knownUsers.length+' member'+(knownUsers.length!==1?'s':'');
-    if(!convoListeners.general&&db){
-      convoListeners.general=true;
-      db.ref('ims-asb/chat/general').on('value',snap=>{
-        if(activeConvo!=='general')return;
-        const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
-        renderMsgs(msgs);
-      });
-    }
-  } else {
-    const partner=id.replace('dm:','');
-    title.textContent=partner;
-    membersEl.textContent='';
-    const path=dmPath(partner);
-    if(convoListeners[id])try{db.ref(convoListeners[id]).off();}catch(e){}
-    convoListeners[id]=path;
-    db.ref(path).on('value',snap=>{
-      if(activeConvo!==id)return;
-      const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
-      renderMsgs(msgs);
-    });
-  }
-  document.getElementById('chat-input').focus();
-}
-
-function backToList(){
-  activeConvo=null;
-  document.getElementById('chat-convo-view').style.display='none';
-  document.getElementById('chat-list-view').style.display='block';
-}
-
-// dm picker removed — DMs accessible directly from convo list
-
 function clearGeneralChat(){
   if(!confirm('Clear all general chat messages? This cannot be undone.'))return;
   if(!db||!isConnected){toast('Not connected to Firebase');return;}
@@ -1967,7 +1944,10 @@ function finishOnboard(){
   if(!localStorage.getItem('ims-tour-done'))setTimeout(startTour,600);
   if(db&&isConnected&&prefs.name&&!testMode){
     const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
-    db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role,joinedAt:(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
+    db.ref('ims-asb/users/'+uid).once('value').then(snap=>{
+      const existing=snap.val()||{};
+      db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role,joinedAt:existing.joinedAt||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
+    });
   }
 }
 
