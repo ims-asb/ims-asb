@@ -472,15 +472,18 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <button class="btn sm" onclick="toggleGoalForm()">🎯 Set goal</button>
     </div>
     <div id="goal-form" style="display:none;margin-bottom:12px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
-      <div style="display:flex;gap:8px;align-items:center">
-        <label style="font-size:13px;color:var(--muted);flex-shrink:0">Fundraising goal ($)</label>
-        <input type="number" id="goal-input" min="0" step="1" placeholder="e.g. 2000" style="flex:1;font-size:14px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)">
-        <button class="btn sm primary" onclick="saveGoal()">Save</button>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <input type="text" id="goal-name-input" placeholder="Goal name (e.g. Spring Dance Fund)" style="font-size:14px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)">
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="font-size:13px;color:var(--muted);flex-shrink:0">Amount ($)</label>
+          <input type="number" id="goal-input" min="0" step="1" placeholder="e.g. 2000" style="flex:1;font-size:14px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)">
+          <button class="btn sm primary" onclick="saveGoal()">Save</button>
+        </div>
       </div>
     </div>
     <div id="goal-progress" style="display:none;margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px">
-        <span>Fundraising goal</span><span id="goal-pct">0%</span>
+        <span id="goal-name-label">Fundraising goal</span><span id="goal-pct">0%</span>
       </div>
       <div class="progress-wrap"><div class="progress-bar" id="goal-bar" style="width:0%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);margin-top:2px">
@@ -1597,6 +1600,7 @@ function clearTest(){
         if(remote.users){const users=Object.values(remote.users).sort((a,b)=>a.name.localeCompare(b.name));renderPeople(users);renderConvoList(users);}
         if(remote.announcements)renderAnnouncements(Object.values(remote.announcements).sort((a,b)=>b.id-a.id));
         if(remote.goal)localStorage.setItem('ims-goal',remote.goal);
+        if(remote['goal-name'])localStorage.setItem('ims-goal-name',remote['goal-name']);
       }
       renderAll();
     });
@@ -1611,6 +1615,7 @@ function clearTest(){
 let activeConvo=null;
 let convoListeners={};
 let knownUsers=[];
+let latestOnlineData=null;
 function scrollChat(){const el=document.getElementById('chat-msgs');if(el)el.scrollTop=el.scrollHeight;}
 
 function renderConvoList(users){
@@ -1639,6 +1644,7 @@ function renderConvoList(users){
     </div>`;
   });
   cl.innerHTML=html;
+  renderOnlineStatus(latestOnlineData);
 }
 
 function openConvo(id){
@@ -2137,6 +2143,7 @@ function finishOnboard(){
   closeModal('onboard-modal');
   applyPrefs();
   toast('Welcome, '+prefs.name+'!');
+  startOnlineHeartbeat();
   if(!localStorage.getItem('ims-tour-done'))setTimeout(startTour,600);
   if(db&&isConnected&&prefs.name&&!testMode){
     const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
@@ -2401,20 +2408,24 @@ function toggleGoalForm(){
   const f=document.getElementById('goal-form');
   f.style.display=f.style.display==='none'?'block':'none';
   if(f.style.display==='block'){
-    const g=localStorage.getItem('ims-goal')||'';
-    document.getElementById('goal-input').value=g;
+    document.getElementById('goal-input').value=localStorage.getItem('ims-goal')||'';
+    document.getElementById('goal-name-input').value=localStorage.getItem('ims-goal-name')||'';
   }
 }
 function saveGoal(){
   const g=parseFloat(document.getElementById('goal-input').value)||0;
+  const gname=document.getElementById('goal-name-input').value.trim()||'Fundraising goal';
   localStorage.setItem('ims-goal',g);
-  if(db&&isConnected&&!testMode)db.ref('ims-asb/goal').set(g);
+  localStorage.setItem('ims-goal-name',gname);
+  if(db&&isConnected&&!testMode){db.ref('ims-asb/goal').set(g);db.ref('ims-asb/goal-name').set(gname);}
   document.getElementById('goal-form').style.display='none';
   updateGoalBar();
   toast('Goal saved');
 }
 function updateGoalBar(){
   const goal=parseFloat(localStorage.getItem('ims-goal')||'0');
+  const goalName=localStorage.getItem('ims-goal-name')||'Fundraising goal';
+  const gnl=document.getElementById('goal-name-label');if(gnl)gnl.textContent=goalName;
   const income=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const gp=document.getElementById('goal-progress');
   const gb=document.getElementById('goal-bar');
@@ -2530,6 +2541,7 @@ function renderPeople(users){
   if(pe)pe.style.display='none';
   if(pl)pl.style.display='block';
   if(pc)pc.textContent=users.length+' member'+(users.length!==1?'s':'');
+  if(latestOnlineData)setTimeout(()=>renderOnlineStatus(latestOnlineData),50);
   const ICONS={Treasurer:'💰',President:'🎖',Secretary:'📋','Vice President':'⭐',Member:'👤',Supporter:'🤝',Advisor:'🏫','7th Grade Rep':'🎒'};
   pl.innerHTML='';
   users.forEach(u=>{
@@ -2555,6 +2567,7 @@ function renderPeople(users){
     row.appendChild(icon);row.appendChild(info);
     pl.appendChild(row);
   });
+  renderOnlineStatus(latestOnlineData);
 }
 
 // ── CONFETTI ──────────────────────────────────────────────────────────
@@ -2721,12 +2734,14 @@ function startOnlineHeartbeat(){
   onlineHeartbeat=setInterval(ping,60000);
 }
 function renderOnlineStatus(onlineData){
+  if(onlineData!==undefined&&onlineData!==null)latestOnlineData=onlineData;
+  const data_=latestOnlineData;
   const now=Date.now();
   const ONLINE_THRESH=5*60*1000; // 5 minutes
   // update people tab dots
   document.querySelectorAll('[data-person-uid]').forEach(el=>{
     const uid=el.dataset.personUid;
-    const entry=onlineData&&onlineData[uid];
+    const entry=data_&&data_[uid];
     const isOnline=entry&&(now-entry.at)<ONLINE_THRESH;
     const dot=el.querySelector('.online-dot');
     if(dot)dot.className='online-dot'+(isOnline?' active':'');
@@ -2734,7 +2749,7 @@ function renderOnlineStatus(onlineData){
   // update convo list dots
   document.querySelectorAll('[data-convo-uid]').forEach(el=>{
     const uid=el.dataset.convoUid;
-    const entry=onlineData&&onlineData[uid];
+    const entry=data_&&data_[uid];
     const isOnline=entry&&(now-entry.at)<ONLINE_THRESH;
     const dot=el.querySelector('.online-dot');
     if(dot)dot.className='online-dot'+(isOnline?' active':'');
