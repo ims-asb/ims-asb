@@ -1178,6 +1178,7 @@ function go(t){
   });
   document.getElementById('month-filter').style.display=t==='budget'?'block':'none';
   if(t==='chat'){renderConvoList();}
+  if(t==='people'&&db&&isConnected){db.ref('ims-asb/users').once('value').then(snap=>{const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):[];renderPeople(users);knownUsers=users;});}
   if(t==='events')renderCal();
 }
 function showStab(id){
@@ -1191,11 +1192,17 @@ function updateCats(){
   document.getElementById('f-cat').innerHTML='<option value="">Select...</option>'+TCATS[type].map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 function daysUntil(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/(864e5));}
+let _renderAllTimer=null;
 function renderAll(){
+  if(_renderAllTimer)clearTimeout(_renderAllTimer);
+  _renderAllTimer=setTimeout(_doRenderAll,50);
+}
+function _doRenderAll(){
   updateGoalBar();
   updateGreeting();
   renderAgenda();renderHome();renderBudget();renderEvents();renderNotes();renderIdeas();
-  renderBudgetChart();}
+  renderBudgetChart();
+}
 
 // ── HOME ──────────────────────────────────────────────────────────────
 function renderHome(){
@@ -1628,22 +1635,22 @@ function renderConvoList(users){
   const myUid=prefs.name?prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-'):'';
   const storedUser=knownUsers.find(u=>u.name===prefs.name);
   const roleVerified=!storedUser||(storedUser.role===prefs.role);
-  let html=`<div class="convo-item" onclick="openConvo('general')">
+  let chtml=`<div class="convo-item" onclick="openConvo('general')">
     <div class="convo-avatar group">💬</div>
     <div class="convo-info"><div class="convo-name"># General</div><div class="convo-preview">Team-wide chat</div></div>
   </div>`;
   // only show DMs if role is verified
-  if(!roleVerified){cl.innerHTML=html;return;}
+  if(!roleVerified){cl.innerHTML=chtml;return;}
   knownUsers.filter(u=>u.name!==prefs.name).forEach(u=>{
     const initials=u.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
     const roleColors={Treasurer:'blue',President:'blue','Vice President':'blue',Secretary:'green',Advisor:'green'};
     const duid=u.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
-    html+=`<div class="convo-item" onclick="openConvo('dm:${u.name}')" data-convo-uid="${duid}">
+    chtml+=`<div class="convo-item" onclick="openConvo('dm:${u.name}')" data-convo-uid="${duid}">
       <div class="convo-avatar" style="position:relative">${initials}<span class="online-dot" style="position:absolute;bottom:1px;right:1px;border:2px solid var(--surface)"></span></div>
       <div class="convo-info"><div class="convo-name">${u.name}<span class="role-badge">${u.role||'Member'}</span></div></div>
     </div>`;
   });
-  cl.innerHTML=html;
+  cl.innerHTML=chtml;
   renderOnlineStatus(latestOnlineData);
 }
 
@@ -1657,15 +1664,8 @@ function openConvo(id){
     title.textContent='# General';
     membersEl.textContent=knownUsers.length+' member'+(knownUsers.length!==1?'s':'');
     listenTyping(id);
-    if(!convoListeners.general&&db){
-      convoListeners.general=true;
-      db.ref('ims-asb/chat/general').on('value',snap=>{
-        if(activeConvo!=='general')return;
-        const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
-        renderMsgs(msgs);
-      });
-    } else if(db){
-      // force fetch current messages
+    // startListener already has a general chat listener — just force-fetch current messages
+    if(db){
       db.ref('ims-asb/chat/general').once('value').then(snap=>{
         if(activeConvo!=='general')return;
         const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
@@ -1910,6 +1910,7 @@ function applyPrefs(){
   const role=prefs.role||'';
   // header
   document.getElementById('hdr-name').textContent=(role||'ASB')+': '+(prefs.name||'You')+' · 2026–2027';
+  updateGreeting();
   // widgets
   const w=prefs.widgets||{};
   const canSeeBudget=role==='Treasurer'||role==='Advisor';
@@ -1979,8 +1980,8 @@ function applyPrefs(){
     if(act)act.style.display='block';
   }
 
-  // TECHNICAL BUTTONS: Treasurer only
-  const techOnly=isTreasurer;
+  // TECHNICAL BUTTONS: Treasurer only (show for everyone if no role set yet)
+  const techOnly=role?isTreasurer:true;
   document.getElementById('btn-firebase')?.style.setProperty('display',techOnly?'':'none');
   document.getElementById('btn-test')?.style.setProperty('display',techOnly?'':'none');
   document.getElementById('btn-groq')?.style.setProperty('display',techOnly?'':'none');
@@ -2031,7 +2032,7 @@ function resetProfile(){
   document.getElementById('ob-step-2').classList.remove('on');
   document.getElementById('ob-name').value='';
   document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('on'));
-  const hint=document.getElementById('role-hint');if(hint)hint.textContent='';
+
   obRole='';
   openModal('onboard-modal');
 }
@@ -2105,7 +2106,7 @@ function obSelectRole(btn,role){
     role+' password',
     ROLE_HINTS[role]||'',
     (pw)=>{
-      if(pw!==ROLE_PWS[role]){toast('Wrong password');return;}
+      if(pw!==ROLE_PWS[role]){return false;}
       obRole=role;
       document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
       btn.classList.add('on');
@@ -2172,9 +2173,28 @@ function showPwModal(title, hint, onConfirm, onCancel){
 
 function pwModalConfirm(){
   const pw=document.getElementById('pw-modal-input').value;
-  if(!pw){document.getElementById('pw-modal-error').textContent='Please enter the password';return;}
-  document.getElementById('pw-modal').classList.remove('on');
-  if(pwModalCallback)pwModalCallback(pw);
+  const errEl=document.getElementById('pw-modal-error');
+  if(!pw){errEl.textContent='Please enter the password';return;}
+  // run callback — if it calls toast('Wrong password') that means failure
+  // we intercept by checking password here for role passwords
+  if(pwModalCallback){
+    const result=pwModalCallback(pw);
+    // if callback returned false explicitly, show error
+    if(result===false){
+      errEl.textContent='Wrong password — try again';
+      document.getElementById('pw-modal-input').value='';
+      document.getElementById('pw-modal-input').focus();
+      return;
+    }
+    // show success briefly then close
+    errEl.style.color='var(--green)';
+    errEl.textContent='✓ Correct!';
+    setTimeout(()=>{
+      document.getElementById('pw-modal').classList.remove('on');
+      errEl.textContent='';
+      errEl.style.color='var(--red)';
+    },600);
+  }
 }
 
 function pwModalCancel(){
@@ -2667,7 +2687,7 @@ function migrateChatIfNeeded(){
       !isNaN(k)&&v&&typeof v==='object'&&v.text
     );
     if(!oldMsgs.length){localStorage.setItem('ims-chat-migrated','1');return;}
-    console.log('Migrating',oldMsgs.length,'old chat messages to /general...');
+
     const updates={};
     oldMsgs.forEach(([k,v])=>{
       updates['ims-asb/chat/general/'+k]=v;
@@ -2686,7 +2706,10 @@ function updateGreeting(){
   const h=new Date().getHours();
   const part=h<12?'morning':h<17?'afternoon':'evening';
   const emojis={morning:'☀️',afternoon:'👋',evening:'🌙'};
-  const name=prefs.name?', '+prefs.name.split(' ')[0]:'';
+  const honorifics=['mz.','ms.','mrs.','mr.','dr.'];
+  const nameParts=(prefs.name||'').split(' ').filter(p=>!honorifics.includes(p.toLowerCase()));
+  const firstName=nameParts[0]||prefs.name||'';
+  const name=firstName?', '+firstName:'';
   const gtxt=document.getElementById('greeting-text');
   const gsub=document.getElementById('greeting-sub');
   if(gtxt)gtxt.textContent='Good '+part+name+' '+emojis[part];
@@ -2840,6 +2863,8 @@ function archiveYear(){
   }).catch(e=>toast('Error: '+e.message));
 }
 
+// ── ELEMENT CACHE ────────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
 // ── INIT ──────────────────────────────────────────────────────────────
 const today=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 document.getElementById('f-date').value=today;
