@@ -293,6 +293,13 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .summary-stat{text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)}
 .summary-stat .s-val{font-size:24px;font-weight:700;color:var(--accent)}
 .summary-stat .s-lbl{font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;margin-top:2px}
+
+.avatar-img{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.avatar-img.lg{width:64px;height:64px}
+.avatar-upload-btn{position:relative;cursor:pointer;display:inline-block}
+.avatar-upload-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.avatar-preview{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--border);display:block}
+.avatar-change-hint{font-size:11px;color:var(--hint);margin-top:4px;text-align:center}
 </style>
 </head>
 <body>
@@ -734,7 +741,22 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
         <label class="toggle-sw"><input type="checkbox" id="wt-upcoming" onchange="saveWidgetPrefs()" checked><span class="slider"></span></label>
       </div>
     </div>
-    <div style="margin-top:16px">
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Profile photo</p>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+        <img id="avatar-preview-img" class="avatar-img lg" src="" style="display:none">
+        <div id="avatar-initials-preview" style="width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;flex-shrink:0"></div>
+        <div>
+          <label class="avatar-upload-btn">
+            <span class="btn sm">📷 Upload photo</span>
+            <input type="file" accept="image/*" onchange="handleAvatarUpload(this)">
+          </label>
+          <div class="avatar-change-hint">JPG, PNG, GIF · auto-resized to 80×80</div>
+          <button class="btn sm" style="margin-top:6px;color:var(--hint)" onclick="removeAvatar()">Remove photo</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:0">
       <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Your name &amp; role</p>
       <div class="grid2" style="margin-bottom:0">
         <div class="fg"><label class="fl">Name</label><input type="text" id="pref-name" placeholder="Your name"></div>
@@ -1066,6 +1088,12 @@ function startListener(){
       // users / members
       if(remote.users){
         const users=Object.values(remote.users).sort((a,b)=>a.name.localeCompare(b.name));
+        // sync own avatar from Firebase
+        const myUser=users.find(u=>u.name===prefs.name);
+        if(myUser&&myUser.avatar&&!prefs.avatar){
+          prefs.avatar=myUser.avatar;
+          localStorage.setItem('ims-prefs',JSON.stringify(prefs));
+        }
         renderPeople(users);
         renderConvoList(users);
       } else {
@@ -1118,7 +1146,7 @@ function startListener(){
     const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
     db.ref('ims-asb/users/'+uid).once('value').then(snap=>{
       const existing=snap.val()||{};
-      db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role||'',joinedAt:existing.joinedAt||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
+      db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role||'',avatar:prefs.avatar||'',joinedAt:existing.joinedAt||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
     });
   }
 }
@@ -1165,7 +1193,7 @@ function autoConnectFirebase(){
 // ── UI HELPERS ────────────────────────────────────────────────────────
 function fmt(n){return'$'+parseFloat(n).toFixed(2);}
 function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),2400);}
-function openModal(id){document.getElementById(id).classList.add('on');}
+function openModal(id){document.getElementById(id).classList.add('on');if(id==='customize-modal')updateAvatarPreview();}
 function closeModal(id){document.getElementById(id).classList.remove('on');}
 function showForm(id){document.getElementById(id).style.display='block';}
 function hideForm(id){document.getElementById(id).style.display='none';}
@@ -1942,6 +1970,7 @@ function applyPrefs(){
   // fill customize fields
   const pn=document.getElementById('pref-name');if(pn)pn.value=prefs.name||'';
   const pr=document.getElementById('pref-role');if(pr)pr.value=prefs.role||'';
+  updateAvatarPreview();
 
   // ── ROLE-BASED ACCESS ──────────────────────────────────────────────
   const tabs=document.querySelectorAll('.tab');
@@ -2592,9 +2621,8 @@ function renderPeople(users){
     const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)';
     row.dataset.personUid=uid;
-    const icon=document.createElement('div');
-    icon.style.cssText='width:36px;height:36px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;position:relative';
-    icon.textContent=ICONS[u.role]||'👤';
+    const icon=getAvatarEl(u,'sm');
+    icon.style.cssText=(icon.tagName==='IMG'?'width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--border);position:relative':'width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;position:relative');
     const dot=document.createElement('span');
     dot.className='online-dot';
     dot.style.cssText='position:absolute;bottom:1px;right:1px;border:2px solid var(--surface)';
@@ -2899,6 +2927,85 @@ function archiveYear(){
 
 // ── ELEMENT CACHE ────────────────────────────────────────────────────
 const $=id=>document.getElementById(id);
+
+// ── AVATARS ───────────────────────────────────────────────────────────
+function handleAvatarUpload(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      // compress to 80x80
+      const canvas=document.createElement('canvas');
+      canvas.width=80;canvas.height=80;
+      const ctx=canvas.getContext('2d');
+      // crop to square from center
+      const size=Math.min(img.width,img.height);
+      const sx=(img.width-size)/2;
+      const sy=(img.height-size)/2;
+      ctx.drawImage(img,sx,sy,size,size,0,0,80,80);
+      const b64=canvas.toDataURL('image/jpeg',0.7);
+      saveAvatar(b64);
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveAvatar(b64){
+  prefs.avatar=b64;
+  localStorage.setItem('ims-prefs',JSON.stringify(prefs));
+  if(db&&isConnected&&prefs.name&&!testMode){
+    const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
+    db.ref('ims-asb/users/'+uid+'/avatar').set(b64);
+  }
+  updateAvatarPreview();
+  toast('Profile photo saved');
+}
+
+function removeAvatar(){
+  prefs.avatar='';
+  localStorage.setItem('ims-prefs',JSON.stringify(prefs));
+  if(db&&isConnected&&prefs.name&&!testMode){
+    const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
+    db.ref('ims-asb/users/'+uid+'/avatar').remove();
+  }
+  updateAvatarPreview();
+  toast('Photo removed');
+}
+
+function updateAvatarPreview(){
+  const img=document.getElementById('avatar-preview-img');
+  const ini=document.getElementById('avatar-initials-preview');
+  if(prefs.avatar){
+    if(img){img.src=prefs.avatar;img.style.display='block';}
+    if(ini)ini.style.display='none';
+  } else {
+    if(img)img.style.display='none';
+    if(ini){
+      ini.style.display='flex';
+      const parts=(prefs.name||'?').split(' ');
+      ini.textContent=parts.map(p=>p[0]).join('').toUpperCase().slice(0,2);
+    }
+  }
+}
+
+function getAvatarEl(user,size){
+  // returns an img or div element for a user's avatar
+  const el=document.createElement(user.avatar?'img':'div');
+  if(user.avatar){
+    el.src=user.avatar;
+    el.className='avatar-img'+(size==='lg'?' lg':'');
+    el.alt=user.name;
+  } else {
+    const initials=(user.name||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+    el.textContent=initials;
+    el.style.cssText='width:'+(size==='lg'?'64':'36')+'px;height:'+(size==='lg'?'64':'36')+'px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:'+(size==='lg'?'22':'14')+'px;font-weight:600;flex-shrink:0';
+  }
+  return el;
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────
 const today=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 document.getElementById('f-date').value=today;
