@@ -2547,6 +2547,29 @@ function clearChatBadge(){
 // archive moved to year summary section
 
 
+
+function removeUser(name){
+  if(!confirm('Remove '+name+' from the hub? They will need to re-register.'))return;
+  if(!db||!isConnected){toast('Not connected');return;}
+  const uid=name.toLowerCase().replace(/[^a-z0-9]/g,'-');
+  // remove user record
+  db.ref('ims-asb/users/'+uid).remove();
+  // remove their general chat messages
+  db.ref('ims-asb/chat/general').once('value').then(snap=>{
+    if(!snap.val())return;
+    const updates={};
+    Object.entries(snap.val()).forEach(([k,v])=>{
+      if(v.name===name)updates['ims-asb/chat/general/'+k]=null;
+    });
+    if(Object.keys(updates).length)db.ref().update(updates);
+  });
+  knownUsers=knownUsers.filter(u=>u.name!==name);
+  renderPeople(knownUsers);
+  renderConvoList(knownUsers);
+  logActivity('Removed user',name);
+  toast(name+' removed');
+}
+
 // ── PEOPLE ────────────────────────────────────────────────────────────
 function renderPeople(users){
   const pl=document.getElementById('people-list');
@@ -2585,6 +2608,17 @@ function renderPeople(users){
     meta.textContent=(u.role||'Member')+(u.joinedAt?' · joined '+u.joinedAt:'');
     info.appendChild(name);info.appendChild(meta);
     row.appendChild(icon);row.appendChild(info);
+    const canRemove=(prefs.role==='Treasurer'||prefs.role==='Advisor')&&u.name!==prefs.name;
+    if(canRemove){
+      const removeBtn=document.createElement('button');
+      removeBtn.style.cssText='background:none;border:none;cursor:pointer;color:var(--hint);font-size:16px;padding:4px 8px;border-radius:4px;flex-shrink:0';
+      removeBtn.title='Remove '+u.name;
+      removeBtn.textContent='✕';
+      removeBtn.onmouseover=function(){this.style.color='var(--red)';};
+      removeBtn.onmouseout=function(){this.style.color='var(--hint)';};
+      removeBtn.onclick=function(){removeUser(u.name);};
+      row.appendChild(removeBtn);
+    }
     pl.appendChild(row);
   });
   renderOnlineStatus(latestOnlineData);
