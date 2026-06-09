@@ -1366,6 +1366,13 @@ function loadPrefs(){
 const FULL_ROLES=['Treasurer','President','Secretary','Vice President','Member','7th Grade Rep'];
 function applyPrefs(){
   const role=prefs.role||'';
+  const isTreasurer=role==='Treasurer';
+  const isAdvisor=role==='Advisor';
+  const isPresident=role==='President';
+  const isVP=role==='Vice President';
+  const isSecretary=role==='Secretary';
+  const isSupporter=role==='Supporter';
+  const isMember=role==='Member';
   // header
   document.getElementById('hdr-name').textContent=(role||'ASB')+': '+(prefs.name||'You')+' · 2026–2027';
   updateGreeting();
