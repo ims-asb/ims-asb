@@ -320,6 +320,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <button id="btn-firebase" class="icon-btn" onclick="openModal('firebase-modal')">🔥 Firebase</button>
     <button id="btn-groq" class="icon-btn" onclick="openModal('groq-modal')">⚙ Groq</button>
     <button id="btn-settings" class="icon-btn" onclick="openModal('settings-modal')" style="display:none">🔑 Passwords</button>
+    <button id="btn-finance" class="icon-btn" onclick="window.open('https://ims-asb.github.io/ims-finance','_blank')" style="display:none" title="Open Financial Manager">📊 Finances</button>
   </div>
 </div>
 
@@ -779,7 +780,6 @@ data.events=Object.values(remote.events||{});
   // goal sync
   db.ref('ims-asb/goal').once('value').then(snap=>{
     if(snap.val())localStorage.setItem('ims-goal',snap.val());
-    updateGoalBar();
   });
   // listen for nuclear reset requests
   db.ref('ims-asb/reset-request').on('value',(snap)=>{
@@ -800,7 +800,7 @@ function save(){
   if(testMode)return;
   if(db&&isConnected){
     const toObj=(arr)=>arr.reduce((o,i)=>{o[i.id]=i;return o;},{});
-    db.ref('ims-asb').set({txns:toObj(data.txns),events:toObj(data.events),notes:toObj(data.notes),ideas:toObj(data.ideas)})
+    db.ref('ims-asb').set({events:toObj(data.events),notes:toObj(data.notes),ideas:toObj(data.ideas)})
       .catch(e=>toast('Save error: '+e.message));
   } else {
     try{localStorage.setItem('ims-asb-local',JSON.stringify(data));}catch(e){}
@@ -854,16 +854,6 @@ function go(t){
   if(t==='people'&&db&&isConnected){db.ref('ims-asb/users').once('value').then(snap=>{const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):[];renderPeople(users);knownUsers=users;});}
   if(t==='events')renderCal();
 }
-function showStab(id){
-  ['overview','add-txn','history','talking'].forEach(n=>{
-    document.getElementById('st-'+n)?.classList.toggle('on',n===id);
-    document.getElementById('ss-'+n)?.classList.toggle('on',n===id);
-  });
-}
-function updateCats(){
-  const type=document.getElementById('f-type').value;
-  document.getElementById('f-cat').innerHTML='<option value="">Select...</option>'+TCATS[type].map(c=>`<option value="${c}">${c}</option>`).join('');
-}
 function daysUntil(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/(864e5));}
 let _renderAllTimer=null;
 function renderAll(){
@@ -880,9 +870,6 @@ function _doRenderAll(){
 function renderHome(){
 
   const upcoming=data.events.filter(e=>daysUntil(e.date)>=0).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const inc=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const exp=data.txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const bal=inc-exp;
   const canSeeBalance=prefs.role==='Treasurer'||prefs.role==='Advisor';
   const wBal=document.getElementById('w-balance');if(wBal)wBal.style.display=canSeeBalance?'':'none';
   const hb=document.getElementById('h-bal');if(hb&&canSeeBalance){hb.textContent=fmt(bal);hb.className='metric-val '+(bal>=0?'pos':'neg');}
@@ -894,389 +881,25 @@ function renderHome(){
 
   const hel=document.getElementById('home-events-list'),hee=document.getElementById('home-events-empty');
   if(!upcoming.length){hel.innerHTML='';hee.style.display='block';}else{hee.style.display='none';hel.innerHTML=upcoming.slice(0,4).map(e=>eventRowHTML(e,false)).join('');}
-  // finances card (read-only, for non-treasurer)
-  const finInc=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const finExp=data.txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const finBal=finInc-finExp;
-  const fb=document.getElementById('fin-bal');
-  const fi=document.getElementById('fin-inc');
-  const fe=document.getElementById('fin-exp');
-  const fc=document.getElementById('fin-top-cat');
-  if(fb){fb.textContent=fmt(finBal);fb.style.color=finBal>=0?'var(--green)':'var(--red)';}
-  if(fi)fi.textContent=fmt(finInc);
-  if(fe)fe.textContent=fmt(finExp);
-  if(fc)fc.textContent='';
-  // populate finances tab
-  const finCatCard=document.getElementById('fin-cat-card');
-  const finCatRows=document.getElementById('fin-cat-chart');
-  const finTxnRows=document.getElementById('fin-txn-rows');
-  const finTxnEmpty=document.getElementById('fin-txn-empty');
-  if(finCatRows){
-    const byCat={};data.txns.filter(t=>t.type==='expense').forEach(t=>{byCat[t.category]=(byCat[t.category]||0)+t.amount;});
-    const entries=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
-    if(entries.length&&finCatCard){
-      finCatCard.style.display='block';
-      finCatRows.innerHTML=entries.map(([cat,amt])=>`<div class="bar-row"><span class="bar-lbl">${cat}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,(amt/finExp)*100).toFixed(0)}%"></div></div><span class="bar-amt">${fmt(amt)}</span></div>`).join('');
-    } else if(finCatCard){finCatCard.style.display='none';}
-  }
-  if(finTxnRows){
-    if(!data.txns.length){finTxnRows.innerHTML='';if(finTxnEmpty)finTxnEmpty.style.display='block';}
-    else{if(finTxnEmpty)finTxnEmpty.style.display='none';finTxnRows.innerHTML=data.txns.slice(0,8).map(t=>txnRowHTML(t,false)).join('');}
-  }
 }
 
-// ── BUDGET ────────────────────────────────────────────────────────────
-function getFiltered(){const m=document.getElementById('month-filter').value;return m==='all'?data.txns:data.txns.filter(t=>t.date.startsWith(m));}
-function renderCats(f,te){
-  const bc={};f.filter(t=>t.type==='expense').forEach(t=>{bc[t.category]=(bc[t.category]||0)+t.amount;});
-  const en=Object.entries(bc).sort((a,b)=>b[1]-a[1]);
-  const card=document.getElementById('cat-card');
-  if(!en.length){card.style.display='none';return;}card.style.display='block';
-  document.getElementById('cat-rows').innerHTML=en.map(([c,a])=>`<div class="bar-row"><span class="bar-lbl">${c}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,(a/te)*100).toFixed(0)}%"></div></div><span class="bar-amt">${fmt(a)}</span></div>`).join('');
-}
-function txnRowHTML(t,del){
-  return `<div class="txn-row"><div class="dot ${t.type==='income'?'i':'e'}"></div><div class="txn-info"><div class="txn-name">${t.description}</div><div class="txn-meta">${t.category} · ${t.date}</div></div><span class="txn-amt ${t.type==='income'?'i':'e'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</span>${del?`<button class="del-btn" onclick="delTxn(${t.id})" title="Delete">✕</button>`:''}</div>`;
-}
-function renderRecent(f){
-  const rr=document.getElementById('recent-rows'),re=document.getElementById('recent-empty');
-  if(!f.length){rr.innerHTML='';re.style.display='block';return;}re.style.display='none';
-  rr.innerHTML=f.slice(0,5).map(t=>txnRowHTML(t,false)).join('');
-}
-function renderHistory(f,inc,exp){
-  const hl=document.getElementById('history-list'),he=document.getElementById('history-empty'),hf=document.getElementById('history-footer');
-  if(!f.length){hl.innerHTML='';he.style.display='block';hf.innerHTML='';return;}he.style.display='none';
-  hl.innerHTML=`<div class="card" style="padding:12px 16px">${f.map(t=>txnRowHTML(t,true)).join('')}</div>`;
-  hf.innerHTML=`<span>${f.length} transaction${f.length!==1?'s':''}</span><span style="color:var(--green)">+${fmt(inc)}</span><span style="color:var(--red)">-${fmt(exp)}</span>`;
-}
-function updateMonths(){
-  const sel=document.getElementById('month-filter'),cur=sel.value;
-  const ms=[...new Set(data.txns.map(t=>t.date.slice(0,7)))].sort().reverse();
-  sel.innerHTML='<option value="all">All time</option>'+ms.map(m=>`<option value="${m}">${new Date(m+'-02').toLocaleString('default',{month:'short',year:'numeric'})}</option>`).join('');
-  if(ms.includes(cur))sel.value=cur;
-}
-function addTxn(){
-  const type=document.getElementById('f-type').value,date=document.getElementById('f-date').value;
-  const cat=document.getElementById('f-cat').value,desc=document.getElementById('f-desc').value.trim();
-  const amt=parseFloat(document.getElementById('f-amt').value);
-  if(!cat||!desc||isNaN(amt)||amt<=0){toast('Fill in all fields');return;}
-  data.txns.unshift({id:Date.now(),type,date,category:cat,description:desc,amount:amt});
-  save();document.getElementById('f-cat').value='';document.getElementById('f-desc').value='';document.getElementById('f-amt').value='';
-  logActivity('Added transaction',`${desc} — ${fmt(amt)}`);toast('Transaction saved');showStab('history');renderAll();
-}
-function delTxn(id){if(!confirm('Delete?'))return;data.txns=data.txns.filter(t=>t.id!==id);save();renderAll();toast('Deleted');}
-
-// ── EVENTS ────────────────────────────────────────────────────────────
-// ── CALENDAR ──────────────────────────────────────────────────────────
-let calYear=new Date().getFullYear();
-let calMonth=new Date().getMonth();
-
-function setEventsView(v){
-  document.getElementById('ev-cal-view').style.display=v==='cal'?'block':'none';
-  document.getElementById('ev-list-view').style.display=v==='list'?'block':'none';
-  document.getElementById('vt-cal').classList.toggle('on',v==='cal');
-  document.getElementById('vt-list').classList.toggle('on',v==='list');
-  if(v==='cal')renderCal();
-}
-
-function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
-function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
-
-function renderCal(){
-  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('cal-month-label').textContent=months[calMonth]+' '+calYear;
-  const grid=document.getElementById('cal-grid');
-  if(!grid)return;
-  const today=new Date();today.setHours(0,0,0,0);
-  const firstDay=new Date(calYear,calMonth,1).getDay();
-  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
-  const daysInPrev=new Date(calYear,calMonth,0).getDate();
-  // build event map for fast lookup
-  const evMap={};
-  data.events.forEach(e=>{evMap[e.date]=evMap[e.date]||[];evMap[e.date].push(e);});
-  let html='';
-  const total=Math.ceil((firstDay+daysInMonth)/7)*7;
-  for(let i=0;i<total;i++){
-    let day,month,year,otherMonth=false;
-    if(i<firstDay){day=daysInPrev-firstDay+i+1;month=calMonth-1;year=calYear;if(month<0){month=11;year--;}otherMonth=true;}
-    else if(i>=firstDay+daysInMonth){day=i-firstDay-daysInMonth+1;month=calMonth+1;year=calYear;if(month>11){month=0;year++;}otherMonth=true;}
-    else{day=i-firstDay+1;month=calMonth;year=calYear;}
-    const iso=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-    const cellDate=new Date(year,month,day);
-    const isToday=cellDate.getTime()===today.getTime();
-    const isPast=cellDate<today&&!isToday;
-    const evs=evMap[iso]||[];
-    const hasEv=evs.length>0;
-    const classes=['cal-cell',otherMonth?'other-month':'',isToday?'today':'',hasEv?'has-event':'',isPast&&!hasEv?'past':''].filter(Boolean).join(' ');
-    const onclickAttr=hasEv?(' data-date="'+iso+'"'):'';
-    let cellHtml='<div class="'+classes+'"'+onclickAttr+'><div class="cal-num">'+day+'</div>';
-    if(evs.length>0)cellHtml+='<div class="cal-event-dot">'+evs[0].name+'</div>';
-    if(evs.length>1)cellHtml+='<div class="cal-event-dot">+'+(evs.length-1)+' more</div>';
-    cellHtml+='</div>';
-    html+=cellHtml;
-  }
-  grid.innerHTML=html;
-  grid.onclick=function(e){
-    const cell=e.target.closest('[data-date]');
-    if(cell)calCellClick(cell.dataset.date);
-  };
-}
-
-function calCellClick(iso){const evs=data.events.filter(e=>e.date===iso);if(!evs.length)return;const info=evs.map(e=>e.name+(e.notes?' - '+e.notes:'')).join(', ');toast(info);}
-
-function renderEvents(){
-  renderCal();
-  const sorted=[...data.events].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const el=document.getElementById('events-list'),ee=document.getElementById('events-empty');
-  if(!sorted.length){el.style.display='none';ee.style.display='block';return;}
-  ee.style.display='none';el.style.display='block';
-  el.innerHTML=sorted.map(e=>eventRowHTML(e,true)).join('');
-}
-function addEvent(){
-  const name=document.getElementById('ev-name').value.trim(),date=document.getElementById('ev-date').value;
-  if(!name||!date){toast('Name and date required');return;}
-  data.events.push({id:Date.now(),name,date,type:document.getElementById('ev-type').value,estimatedCost:parseFloat(document.getElementById('ev-cost').value)||0,notes:document.getElementById('ev-notes').value.trim()});
-  save();document.getElementById('ev-name').value='';document.getElementById('ev-cost').value='';document.getElementById('ev-notes').value='';
-  logActivity('Added event',name+' on '+date);hideForm('event-form');toast('Event added');renderAll();
-}
-function delEvent(id){if(!confirm('Delete event?'))return;const dev=data.events.find(e=>e.id===id);logActivity('Deleted event',dev?dev.name:'unknown');data.events=data.events.filter(e=>e.id!==id);save();renderAll();toast('Deleted');}
-
-// ── AI DATE SUGGESTER ─────────────────────────────────────────────────
-async function suggestDate(){
-  const key=localStorage.getItem('ims-groq-key')||'';
-  if(!key){toast('Set your Groq key first');openModal('groq-modal');return;}
-  const query=document.getElementById('date-query').value.trim();
-  if(!query){toast('Describe the event first');return;}
-
-  // pre-compute valid weekdays (Mon-Fri) for the school year starting tomorrow
-  // avoiding existing event dates
-  const eventDates=new Set(data.events.map(e=>e.date));
-  const todayDate=new Date();todayDate.setHours(0,0,0,0);
-  const endOfYear=new Date('2027-06-15');
-  const weekdays=[];
-  const d=new Date(todayDate);d.setDate(d.getDate()+1); // start tomorrow
-  while(d<=endOfYear){
-    const dow=d.getDay();
-    const iso=d.toISOString().split('T')[0];
-    if(dow>=1&&dow<=5&&!eventDates.has(iso))weekdays.push(iso);
-    d.setDate(d.getDate()+1);
-  }
-  if(!weekdays.length){toast('No available weekdays found');return;}
-
-  const evList=[...data.events].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>`${e.date}: ${e.name}`).join(', ')||'none';
-  const today=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
-
-  // pass the list of valid dates so the model can only pick from real options
-  const sample=weekdays.slice(0,120); // first ~4 months of valid days
-  const prompt=`You are a school event scheduler. Today is ${today}.
-
-The user's request: "${query}"
-Existing events (avoid these): ${evList}
-
-Here are ALL valid available weekdays (Mon-Fri, no conflicts):
-${sample.join(', ')}
-
-Pick exactly 3 dates FROM THIS LIST ONLY that best fit the user's request. For each give a short reason why it's a good fit for the event (not for planning — the event itself happens on this date).
-
-Reply with ONLY:
-1. YYYY-MM-DD — reason
-2. YYYY-MM-DD — reason
-3. YYYY-MM-DD — reason`;
-
-  document.getElementById('date-btn').disabled=true;
-  document.getElementById('date-loading').style.display='block';
-  document.getElementById('date-result').style.display='none';
-  try{
-    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
-      body:JSON.stringify({model:'llama-3.3-70b-versatile',max_tokens:200,temperature:0.2,
-        messages:[{role:'user',content:prompt}]})
-    });
-    const d=await res.json();if(d.error)throw new Error(d.error.message);
-    // parse and pretty-print the dates
-    const raw=d.choices[0].message.content.trim();
-    const formatted=raw.replace(/(\d{4}-\d{2}-\d{2})/g,(iso)=>{
-      const dt=new Date(iso+'T00:00:00');
-      return dt.toLocaleDateString('default',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-    });
-    document.getElementById('date-result').textContent=formatted;
-    document.getElementById('date-result').style.display='block';
-  }catch(e){toast('Error: '+e.message);}
-  document.getElementById('date-loading').style.display='none';
-  document.getElementById('date-btn').disabled=false;
-}
-
-// ── TALKING POINTS ────────────────────────────────────────────────────
-async function genTalkingPoints(){
-  const key=localStorage.getItem('ims-groq-key')||'';
-  if(!key){toast('Set your Groq key first');openModal('groq-modal');return;}
-  const f=getFiltered();
-  if(!f.length){toast('Add some transactions first');return;}
-  const inc=f.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const exp=f.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const byCat={};f.filter(t=>t.type==='expense').forEach(t=>{byCat[t.category]=(byCat[t.category]||0)+t.amount;});
-  const catLines=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`  - ${k}: $${v.toFixed(2)}`).join('\n')||'  No expenses.';
-  const txnLines=f.map(t=>`${t.date} | ${t.type==='income'?'INCOME':'EXPENSE'} | ${t.category} | ${t.description} | $${t.amount.toFixed(2)}`).join('\n');
-  const m=document.getElementById('month-filter').value;
-  const label=m==='all'?'all time':new Date(m+'-02').toLocaleString('default',{month:'long',year:'numeric'});
-  const prompt=`Help Luke Li, 8th grade ASB treasurer at IMS, prep talking points for his budget transparency email.\n\nPeriod: ${label}\nIncome: $${inc.toFixed(2)} | Expenses: $${exp.toFixed(2)} | Balance: $${(inc-exp).toFixed(2)}\n\nExpense breakdown:\n${catLines}\n\nTransactions:\n${txnLines}\n\nGenerate exactly 4 talking points, each one short specific factual sentence:\n1. Total income this period, naming actual sources.\n2. Highest single expense by dollar amount, plus its category and category total — one sentence.\n3. Current balance.\n4. Upcoming or recent expenses to watch — reference real transaction names.\n\nNo club activities or misc. No intro or outro. Just the 4 points.`;
-  document.getElementById('tp-btn').disabled=true;
-  document.getElementById('tp-loading').style.display='block';
-  document.getElementById('tp-result').style.display='none';
-  try{
-    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:'llama-3.3-70b-versatile',max_tokens:400,temperature:0.5,messages:[{role:'user',content:prompt}]})});
-    const d=await res.json();if(d.error)throw new Error(d.error.message);
-    const lines=d.choices[0].message.content.trim().split('\n').map(l=>l.replace(/^[\d\.\-•*]\s*/,'').trim()).filter(Boolean);
-    document.getElementById('tp-list').innerHTML=lines.map(l=>`<li>${l}</li>`).join('');
-    document.getElementById('tp-result').style.display='block';
-  }catch(e){toast('Error: '+e.message);}
-  document.getElementById('tp-loading').style.display='none';
-  document.getElementById('tp-btn').disabled=false;
-}
-function copyTP(){
-  const items=[...document.querySelectorAll('#tp-list li')].map(li=>'— '+li.textContent).join('\n');
-  navigator.clipboard.writeText(items).then(()=>toast('Copied!')).catch(()=>toast('Copy manually'));
-}
-
-// ── NOTES ─────────────────────────────────────────────────────────────
-function renderNotes(){
-  const sorted=[...data.notes].sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const nl=document.getElementById('notes-list'),ne=document.getElementById('notes-empty');
-  if(!sorted.length){nl.style.display='none';ne.style.display='block';return;}
-  ne.style.display='none';nl.style.display='block';
-  nl.innerHTML=sorted.map(n=>`<div class="note-item" onclick="toggleNote(this)">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div><div class="note-title">${n.title}</div><div class="note-date">${new Date(n.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})}</div></div>
-      <button class="del-btn" onclick="event.stopPropagation();delNote(${n.id})">✕</button>
-    </div>
-    <div class="note-preview">${n.content.slice(0,90)}${n.content.length>90?'…':''}</div>
-    <div class="note-full">${n.content}</div>
-  </div>`).join('');
-}
-function toggleNote(el){el.classList.toggle('expanded');}
-function addNote(){
-  const title=document.getElementById('nt-title').value.trim(),date=document.getElementById('nt-date').value,content=document.getElementById('nt-content').value.trim();
-  if(!title||!content){toast('Title and notes required');return;}
-  data.notes.unshift({id:Date.now(),title,date,content});
-  save();document.getElementById('nt-title').value='';document.getElementById('nt-content').value='';
-  logActivity('Added note',title);hideForm('note-form');toast('Note saved');renderNotes();
-}
-function delNote(id){if(!confirm('Delete note?'))return;const dn=data.notes.find(n=>n.id===id);logActivity('Deleted note',dn?dn.title:'unknown');data.notes=data.notes.filter(n=>n.id!==id);save();renderNotes();toast('Deleted');}
-
-// ── IDEAS ─────────────────────────────────────────────────────────────
-function renderIdeas(){
-  const il=document.getElementById('ideas-list'),ie=document.getElementById('ideas-empty');
-  if(!data.ideas.length){il.style.display='none';ie.style.display='block';return;}
-  ie.style.display='none';il.style.display='block';
-  const order={idea:0,progress:1,done:2,shelved:3};
-  const sorted=[...data.ideas].sort((a,b)=>order[a.status]-order[b.status]);
-  il.innerHTML=sorted.map(i=>`<div class="idea-item" id="idea-${i.id}">
-    <div class="idea-content">
-      <div class="idea-title">${i.title}</div>
-      ${i.description?`<div class="idea-desc">${i.description}</div>`:''}
-      <div class="vote-row" id="votes-${i.id}"></div>
-    </div>
-    <div class="idea-actions">
-      <select class="status-sel" onchange="updateIdeaStatus(${i.id},this.value)">${Object.entries(STATUS_LABELS).map(([v,l])=>`<option value="${v}"${i.status===v?' selected':''}>${l}</option>`).join('')}</select>
-      <button class="del-btn" onclick="delIdea(${i.id})">✕</button>
-    </div>
-  </div>`).join('');
-  // render vote buttons after HTML is in DOM
-  sorted.forEach(i=>{
-    const el=document.getElementById('votes-'+i.id);
-    if(el)renderIdeaVotes(i.id,el);
-  });
-}
-function addIdea(){
-  const title=document.getElementById('id-title').value.trim();if(!title){toast('Title required');return;}
-  data.ideas.unshift({id:Date.now(),title,description:document.getElementById('id-desc').value.trim(),status:document.getElementById('id-status').value});
-  save();document.getElementById('id-title').value='';document.getElementById('id-desc').value='';
-  logActivity('Added idea',title);hideForm('idea-form');toast('Idea saved');renderIdeas();renderHome();
-}
-function updateIdeaStatus(id,s){const i=data.ideas.find(x=>x.id===id);if(i){i.status=s;save();renderIdeas();renderHome();}}
-function delIdea(id){if(!confirm('Delete?'))return;data.ideas=data.ideas.filter(i=>i.id!==id);save();renderIdeas();renderHome();toast('Deleted');}
-
-// ── GROQ KEY ──────────────────────────────────────────────────────────
-function toggleGroqVisible(){
-  const inp=document.getElementById('groq-key');
-  if(inp)inp.type=inp.type==='password'?'text':'password';
-}
-function saveGroqKey(){
-  const k=document.getElementById('groq-key').value.trim();
-  if(!k.startsWith('gsk_')){document.getElementById('groq-status').className='key-status err';document.getElementById('groq-status').textContent='✗ Should start with gsk_';return;}
-  localStorage.setItem('ims-groq-key',k);
-  if(db&&isConnected)db.ref('ims-asb/groq-key').set(k).catch(e=>toast('Sync error: '+e.message));
-  document.getElementById('groq-status').className='key-status ok';
-  document.getElementById('groq-status').textContent='✓ Saved & shared with team!';
-  document.getElementById('groq-remove-btn').style.display='block';
-  document.getElementById('groq-save-btn').style.opacity='1';
-  toast('Groq key saved');
-}
-function clearGroqKey(){
-  if(!confirm('Remove the Groq key? AI features will stop working.'))return;
-  localStorage.removeItem('ims-groq-key');
-  document.getElementById('groq-key').value='';
-  document.getElementById('groq-status').className='key-status';
-  document.getElementById('groq-status').textContent='';
-  document.getElementById('groq-remove-btn').style.display='none';
-  document.getElementById('groq-save-btn').style.opacity='0.4';
-  if(db&&isConnected)db.ref('ims-asb/groq-key').remove();
-  toast('Groq key removed');
-}
-
-// ── TEST MODE ─────────────────────────────────────────────────────────
-function loadTest(){
-  testMode=true;
-  data={events:TEST.events.map(e=>({...e})),notes:TEST.notes.map(n=>({...n})),ideas:TEST.ideas.map(i=>({...i}))};
-  // populate announcements
-  if(TEST.announcements)renderAnnouncements(TEST.announcements);
-  // populate people
-  if(TEST.users)renderPeople(TEST.users);
-  if(TEST.users)renderConvoList(TEST.users);
-  // goal
-  if(TEST.goal){localStorage.setItem('ims-goal-real',localStorage.getItem('ims-goal')||'0');localStorage.setItem('ims-goal',TEST.goal);}
-  document.getElementById('test-banner').classList.add('on');
-  renderAll();go('home');toast('Test data loaded!');
-}
-function clearTest(){
-  testMode=false;
-  data={events:[],notes:[],ideas:[]};
-  document.getElementById('test-banner').classList.remove('on');
-  // clear test-injected UI
-  renderAnnouncements([]);
-  renderPeople([]);
-  renderConvoList([]);
-  // restore real goal
-  const realGoal=localStorage.getItem('ims-goal-real')||'0';
-  localStorage.setItem('ims-goal',realGoal);
-  updateGoalBar();
-  // repopulate from Firebase or localStorage
-  if(db&&isConnected){
-    db.ref('ims-asb').once('value').then(snap=>{
-      const remote=snap.val();
-      if(remote){
-    data.events=Object.values(remote.events||{});
-        data.notes=Object.values(remote.notes||{}).sort((a,b)=>b.id-a.id);
-        data.ideas=Object.values(remote.ideas||{});
-        if(remote.users){const users=Object.values(remote.users).sort((a,b)=>a.name.localeCompare(b.name));renderPeople(users);renderConvoList(users);}
-        if(remote.announcements)renderAnnouncements(Object.values(remote.announcements).sort((a,b)=>b.id-a.id));
-        if(remote.goal)localStorage.setItem('ims-goal',remote.goal);
-        if(remote['goal-name'])localStorage.setItem('ims-goal-name',remote['goal-name']);
-      }
-      renderAll();
-    });
-  } else {
-    try{const s=localStorage.getItem('ims-asb-local');if(s)data=JSON.parse(s);}catch(e){}
-    renderAll();
-  }
-  toast('Back to your real data');
-}
 
 // ── CHAT ──────────────────────────────────────────────────────────────
 let activeConvo=null;
 let convoListeners={};
 let knownUsers=[];
 let latestOnlineData=null;
+let lastMsg='';let lastMsgTime=0;
+
+const BLOCKED=['nigger','nigga','n1gger','n1gga','faggot','fag','retard','chink','spic','kike','cunt','fuck','f*ck','sh1t','b1tch','whore','slut'];
+function hasProfanity(text){
+  const norm=text.toLowerCase().replace(/[0@]/g,'o').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/[4]/g,'a').replace(/[$5]/g,'s').replace(/\s/g,'');
+  return BLOCKED.some(w=>norm.includes(w.replace(/\s/g,'')));
+}
+
+function dmId(a,b){return [a,b].sort().join('___');}
+function dmPath(partner){return 'ims-asb/chat/dm/'+dmId(prefs.name,partner);}
+
 function scrollChat(){const el=document.getElementById('chat-msgs');if(el)el.scrollTop=el.scrollHeight;}
 
 function renderConvoList(users){
@@ -1284,20 +907,15 @@ function renderConvoList(users){
   const cl=document.getElementById('convo-list');
   if(!cl)return;
   if(!db||!isConnected){cl.innerHTML='<p style="font-size:13px;color:var(--muted)">Connect to Firebase to start chatting.</p>';return;}
-  // verify this user's role matches Firebase before showing DMs
-  // (prevents seeing DMs from a previous role)
-  const myUid=prefs.name?prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-'):'';
   const storedUser=knownUsers.find(u=>u.name===prefs.name);
   const roleVerified=!storedUser||(storedUser.role===prefs.role);
   let chtml=`<div class="convo-item" onclick="openConvo('general')">
     <div class="convo-avatar group">💬</div>
     <div class="convo-info"><div class="convo-name"># General</div><div class="convo-preview">Team-wide chat</div></div>
   </div>`;
-  // only show DMs if role is verified
   if(!roleVerified){cl.innerHTML=chtml;return;}
   knownUsers.filter(u=>u.name!==prefs.name).forEach(u=>{
     const initials=u.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
-    const roleColors={Treasurer:'blue',President:'blue','Vice President':'blue',Secretary:'green',Advisor:'green'};
     const duid=u.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
     chtml+=`<div class="convo-item" onclick="openConvo('dm:${u.name}')" data-convo-uid="${duid}">
       <div class="convo-avatar" style="position:relative">${initials}<span class="online-dot" style="position:absolute;bottom:1px;right:1px;border:2px solid var(--surface)"></span></div>
@@ -1305,7 +923,7 @@ function renderConvoList(users){
     </div>`;
   });
   cl.innerHTML=chtml;
-  renderOnlineStatus(latestOnlineData);
+  if(latestOnlineData)setTimeout(()=>renderOnlineStatus(latestOnlineData),50);
 }
 
 function openConvo(id){
@@ -1318,7 +936,6 @@ function openConvo(id){
     title.textContent='# General';
     membersEl.textContent=knownUsers.length+' member'+(knownUsers.length!==1?'s':'');
     listenTyping(id);
-    // startListener already has a general chat listener — just force-fetch current messages
     if(db){
       db.ref('ims-asb/chat/general').once('value').then(snap=>{
         if(activeConvo!=='general')return;
@@ -1333,26 +950,21 @@ function openConvo(id){
     const path=dmPath(partner);
     if(convoListeners[id])try{db.ref(convoListeners[id]).off();}catch(e){}
     convoListeners[id]=path;
+    listenTyping(id);
     if(db)db.ref(path).on('value',snap=>{
       if(activeConvo!==id)return;
       const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
       renderMsgs(msgs);
     });
   }
-  // chat-msgs click handler for delete buttons
-  const msgsEl=document.getElementById('chat-msgs');
-  if(msgsEl)msgsEl.onclick=function(e){
-    const btn=e.target.closest('.del-msg-btn');
-    if(btn)deleteMsg(btn.dataset.convo,parseInt(btn.dataset.id));
-  };
   document.getElementById('chat-input').focus();
 }
 
 function backToList(){
   activeConvo=null;
+  if(typingTimeout){clearTimeout(typingTimeout);stopTyping();}
   document.getElementById('chat-convo-view').style.display='none';
   document.getElementById('chat-list-view').style.display='block';
-  // refresh convo list with latest users
   if(db&&isConnected){
     db.ref('ims-asb/users').once('value').then(snap=>{
       const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):knownUsers;
@@ -1360,16 +972,6 @@ function backToList(){
     });
   }
 }
-
-// Profanity blocklist — instant block before AI check
-const BLOCKED=['nigger','nigga','n1gger','n1gga','faggot','fag','retard','chink','spic','kike','cunt','fuck','f*ck','sh1t','b1tch','whore','slut'];
-function hasProfanity(text){
-  const norm=text.toLowerCase().replace(/[0@]/g,'o').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/[4]/g,'a').replace(/[$5]/g,'s').replace(/\s/g,'');
-  return BLOCKED.some(w=>norm.includes(w.replace(/\s/g,'')));
-}
-
-function dmId(a,b){return [a,b].sort().join('___');}
-function dmPath(partner){return 'ims-asb/chat/dm/'+dmId(prefs.name,partner);}
 
 function renderMsgs(msgs){
   const el=document.getElementById('chat-msgs');
@@ -1383,55 +985,37 @@ function renderMsgs(msgs){
     const time=t.toLocaleTimeString('default',{hour:'numeric',minute:'2-digit'});
     const day=t.toLocaleDateString('default',{month:'short',day:'numeric'});
     const canDelete=isMe&&(now-m.id)<60000;
-    const secsLeft=canDelete?Math.ceil((60000-(now-m.id))/1000):0;
     const div=document.createElement('div');
     div.className='chat-msg '+(isMe?'me':'them');
     div.id='cmsg-'+m.id;
-    if(!isMe){
-      const meta=document.createElement('div');
-      meta.className='chat-meta';
-      meta.textContent=m.name+(m.role?' · '+m.role:'');
-      div.appendChild(meta);
-    }
-    const bubble=document.createElement('div');
-    bubble.className='chat-bubble';
-    bubble.textContent=m.text;
-    div.appendChild(bubble);
-    const foot=document.createElement('div');
-    foot.className='chat-meta';
-    foot.style.cssText='display:flex;align-items:center;gap:6px';
-    foot.textContent=day+' '+time;
+    if(!isMe){const meta=document.createElement('div');meta.className='chat-meta';meta.textContent=m.name+(m.role?' · '+m.role:'');div.appendChild(meta);}
+    const bubble=document.createElement('div');bubble.className='chat-bubble';bubble.textContent=m.text;div.appendChild(bubble);
+    const foot=document.createElement('div');foot.className='chat-meta';foot.style.cssText='display:flex;align-items:center;gap:6px';foot.textContent=day+' '+time;
     if(canDelete){
-      const btn=document.createElement('span');
-      btn.className='del-msg-btn';
-      btn.title='Delete ('+secsLeft+'s left)';
-      btn.textContent='✕';
+      const btn=document.createElement('span');btn.className='del-msg-btn';btn.title='Delete ('+(Math.ceil((60000-(now-m.id))/1000))+'s left)';btn.textContent='✕';
       btn.onclick=()=>deleteMsg(activeConvo,m.id);
       foot.appendChild(btn);
       setTimeout(()=>{if(btn.parentNode)btn.parentNode.removeChild(btn);},60000-(now-m.id)+100);
     }
-    div.appendChild(foot);
-    el.appendChild(div);
+    div.appendChild(foot);el.appendChild(div);
   });
   scrollChat();
   if(activeConvo&&msgs.length){markRead(activeConvo,msgs[msgs.length-1].id);renderReadReceipts(activeConvo,msgs);}
 }
+
 function deleteMsg(convo,msgId){
   if(!db||!isConnected){toast('Not connected');return;}
   if(Date.now()-msgId>60000){toast('Too late to delete');return;}
   const path=convo==='general'?'ims-asb/chat/general/'+msgId:dmPath(convo.replace('dm:',''))+'/'+msgId;
   db.ref(path).remove().catch(e=>toast('Error: '+e.message));
 }
+
 function clearGeneralChat(){
   if(!confirm('Clear all general chat messages? This cannot be undone.'))return;
   if(!db||!isConnected){toast('Not connected to Firebase');return;}
-  db.ref('ims-asb/chat/general').remove().then(()=>{
-    toast('General chat cleared');
-    renderMsgs([]);
-  }).catch(e=>toast('Error: '+e.message));
+  db.ref('ims-asb/chat/general').remove().then(()=>{toast('General chat cleared');renderMsgs([]);}).catch(e=>toast('Error: '+e.message));
 }
 
-let lastMsg='';let lastMsgTime=0;
 async function sendMsg(){
   const inp=document.getElementById('chat-input');
   const text=inp.value.trim();
@@ -1440,8 +1024,7 @@ async function sendMsg(){
   if(!db||!isConnected){toast('Not connected');return;}
   if(hasProfanity(text)){toast('Message blocked — inappropriate content');inp.value='';return;}
   const now=Date.now();
-  // all messages — block same message within 10 seconds
-  if(text===lastMsg&&now-lastMsgTime<10000){toast('Wait a sec before sending that again');return;}
+  if(text===lastMsg&&now-lastMsgTime<10000){toast('You already sent that');return;}
   if(text.length>300){toast('Too long (max 300 chars)');return;}
   const key=localStorage.getItem('ims-groq-key')||'';
   if(key){
@@ -1461,13 +1044,11 @@ async function sendMsg(){
   }
   const id=Date.now();
   const msg={id,name:prefs.name||'Anonymous',role:prefs.role||'',text};
-  if(activeConvo==='general'){
-    db.ref('ims-asb/chat/general/'+id).set(msg);
-  } else {
-    db.ref(dmPath(activeConvo.replace('dm:',''))+'/'+id).set(msg);
-  }
+  if(activeConvo==='general'){db.ref('ims-asb/chat/general/'+id).set(msg);}
+  else{db.ref(dmPath(activeConvo.replace('dm:',''))+'/'+id).set(msg);}
   lastMsg=text;lastMsgTime=now;
   inp.value='';
+  stopTyping();
 }
 
 // ── ACTIVITY LOG ──────────────────────────────────────────────────────
@@ -1588,6 +1169,8 @@ function applyPrefs(){
   document.getElementById('btn-test')?.style.setProperty('display',techOnly?'':'none');
   document.getElementById('btn-groq')?.style.setProperty('display',techOnly?'':'none');
   document.getElementById('btn-settings')?.style.setProperty('display',techOnly?'':'none');
+  const finLink=document.getElementById('btn-finance');
+  if(finLink)finLink.style.display=(isTreasurer||isAdvisor)?'':'none';
   document.querySelector('.test-btn')?.style.setProperty('display',techOnly?'':'none');
 
   // NUCLEAR RESET + CLEAR CHAT: Treasurer + Advisor
@@ -1994,8 +1577,6 @@ function renderSearch(q){
   if(!q||q.length<2){res.style.display='none';return;}
   const ql=q.toLowerCase();
   const results=[];
-  data.txns.filter(t=>t.description.toLowerCase().includes(ql)||t.category.toLowerCase().includes(ql)).slice(0,3).forEach(t=>{
-  });
   data.events.filter(e=>e.name.toLowerCase().includes(ql)||(e.notes&&e.notes.toLowerCase().includes(ql))).slice(0,3).forEach(e=>{
     results.push({type:'Event',title:e.name,sub:e.date+' · '+e.type,action:()=>go('events')});
   });
@@ -2024,21 +1605,6 @@ function searchResultClick(i){
 // ── BUDGET GOAL ───────────────────────────────────────────────────────
 
 // ── EXPORT CSV ────────────────────────────────────────────────────────
-function exportCSV(){
-  if(!data.txns.length){toast('No transactions to export');return;}
-  const rows=[['Date','Type','Category','Description','Amount']];
-  data.txns.slice().sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(t=>{
-    rows.push([t.date,t.type,t.category,t.description,(t.type==='expense'?'-':'')+t.amount.toFixed(2)]);
-  });
-  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'\"\"')+'"').join(',')).join(String.fromCharCode(10));
-  const blob=new Blob([csv],{type:'text/csv'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='ims-asb-budget-'+new Date().getFullYear()+'.csv';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  toast('CSV downloaded');
-}
 
 // ── AGENDA ────────────────────────────────────────────────────────────
 function renderAgenda(){
@@ -2402,8 +1968,6 @@ function archiveYear(){
   if(!db||!isConnected){toast('Must be connected to Firebase');return;}
   const year=new Date().getFullYear();
   // compute stats
-  const totalInc=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const totalExp=data.txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const eventCount=data.events.length;
   const doneIdeas=data.ideas.filter(i=>i.status==='done').length;
   const topIdea=data.ideas.reduce((best,i)=>(!best||((i.votes||0)>(best.votes||0)))?i:best,null);
@@ -2518,7 +2082,6 @@ document.getElementById('ev-date').value=today;
 document.getElementById('nt-date').value=today;
 const gk=localStorage.getItem('ims-groq-key')||'';
 if(gk){document.getElementById('groq-key').value=gk;}
-document.getElementById('f-desc').addEventListener('keydown',e=>{if(e.key==='Enter')addTxn();});
 document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
 loadTheme();
 updateCats();
