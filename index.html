@@ -224,6 +224,7 @@ body.dark .chat-msg.them .chat-bubble{background:var(--border);color:var(--text)
 .activity-what{color:var(--text);flex:1}
 .activity-when{color:var(--hint);font-family:'DM Mono',monospace;font-size:11px;flex-shrink:0}
 .onboard-step{display:none}.onboard-step.on{display:block}
+.ob-step{display:none}.ob-step.on{display:block}
 .tour-mask{display:none;position:fixed;inset:0;z-index:200;pointer-events:none}
 .tour-mask.on{display:block}
 .tour-mask-top,.tour-mask-bottom,.tour-mask-left,.tour-mask-right{position:fixed;background:rgba(0,0,0,.55);transition:all .3s cubic-bezier(.4,0,.2,1);pointer-events:none}
@@ -300,6 +301,11 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .avatar-upload-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .avatar-preview{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--border);display:block}
 .avatar-change-hint{font-size:11px;color:var(--hint);margin-top:4px;text-align:center}
+.ob-step-hide{display:none!important}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.role-btn{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;text-align:left;transition:all .15s}
+.role-btn:hover{border-color:var(--accent);background:var(--bg)}
+.role-btn.on{border-color:var(--accent);background:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -594,18 +600,6 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 </div>
 
 <!-- PASSWORD MODAL -->
-<div id="pw-modal-overlay" class="modal-overlay" onclick="if(event.target===this)pwModalCancel()">
-  <div class="modal" style="max-width:360px">
-    <h2 id="pw-modal-title">Enter password</h2>
-    <p id="pw-modal-hint" style="margin-bottom:12px"></p>
-    <input type="password" id="pw-modal-input" placeholder="Password" style="margin-bottom:8px" onkeydown="if(event.key==='Enter')pwModalConfirm()">
-    <div id="pw-modal-error" style="font-size:12px;min-height:18px;margin-bottom:10px;font-family:'DM Mono',monospace"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" onclick="pwModalCancel()">Cancel</button>
-      <button class="btn primary" onclick="pwModalConfirm()">Confirm</button>
-    </div>
-  </div>
-</div>
 
 <!-- CUSTOMIZE HOME MODAL -->
 <div id="customize-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('customize-modal')">
@@ -2335,6 +2329,24 @@ function clearTest(){
   toast('Back to real data');
 }
 
+
+// ── BUILD ROLE GRID ───────────────────────────────────────────────────
+function buildRoleGrid(){
+  const grid=document.getElementById('role-btn-grid');
+  if(!grid)return;
+  const roles=[
+    {role:'Treasurer',icon:'💰'},
+    {role:'President',icon:'🎖'},
+    {role:'Vice President',icon:'⭐'},
+    {role:'Secretary',icon:'📋'},
+    {role:'Advisor',icon:'🏫'},
+    {role:'7th Grade Rep',icon:'🎒'},
+    {role:'Member',icon:'👤'},
+    {role:'Supporter',icon:'🤝'},
+  ];
+  grid.innerHTML=roles.map(r=>`<button class="role-btn" onclick="obSelectRole(this,'${r.role}')">${r.icon} ${r.role}</button>`).join('');
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────
 const today=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 document.getElementById('ev-date').value=today;
@@ -2348,6 +2360,7 @@ window.onerror=function(msg,src,line){
   return false;
 };
 // check Firebase SDK loaded
+buildRoleGrid();
 if(typeof firebase==='undefined'){
   toast('Firebase SDK failed to load — check your internet connection');
 } else {
