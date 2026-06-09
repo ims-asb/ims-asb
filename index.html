@@ -973,7 +973,7 @@ function autoConnectFirebase(){
     const sb=document.getElementById('setup-banner');if(sb)sb.style.display='none';
     setSyncStatus(true); // explicitly mark connected
   }catch(e){
-    console.error('Firebase init error:',e);
+    toast('Firebase error: '+e.message);
     setSyncStatus(false);
     try{const s=localStorage.getItem('ims-asb-local');if(s)data=JSON.parse(s);}catch(e2){}
     renderAll();
@@ -2357,9 +2357,19 @@ document.getElementById('nt-date').value=today;
 const gk=localStorage.getItem('ims-groq-key')||'';
 if(gk){document.getElementById('groq-key').value=gk;}
 document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
-loadTheme();
-loadPrefs();
-autoConnectFirebase();
+// catch any silent JS errors and show them
+window.onerror=function(msg,src,line){
+  toast('JS Error: '+msg+' (line '+line+')');
+  return false;
+};
+// check Firebase SDK loaded
+if(typeof firebase==='undefined'){
+  toast('Firebase SDK failed to load — check your internet connection');
+} else {
+  loadTheme();
+  loadPrefs();
+  autoConnectFirebase();
+}
 </script>
 </body>
 </html>
