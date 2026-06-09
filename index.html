@@ -344,17 +344,12 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 <div class="nav">
   <div class="tabs">
     <button class="tab on" id="tab-home" onclick="go('home')">🏠 Home</button>
-    <button class="tab" id="tab-budget" onclick="go('budget')">💰 Budget</button>
-    <button class="tab" id="tab-finances" onclick="go('finances')">💰 Finances</button>
     <button class="tab" id="tab-events" onclick="go('events')">📅 Events</button>
     <button class="tab" id="tab-notes" onclick="go('notes')">📝 Notes</button>
     <button class="tab" id="tab-ideas" onclick="go('ideas')">💡 Ideas</button>
     <button class="tab" id="tab-chat" onclick="go('chat');clearChatBadge()">💬 Chat<span id="chat-badge" class="badge" style="display:none">0</span></button>
     <button class="tab" id="tab-people" onclick="go('people')">👥 People</button>
   </div>
-  <select id="month-filter" onchange="renderBudget()" style="font-size:12px;padding:5px 8px;display:none">
-    <option value="all">All time</option>
-  </select>
 </div>
 
 <!-- HOME -->
@@ -400,18 +395,13 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <div class="card">
       <div class="card-title">Quick add</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn full" id="qa-txn" onclick="go('budget');showStab('add-txn')">+ Transaction</button>
         <button class="btn full" onclick="go('events');showForm('event-form')">+ Event</button>
         <button class="btn full" id="qa-note" onclick="go('notes');showForm('note-form')">+ Meeting note</button>
         <button class="btn full" onclick="go('ideas');showForm('idea-form')">+ Idea</button>
       </div>
     </div>
   </div>
-  <div class="card" id="w-recent">
-    <div class="card-title">Recent transactions</div>
-    <div id="home-txns"></div>
-    <div id="home-txns-empty" class="empty" style="padding:1rem 0;display:none"><p style="margin-bottom:0;font-size:13px">No transactions yet.</p></div>
-  </div>
+</div>
   <div class="card" id="w-upcoming">
     <div class="card-title">Upcoming events</div>
     <div id="home-events-list"></div>
@@ -440,344 +430,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
   </div>
 </div>
 
-<!-- FINANCES (read-only, non-treasurer) -->
-<div id="s-finances" class="sec">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-    <h2 style="font-size:16px;font-weight:500">Finances</h2>
-    <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);background:var(--bg);border:1px solid var(--border);padding:3px 8px;border-radius:20px">read-only</span>
-  </div>
-  <div class="grid3" style="margin-bottom:16px">
-    <div class="metric"><div class="metric-lbl">Balance</div><div class="metric-val neu" id="fin-bal">$0.00</div></div>
-    <div class="metric"><div class="metric-lbl">Income</div><div class="metric-val pos" id="fin-inc">$0.00</div></div>
-    <div class="metric"><div class="metric-lbl">Expenses</div><div class="metric-val neg" id="fin-exp">$0.00</div></div>
-  </div>
-  <div id="fin-cat-card" class="card" style="display:none;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <span class="card-title" style="margin-bottom:0">Expenses by category</span>
-    </div>
-    <div id="fin-cat-chart" class="chart-bar-wrap"></div>
-  </div>
-  <div class="card">
-    <div class="card-title">Recent transactions</div>
-    <div id="fin-txn-rows"></div>
-    <div id="fin-txn-empty" class="empty" style="padding:1.5rem 0;display:none">
-      <div class="ico">💰</div><p>No transactions recorded yet.</p>
-    </div>
-  </div>
-</div>
-
 <!-- BUDGET -->
-<div id="s-budget" class="sec">
-  <div class="subtabs">
-    <button class="stab on" id="st-overview" onclick="showStab('overview')">Overview</button>
-    <button class="stab" id="st-add-txn" onclick="showStab('add-txn')">+ Add transaction</button>
-    <button class="stab" id="st-history" onclick="showStab('history')">History</button>
-    <button class="stab" id="st-talking" onclick="showStab('talking')">📋 Talking points</button>
-  </div>
-  <div id="ss-overview" class="stab-sec on">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <button class="btn sm" onclick="toggleGoalForm()">🎯 Set goal</button>
-    </div>
-    <div id="goal-form" style="display:none;margin-bottom:12px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <input type="text" id="goal-name-input" placeholder="Goal name (e.g. Spring Dance Fund)" style="font-size:14px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)">
-        <div style="display:flex;gap:8px;align-items:center">
-          <label style="font-size:13px;color:var(--muted);flex-shrink:0">Amount ($)</label>
-          <input type="number" id="goal-input" min="0" step="1" placeholder="e.g. 2000" style="flex:1;font-size:14px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)">
-          <button class="btn sm primary" onclick="saveGoal()">Save</button>
-        </div>
-      </div>
-    </div>
-    <div id="goal-progress" style="display:none;margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px">
-        <span id="goal-name-label">Fundraising goal</span><span id="goal-pct">0%</span>
-      </div>
-      <div class="progress-wrap"><div class="progress-bar" id="goal-bar" style="width:0%"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);margin-top:2px">
-        <span id="goal-raised">$0 raised</span><span id="goal-target">goal: $0</span>
-      </div>
-    </div>
-    <div class="grid3">
-      <div class="metric"><div class="metric-lbl">Income</div><div class="metric-val pos" id="b-inc">$0.00</div></div>
-      <div class="metric"><div class="metric-lbl">Expenses</div><div class="metric-val neg" id="b-exp">$0.00</div></div>
-      <div class="metric"><div class="metric-lbl">Balance</div><div class="metric-val neu" id="b-bal">$0.00</div></div>
-    </div>
-    <div id="cat-card" class="card" style="display:none">
-      <div class="card-title">Expenses by category</div>
-      <div id="cat-rows"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Recent transactions</div>
-      <div id="recent-rows"></div>
-      <div id="recent-empty" class="empty" style="display:none;padding:1.5rem 0">
-        <div class="ico">💰</div><p style="margin-bottom:6px">No transactions yet.</p><p style="font-size:12px;color:var(--hint);margin-bottom:12px">Add income and expenses to track your budget.</p>
-        <button class="btn primary" onclick="showStab('add-txn')">Add first transaction</button>
-      </div>
-    </div>
-  </div>
-  <div id="ss-add-txn" class="stab-sec">
-    <div class="card">
-      <div class="card-title">New transaction</div>
-      <div class="grid2">
-        <div class="fg"><label class="fl">Type</label>
-          <select id="f-type" class="fsel" onchange="updateCats()">
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-          </select>
-        </div>
-        <div class="fg"><label class="fl">Date</label><input type="date" id="f-date"></div>
-      </div>
-      <div class="grid2">
-        <div class="fg"><label class="fl">Category</label>
-          <select id="f-cat" class="fsel"><option value="">Select...</option></select>
-        </div>
-        <div class="fg"><label class="fl">Amount ($)</label><input type="number" id="f-amt" min="0" step="0.01" placeholder="0.00"></div>
-      </div>
-      <div class="fg" style="margin-bottom:14px"><label class="fl">Description</label>
-        <input type="text" id="f-desc" placeholder="e.g. Fall dance ticket sales">
-      </div>
-      <button class="btn primary full" onclick="addTxn()">✓ Save transaction</button>
-    </div>
-  </div>
-  <div id="ss-history" class="stab-sec">
-    <div id="history-list"></div>
-    <div id="history-empty" class="empty" style="display:none"><div class="ico">🧾</div><p>No transactions for this period.</p></div>
-    <div id="history-footer" class="hfoot"></div>
-  </div>
-  <div id="ss-talking" class="stab-sec">
-    <div class="card">
-      <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:14px">Generates 4 specific talking points from your budget data — use them to write your own transparency email.</p>
-      <button class="btn primary" id="tp-btn" onclick="genTalkingPoints()">✨ Generate talking points</button>
-      <div id="tp-loading" style="display:none;font-size:14px;color:var(--muted);padding:1rem 0"><span class="spin"></span>Generating...</div>
-      <div id="tp-result" style="display:none;margin-top:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--green)">✓ Ready</span>
-          <button class="btn sm" onclick="copyTP()">Copy</button>
-        </div>
-        <ul class="tp-list" id="tp-list"></ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- EVENTS -->
-<div id="s-events" class="sec">
-  <div id="event-form" class="card" style="display:none">
-    <div class="card-title">New event</div>
-    <div class="grid2">
-      <div class="fg"><label class="fl">Event name</label><input type="text" id="ev-name" placeholder="e.g. Winter Formal"></div>
-      <div class="fg"><label class="fl">Date</label><input type="date" id="ev-date"></div>
-    </div>
-    <div class="grid2">
-      <div class="fg"><label class="fl">Type</label>
-        <select id="ev-type" class="fsel">
-          <option value="Dance">Dance</option><option value="Fundraiser">Fundraiser</option>
-          <option value="Spirit Week">Spirit Week</option><option value="Assembly">Assembly</option>
-          <option value="Meeting">Meeting</option><option value="Other">Other</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Est. cost ($)</label><input type="number" id="ev-cost" min="0" step="0.01" placeholder="0.00"></div>
-    </div>
-    <div class="fg" style="margin-bottom:14px"><label class="fl">Notes</label><input type="text" id="ev-notes" placeholder="Location, details, etc."></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn primary" onclick="addEvent()">✓ Save event</button>
-      <button class="btn" onclick="hideForm('event-form')">Cancel</button>
-    </div>
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <h2 style="font-size:16px;font-weight:500">Events</h2>
-      <div class="view-toggle">
-        <button class="vtab on" id="vt-cal" onclick="setEventsView('cal')">📅 Calendar</button>
-        <button class="vtab" id="vt-list" onclick="setEventsView('list')">☰ List</button>
-      </div>
-    </div>
-    <button class="btn sm primary" onclick="showForm('event-form')">+ Add event</button>
-  </div>
-  <!-- Calendar view -->
-  <div id="ev-cal-view">
-    <div class="cal-nav">
-      <button onclick="calPrev()">←</button>
-      <h3 id="cal-month-label"></h3>
-      <button onclick="calNext()">→</button>
-    </div>
-    <div class="cal-header">
-      <div class="cal-day-label">Sun</div><div class="cal-day-label">Mon</div>
-      <div class="cal-day-label">Tue</div><div class="cal-day-label">Wed</div>
-      <div class="cal-day-label">Thu</div><div class="cal-day-label">Fri</div>
-      <div class="cal-day-label">Sat</div>
-    </div>
-    <div class="cal-grid" id="cal-grid"></div>
-  </div>
-  <!-- List view -->
-  <div id="ev-list-view" style="display:none">
-    <div id="events-list" class="card" style="display:none"></div>
-    <div id="events-empty" class="empty"><div class="ico">📅</div><p style="margin-bottom:6px">No events scheduled yet.</p><p style="font-size:12px;color:var(--hint);margin-bottom:12px">Add dances, fundraisers, assemblies, and meetings.</p><button class="btn primary" onclick="showForm('event-form')">+ Add first event</button></div>
-  </div>
-  <div class="ai-box">
-    <div class="card-title" style="margin-bottom:8px">🤖 AI date suggester</div>
-    <p>Describe an event and the AI will suggest 3 dates based on your existing schedule.</p>
-    <div class="fg" style="margin-bottom:10px">
-      <input type="text" id="date-query" placeholder="e.g. Spring dance, want it after February">
-    </div>
-    <button class="btn primary" id="date-btn" onclick="suggestDate()">✨ Suggest dates</button>
-    <div id="date-loading" style="display:none;font-size:14px;color:var(--muted);margin-top:10px"><span class="spin"></span>Thinking...</div>
-    <div id="date-result" class="ai-result" style="display:none"></div>
-  </div>
-</div>
-
-<!-- NOTES -->
-<div id="s-notes" class="sec">
-  <div id="note-form" class="card" style="display:none">
-    <div class="card-title">New meeting note</div>
-    <div class="grid2" style="margin-bottom:12px">
-      <div class="fg"><label class="fl">Title</label><input type="text" id="nt-title" placeholder="e.g. October ASB meeting"></div>
-      <div class="fg"><label class="fl">Date</label><input type="date" id="nt-date"></div>
-    </div>
-    <div class="fg" style="margin-bottom:14px"><label class="fl">Notes</label>
-      <textarea id="nt-content" placeholder="What was discussed, decisions made, action items..." style="min-height:120px"></textarea>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn primary" onclick="addNote()">✓ Save note</button>
-      <button class="btn" onclick="hideForm('note-form')">Cancel</button>
-    </div>
-  </div>
-  <div id="agenda-section" class="card" style="margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span class="card-title" style="margin-bottom:0">📋 Meeting agenda</span>
-      <button class="btn sm" onclick="addAgendaItem()">+ Item</button>
-    </div>
-    <div id="agenda-list"></div>
-    <div id="agenda-empty" style="font-size:13px;color:var(--hint);padding:4px 0">No agenda items yet.</div>
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <h2 style="font-size:16px;font-weight:500">Meeting notes</h2>
-    <button class="btn sm primary" onclick="showForm('note-form')">+ Add note</button>
-  </div>
-  <div id="notes-list" class="card" style="display:none"></div>
-  <div id="notes-empty" class="empty"><div class="ico">📝</div><p style="margin-bottom:6px">No meeting notes yet.</p><p style="font-size:12px;color:var(--hint);margin-bottom:12px">Keep a record of what was discussed and decided each meeting.</p><button class="btn primary" onclick="showForm('note-form')">+ Add first note</button></div>
-</div>
-
-<!-- IDEAS -->
-<div id="s-ideas" class="sec">
-  <div id="idea-form" class="card" style="display:none">
-    <div class="card-title">New idea</div>
-    <div class="fg" style="margin-bottom:12px"><label class="fl">Title</label><input type="text" id="id-title" placeholder="e.g. Boba fundraiser"></div>
-    <div class="fg" style="margin-bottom:12px"><label class="fl">Description</label><textarea id="id-desc" placeholder="Details, why it would work, what you need..."></textarea></div>
-    <div class="fg" style="margin-bottom:14px"><label class="fl">Status</label>
-      <select id="id-status" class="fsel">
-        <option value="idea">💡 Idea</option><option value="progress">⚙️ In progress</option>
-        <option value="done">✅ Done</option><option value="shelved">📦 Shelved</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn primary" onclick="addIdea()">✓ Save idea</button>
-      <button class="btn" onclick="hideForm('idea-form')">Cancel</button>
-    </div>
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <h2 style="font-size:16px;font-weight:500">Ideas board</h2>
-    <button class="btn sm primary" onclick="showForm('idea-form')">+ Add idea</button>
-  </div>
-  <div id="ideas-list" class="card" style="display:none"></div>
-  <div id="ideas-empty" class="empty"><div class="ico">💡</div><p style="margin-bottom:6px">No ideas yet.</p><p style="font-size:12px;color:var(--hint);margin-bottom:12px">Drop fundraiser ideas, event concepts, or anything you want to pitch to the team.</p><button class="btn primary" onclick="showForm('idea-form')">+ Add first idea</button></div>
-</div>
-
-</div><!-- /container -->
-
-<!-- ONBOARDING MODAL -->
-<div id="onboard-modal" class="modal-overlay on">
-  <div class="modal">
-    <div id="ob-step-1" class="onboard-step on">
-      <h2>👋 Welcome to IMS ASB Hub</h2>
-      <p>Takes 30 seconds to set up. What's your name?</p>
-      <div class="fg" style="margin-bottom:16px">
-        <input type="text" id="ob-name" placeholder="Enter your full name (e.g. Luke Li)" autofocus autocapitalize="words" oninput="this.value=this.value.replace(/\b\w/g,c=>c.toUpperCase())">
-        <p style="font-size:12px;color:var(--hint);margin-top:6px">Use your full name so teammates can find you.</p>
-      </div>
-      <button class="btn primary full" onclick="obNext1()">Continue →</button>
-    </div>
-    <div id="ob-step-2" class="onboard-step">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <button onclick="document.getElementById('ob-step-2').classList.remove('on');document.getElementById('ob-step-1').classList.add('on')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--accent);font-family:'DM Sans',sans-serif;padding:0">← Back</button>
-        <h2 style="margin-bottom:0">What's your role?</h2>
-      </div>
-      <p>This shows up in the header.</p>
-      <div class="role-grid">
-        <button class="role-btn" onclick="obSelectRole(this,'Treasurer')">💰 Treasurer</button>
-        <button class="role-btn" onclick="obSelectRole(this,'President')">🎖 President</button>
-        <button class="role-btn" onclick="obSelectRole(this,'Secretary')">📋 Secretary</button>
-        <button class="role-btn" onclick="obSelectRole(this,'Vice President')">⭐ Vice President</button>
-        <button class="role-btn" onclick="obSelectRole(this,'Member')">👤 Member</button>
-        <button class="role-btn" onclick="obSelectRole(this,'Supporter')">🤝 Supporter</button>
-        <button class="role-btn" onclick="obSelectRole(this,'7th Grade Rep')">🎒 7th Grade Rep</button>
-        <button class="role-btn" onclick="obSelectRole(this,'Advisor')">🏫 Advisor</button>
-      </div>
-      <button class="btn primary full" onclick="obFinish()">Let's go →</button>
-    </div>
-  </div>
-</div>
-
-<!-- CUSTOMIZE HOME MODAL -->
-<div id="customize-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('customize-modal')">
-  <div class="modal">
-    <h2>Customize home</h2>
-    <p style="margin-bottom:16px">Toggle which widgets show on your home screen.</p>
-    <div>
-      <div class="widget-toggle">
-        <div><span>Balance &amp; stats</span><small>Income, expenses, balance cards</small></div>
-        <label class="toggle-sw"><input type="checkbox" id="wt-metrics" onchange="saveWidgetPrefs()" checked><span class="slider"></span></label>
-      </div>
-      <div class="widget-toggle">
-        <div><span>Next event &amp; quick add</span><small>Countdown and shortcut buttons</small></div>
-        <label class="toggle-sw"><input type="checkbox" id="wt-dash" onchange="saveWidgetPrefs()" checked><span class="slider"></span></label>
-      </div>
-      <div class="widget-toggle">
-        <div><span>Recent transactions</span><small>Last 4 budget entries</small></div>
-        <label class="toggle-sw"><input type="checkbox" id="wt-recent" onchange="saveWidgetPrefs()" checked><span class="slider"></span></label>
-      </div>
-      <div class="widget-toggle">
-        <div><span>Upcoming events</span><small>Next 4 events on the calendar</small></div>
-        <label class="toggle-sw"><input type="checkbox" id="wt-upcoming" onchange="saveWidgetPrefs()" checked><span class="slider"></span></label>
-      </div>
-    </div>
-    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Profile photo</p>
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
-        <img id="avatar-preview-img" class="avatar-img lg" src="" style="display:none">
-        <div id="avatar-initials-preview" style="width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;flex-shrink:0"></div>
-        <div>
-          <label class="avatar-upload-btn">
-            <span class="btn sm">📷 Upload photo</span>
-            <input type="file" accept="image/*" onchange="handleAvatarUpload(this)">
-          </label>
-          <div class="avatar-change-hint">JPG, PNG, GIF · auto-resized to 80×80</div>
-          <button class="btn sm" style="margin-top:6px;color:var(--hint)" onclick="removeAvatar()">Remove photo</button>
-        </div>
-      </div>
-    </div>
-    <div style="margin-top:0">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Your name &amp; role</p>
-      <div class="grid2" style="margin-bottom:0">
-        <div class="fg"><label class="fl">Name</label><input type="text" id="pref-name" placeholder="Your name"></div>
-        <div class="fg"><label class="fl">Role</label><input type="text" id="pref-role" placeholder="e.g. Treasurer"></div>
-      </div>
-    </div>
-    <div id="nuclear-reset-wrap" style="display:none;padding-top:14px;border-top:1px solid var(--border);margin-top:14px">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Requires approval from you + both advisors.</p>
-      <button class="btn danger full" onclick="requestNuclearReset()" id="nuclear-btn" style="margin-bottom:8px">☢ Request full data reset</button>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:4px">Archive saves this year's data before clearing.</p>
-      <button class="btn full" style="border-color:var(--accent);color:var(--accent)" onclick="archiveYear()">🗄 Archive this year & start fresh</button>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-      <button class="btn danger" onclick="resetProfile()" title="Clear your name and role and go through setup again">Reset profile</button>
-      <button class="btn" onclick="saveProfilePrefs()">Save profile</button>
-      <button class="btn primary" onclick="closeModal('customize-modal')">Done</button>
-    </div>
-  </div>
-</div>
-
-<!-- CHAT -->
 <div id="s-chat" class="sec">
   <!-- Conversation list -->
   <div id="chat-list-view">
@@ -967,7 +620,7 @@ const TCATS={expense:['Events & Dances','Supplies','Equipment','Marketing','Club
 const STATUS_LABELS={idea:'💡 Idea',progress:'⚙️ In progress',done:'✅ Done',shelved:'📦 Shelved'};
 const ECHIPS={Dance:'blue',Fundraiser:'green','Spirit Week':'yellow',Assembly:'yellow',Meeting:'',Other:''};
 
-let data={txns:[],events:[],notes:[],ideas:[]};
+let data={events:[],notes:[],ideas:[]};
 let testMode=false;
 let db=null;
 let prefs={name:'',role:'',widgets:{metrics:true,dash:true,recent:true,upcoming:true}};
@@ -979,16 +632,9 @@ const TEST={
   txns:[
     {id:1,type:'income',date:'2026-09-05',category:'Fundraiser',description:'Back-to-school bake sale',amount:187.50},
     {id:2,type:'income',date:'2026-09-12',category:'PTSA Funds',description:'PTSA quarterly allocation',amount:600.00},
-    {id:3,type:'expense',date:'2026-09-18',category:'Events & Dances',description:'Fall kickoff dance decorations',amount:112.40},
-    {id:4,type:'expense',date:'2026-09-20',category:'Supplies',description:'Poster board & markers',amount:24.99},
-    {id:5,type:'income',date:'2026-10-03',category:'Fundraiser',description:'Halloween candy gram sales',amount:243.00},
-    {id:6,type:'expense',date:'2026-10-08',category:'Events & Dances',description:'Halloween dance DJ deposit',amount:150.00},
-    {id:7,type:'expense',date:'2026-10-22',category:'Club Activities',description:'Chess club tournament fees',amount:60.00},
-    {id:8,type:'income',date:'2026-11-01',category:'PTSA Funds',description:'PTSA November allocation',amount:400.00},
-    {id:9,type:'expense',date:'2026-11-10',category:'Events & Dances',description:'Winter formal venue deposit',amount:200.00},
-    {id:10,type:'income',date:'2026-11-20',category:'Fundraiser',description:'Turkey Trot fun run sponsorships',amount:315.00},
-    {id:11,type:'expense',date:'2026-12-01',category:'Supplies',description:'Holiday decoration supplies',amount:78.50},
-    {id:12,type:'income',date:'2026-12-05',category:'Fundraiser',description:'Holiday cookie sales',amount:412.00},
+    {id:3,type:'expense',date:'2026-09-18',category:'Events & Dances',description:'Fall dance decorations',amount:112.40},
+    {id:4,type:'expense',date:'2026-10-08',category:'Events & Dances',description:'Halloween dance DJ deposit',amount:150.00},
+    {id:5,type:'income',date:'2026-11-01',category:'Fundraiser',description:'Candy gram sales',amount:243.00},
   ],
   events:[
     {id:1,name:'Fall Dance',date:'2026-10-16',type:'Dance',estimatedCost:300,notes:'Gym, 6-8pm'},
@@ -1075,8 +721,7 @@ function startListener(){
     if(testMode)return;
     const remote=snap.val();
     if(remote){
-      data.txns=Object.values(remote.txns||{}).sort((a,b)=>b.id-a.id);
-      data.events=Object.values(remote.events||{});
+data.events=Object.values(remote.events||{});
       data.notes=Object.values(remote.notes||{}).sort((a,b)=>b.id-a.id);
       data.ideas=Object.values(remote.ideas||{});
       if(remote['groq-key']){
@@ -1198,13 +843,13 @@ function closeModal(id){document.getElementById(id).classList.remove('on');}
 function showForm(id){document.getElementById(id).style.display='block';}
 function hideForm(id){document.getElementById(id).style.display='none';}
 function go(t){
-  ['home','budget','finances','events','notes','ideas','chat','people'].forEach(n=>{
+  ['home','events','notes','ideas','chat','people'].forEach(n=>{
     const tab=document.getElementById('tab-'+n);
     const sec=document.getElementById('s-'+n);
     if(tab)tab.classList.toggle('on',n===t);
     if(sec)sec.classList.toggle('on',n===t);
   });
-  document.getElementById('month-filter').style.display=t==='budget'?'block':'none';
+
   if(t==='chat'){renderConvoList();}
   if(t==='people'&&db&&isConnected){db.ref('ims-asb/users').once('value').then(snap=>{const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):[];renderPeople(users);knownUsers=users;});}
   if(t==='events')renderCal();
@@ -1226,33 +871,27 @@ function renderAll(){
   _renderAllTimer=setTimeout(_doRenderAll,50);
 }
 function _doRenderAll(){
-  updateGoalBar();
   updateGreeting();
-  renderAgenda();renderHome();renderBudget();renderEvents();renderNotes();renderIdeas();
-  renderBudgetChart();
+  renderAgenda();renderHome();renderEvents();renderNotes();renderIdeas();
+  
 }
 
 // ── HOME ──────────────────────────────────────────────────────────────
 function renderHome(){
+
+  const upcoming=data.events.filter(e=>daysUntil(e.date)>=0).sort((a,b)=>new Date(a.date)-new Date(b.date));
   const inc=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const exp=data.txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const bal=inc-exp;
-  const canSeeMetrics=prefs.role==='Treasurer'||prefs.role==='Advisor';
-  const hb=document.getElementById('h-bal');
-  if(hb&&canSeeMetrics){hb.textContent=fmt(bal);hb.className='metric-val '+(bal>=0?'pos':'neg');}
-  const upcoming=data.events.filter(e=>daysUntil(e.date)>=0).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const canSeeBalance=prefs.role==='Treasurer'||prefs.role==='Advisor';
+  const wBal=document.getElementById('w-balance');if(wBal)wBal.style.display=canSeeBalance?'':'none';
+  const hb=document.getElementById('h-bal');if(hb&&canSeeBalance){hb.textContent=fmt(bal);hb.className='metric-val '+(bal>=0?'pos':'neg');}
   document.getElementById('h-events').textContent=upcoming.length;
   document.getElementById('h-ideas').textContent=data.ideas.filter(i=>i.status==='idea'||i.status==='progress').length;
   const nec=document.getElementById('next-event-content');
   if(upcoming.length){const e=upcoming[0];const d=daysUntil(e.date);nec.innerHTML=`<div class="days">${d}</div><div class="days-lbl">day${d!==1?'s':''} away</div><div class="event-name">${e.name}</div><div class="event-date">${new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})}</div>`;}
   else nec.innerHTML='<p style="font-size:13px;color:var(--muted)">No upcoming events.</p>';
-  // recent txns — Treasurer and Advisor only
-  const ht=document.getElementById('home-txns'),hte=document.getElementById('home-txns-empty');
-  const canSeeTxns=prefs.role==='Treasurer'||prefs.role==='Advisor';
-  if(canSeeTxns){
-    if(!data.txns.length){ht.innerHTML='';hte.style.display='block';}
-    else{hte.style.display='none';ht.innerHTML=data.txns.slice(0,4).map(t=>txnRowHTML(t,false)).join('');}
-  }
+
   const hel=document.getElementById('home-events-list'),hee=document.getElementById('home-events-empty');
   if(!upcoming.length){hel.innerHTML='';hee.style.display='block';}else{hee.style.display='none';hel.innerHTML=upcoming.slice(0,4).map(e=>eventRowHTML(e,false)).join('');}
   // finances card (read-only, for non-treasurer)
@@ -1288,16 +927,6 @@ function renderHome(){
 
 // ── BUDGET ────────────────────────────────────────────────────────────
 function getFiltered(){const m=document.getElementById('month-filter').value;return m==='all'?data.txns:data.txns.filter(t=>t.date.startsWith(m));}
-function renderBudget(){
-  const f=getFiltered();
-  const inc=f.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const exp=f.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const bal=inc-exp;
-  document.getElementById('b-inc').textContent=fmt(inc);
-  document.getElementById('b-exp').textContent=fmt(exp);
-  const bb=document.getElementById('b-bal');bb.textContent=fmt(bal);bb.className='metric-val '+(bal>0?'pos':bal<0?'neg':'neu');
-  renderCats(f,exp);renderRecent(f);renderHistory(f,inc,exp);updateMonths();
-}
 function renderCats(f,te){
   const bc={};f.filter(t=>t.type==='expense').forEach(t=>{bc[t.category]=(bc[t.category]||0)+t.amount;});
   const en=Object.entries(bc).sort((a,b)=>b[1]-a[1]);
@@ -1393,7 +1022,6 @@ function renderCal(){
 }
 
 function calCellClick(iso){const evs=data.events.filter(e=>e.date===iso);if(!evs.length)return;const info=evs.map(e=>e.name+(e.notes?' - '+e.notes:'')).join(', ');toast(info);}
-
 
 function renderEvents(){
   renderCal();
@@ -1599,7 +1227,7 @@ function clearGroqKey(){
 // ── TEST MODE ─────────────────────────────────────────────────────────
 function loadTest(){
   testMode=true;
-  data={txns:TEST.txns.map(t=>({...t})),events:TEST.events.map(e=>({...e})),notes:TEST.notes.map(n=>({...n})),ideas:TEST.ideas.map(i=>({...i}))};
+  data={events:TEST.events.map(e=>({...e})),notes:TEST.notes.map(n=>({...n})),ideas:TEST.ideas.map(i=>({...i}))};
   // populate announcements
   if(TEST.announcements)renderAnnouncements(TEST.announcements);
   // populate people
@@ -1608,12 +1236,11 @@ function loadTest(){
   // goal
   if(TEST.goal){localStorage.setItem('ims-goal-real',localStorage.getItem('ims-goal')||'0');localStorage.setItem('ims-goal',TEST.goal);}
   document.getElementById('test-banner').classList.add('on');
-  document.getElementById('month-filter').value='all';
   renderAll();go('home');toast('Test data loaded!');
 }
 function clearTest(){
   testMode=false;
-  data={txns:[],events:[],notes:[],ideas:[]};
+  data={events:[],notes:[],ideas:[]};
   document.getElementById('test-banner').classList.remove('on');
   // clear test-injected UI
   renderAnnouncements([]);
@@ -1628,8 +1255,7 @@ function clearTest(){
     db.ref('ims-asb').once('value').then(snap=>{
       const remote=snap.val();
       if(remote){
-        data.txns=Object.values(remote.txns||{}).sort((a,b)=>b.id-a.id);
-        data.events=Object.values(remote.events||{});
+    data.events=Object.values(remote.events||{});
         data.notes=Object.values(remote.notes||{}).sort((a,b)=>b.id-a.id);
         data.ideas=Object.values(remote.ideas||{});
         if(remote.users){const users=Object.values(remote.users).sort((a,b)=>a.name.localeCompare(b.name));renderPeople(users);renderConvoList(users);}
@@ -1735,7 +1361,6 @@ function backToList(){
   }
 }
 
-
 // Profanity blocklist — instant block before AI check
 const BLOCKED=['nigger','nigga','n1gger','n1gga','faggot','fag','retard','chink','spic','kike','cunt','fuck','f*ck','sh1t','b1tch','whore','slut'];
 function hasProfanity(text){
@@ -1805,7 +1430,6 @@ function clearGeneralChat(){
     renderMsgs([]);
   }).catch(e=>toast('Error: '+e.message));
 }
-
 
 let lastMsg='';let lastMsgTime=0;
 async function sendMsg(){
@@ -1916,7 +1540,7 @@ function executeNuclearReset(){
   if(!db||!isConnected)return;
   // wipe everything except firebase config
   db.ref('ims-asb').remove().then(()=>{
-    data={txns:[],events:[],notes:[],ideas:[]};
+    data={events:[],notes:[],ideas:[]};
     document.getElementById('reset-request-banner').style.display='none';
     renderAll();
     renderConvoList([]);
@@ -1941,57 +1565,6 @@ function applyPrefs(){
   updateGreeting();
   // widgets
   const w=prefs.widgets||{};
-  const canSeeBudget=role==='Treasurer'||role==='Advisor';
-  const canSeeNotes=role==='Secretary'||role==='Advisor'||role==='Treasurer';
-
-  // apply user widget prefs for non-restricted widgets
-  ['metrics','dash','recent','upcoming'].forEach(id=>{
-    const el=document.getElementById('w-'+id);
-    if(el)el.style.display=(w[id]===false)?'none':'';
-    const cb=document.getElementById('wt-'+id);
-    if(cb)cb.checked=(w[id]!==false);
-  });
-
-  // role-based: hide balance and recent txns from non-treasurer/advisor
-  const wBal=document.getElementById('w-balance');
-  if(wBal)wBal.style.display=canSeeBudget?'':'none';
-  const wRecent=document.getElementById('w-recent');
-  if(wRecent)wRecent.style.display=(canSeeBudget&&w.recent!==false)?'':'none';
-
-  // hide finances card on home (replaced by tab)
-  const wFin=document.getElementById('w-finances');
-  if(wFin)wFin.style.display='none';
-
-  // quick add buttons — hide restricted ones
-  const qaTxn=document.getElementById('qa-txn');
-  if(qaTxn)qaTxn.style.display=canSeeBudget?'':'none';
-  const qaNote=document.getElementById('qa-note');
-  if(qaNote)qaNote.style.display=canSeeNotes?'':'none';
-  // fill customize fields
-  const pn=document.getElementById('pref-name');if(pn)pn.value=prefs.name||'';
-  const pr=document.getElementById('pref-role');if(pr)pr.value=prefs.role||'';
-  updateAvatarPreview();
-
-  // ── ROLE-BASED ACCESS ──────────────────────────────────────────────
-  const tabs=document.querySelectorAll('.tab');
-  tabs.forEach(t=>t.style.display=''); // reset all
-
-  const isAdvisor=role==='Advisor';
-  const isTreasurer=role==='Treasurer';
-  const isSecretary=role==='Secretary';
-  const isSupporter=role==='Supporter';
-
-  // FINANCES tab (read-only): visible to non-treasurer, non-advisor
-  // BUDGET tab: Treasurer + Advisor (full edit access)
-  const finTab=document.getElementById('tab-finances');
-  if(finTab)finTab.style.display=(role&&!isTreasurer&&!isAdvisor)?'':'none';
-  const finCard=document.getElementById('w-finances');
-  if(finCard)finCard.style.display='none';
-  if(!isTreasurer&&!isAdvisor){
-    const budgetTab=document.getElementById('tab-budget');
-    if(budgetTab){budgetTab.style.display='none';budgetTab.classList.remove('on');}
-    if(document.getElementById('s-budget').classList.contains('on'))go('home');
-  }
 
   // NOTES tab: Secretary + Advisor
   if(!isSecretary&&!isAdvisor){
@@ -2236,8 +1809,6 @@ function pwModalCancel(){
 const ALL_TOUR_STEPS=[
   {icon:'👋',title:'Welcome to IMS ASB Hub!',desc:"Your team's command centre for ASB. Let's do a quick walkthrough — I'll highlight each part as we go.",target:null,roles:'all'},
   {icon:'🏠',title:'Home',desc:'Your dashboard. See the balance, next event, recent transactions, and quick-add shortcuts all in one place.',target:'s-home',roles:'all'},
-  {icon:'💰',title:'Budget',desc:'Track every dollar in and out. Add transactions, view history by month, and generate talking points for your transparency email.',target:'s-budget',roles:'Treasurer'},
-  {icon:'💰',title:'Finances',desc:'A read-only view of the budget — balance, income, expenses, and a category breakdown. Updated in real time.',target:'s-finances',roles:'finances'},
   {icon:'📅',title:'Events',desc:"Add and track all ASB events. The AI date suggester at the bottom helps you pick dates that don't clash with your schedule.",target:'s-events',roles:'all'},
   {icon:'📝',title:'Notes',desc:'Meeting notes — Secretary and Advisors can add them, everyone can read them. Click any note to expand it.',target:'s-notes',roles:'all'},
   {icon:'💡',title:'Ideas',desc:'Drop ideas and track their status from Idea → In Progress → Done. Great for pitching new events or fundraisers.',target:'s-ideas',roles:'all'},
@@ -2380,7 +1951,6 @@ function loadTheme(){
   applyTheme(saved==='dark'||(saved===null&&prefersDark));
 }
 
-
 // ── ANNOUNCEMENTS ──────────────────────────────────────────────────────
 function showAnnounceForm(){
   document.getElementById('announce-form').style.display='block';
@@ -2425,7 +1995,6 @@ function renderSearch(q){
   const ql=q.toLowerCase();
   const results=[];
   data.txns.filter(t=>t.description.toLowerCase().includes(ql)||t.category.toLowerCase().includes(ql)).slice(0,3).forEach(t=>{
-    results.push({type:'Budget',title:t.description,sub:t.type+' · '+fmt(t.amount)+' · '+t.date,action:()=>{go('budget');showStab('history');}});
   });
   data.events.filter(e=>e.name.toLowerCase().includes(ql)||(e.notes&&e.notes.toLowerCase().includes(ql))).slice(0,3).forEach(e=>{
     results.push({type:'Event',title:e.name,sub:e.date+' · '+e.type,action:()=>go('events')});
@@ -2453,44 +2022,6 @@ function searchResultClick(i){
 }
 
 // ── BUDGET GOAL ───────────────────────────────────────────────────────
-function toggleGoalForm(){
-  const f=document.getElementById('goal-form');
-  f.style.display=f.style.display==='none'?'block':'none';
-  if(f.style.display==='block'){
-    document.getElementById('goal-input').value=localStorage.getItem('ims-goal')||'';
-    document.getElementById('goal-name-input').value=localStorage.getItem('ims-goal-name')||'';
-  }
-}
-function saveGoal(){
-  const g=parseFloat(document.getElementById('goal-input').value)||0;
-  const gname=document.getElementById('goal-name-input').value.trim()||'Fundraising goal';
-  localStorage.setItem('ims-goal',g);
-  localStorage.setItem('ims-goal-name',gname);
-  if(db&&isConnected&&!testMode){db.ref('ims-asb/goal').set(g);db.ref('ims-asb/goal-name').set(gname);}
-  document.getElementById('goal-form').style.display='none';
-  updateGoalBar();
-  toast('Goal saved');
-}
-function updateGoalBar(){
-  const goal=parseFloat(localStorage.getItem('ims-goal')||'0');
-  const goalName=localStorage.getItem('ims-goal-name')||'Fundraising goal';
-  const gnl=document.getElementById('goal-name-label');if(gnl)gnl.textContent=goalName;
-  const income=data.txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const gp=document.getElementById('goal-progress');
-  const gb=document.getElementById('goal-bar');
-  const gpct=document.getElementById('goal-pct');
-  const gr=document.getElementById('goal-raised');
-  const gt=document.getElementById('goal-target');
-  if(!goal||!gp){if(gp)gp.style.display='none';return;}
-  gp.style.display='block';
-  const pct=Math.min(100,Math.round((income/goal)*100));
-  const wasComplete=gb&&gb.style.width==='100%';
-  if(gb)gb.style.width=pct+'%';
-  if(pct>=100&&!wasComplete)setTimeout(launchConfetti,300);
-  if(gpct)gpct.textContent=pct+'%';
-  if(gr)gr.textContent=fmt(income)+' raised';
-  if(gt)gt.textContent='goal: '+fmt(goal);
-}
 
 // ── EXPORT CSV ────────────────────────────────────────────────────────
 function exportCSV(){
@@ -2574,8 +2105,6 @@ function clearChatBadge(){
 }
 
 // archive moved to year summary section
-
-
 
 function removeUser(name){
   if(!confirm('Remove '+name+' from the hub? They will need to re-register.'))return;
@@ -2734,7 +2263,6 @@ function renderIdeaVotes(id,el){
   });
 }
 
-
 // ── CHAT MIGRATION ────────────────────────────────────────────────────
 function migrateChatIfNeeded(){
   if(!db||!isConnected)return;
@@ -2762,7 +2290,6 @@ function migrateChatIfNeeded(){
   });
 }
 
-
 // ── GREETING ──────────────────────────────────────────────────────────
 function updateGreeting(){
   const h=new Date().getHours();
@@ -2782,28 +2309,6 @@ function updateGreeting(){
 }
 
 // ── BUDGET CHART ──────────────────────────────────────────────────────
-function renderBudgetChart(){
-  const el=document.getElementById('fin-cat-chart');
-  const card=document.getElementById('fin-cat-card');
-  if(!el)return;
-  const expenses=data.txns.filter(t=>t.type==='expense');
-  if(!expenses.length){if(card)card.style.display='none';return;}
-  if(card)card.style.display='block';
-  const byCat={};
-  expenses.forEach(t=>{byCat[t.category]=(byCat[t.category]||0)+t.amount;});
-  const entries=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
-  const max=entries[0][1];
-  const colors=['var(--accent)','var(--green)','#e0b84a','#e05555','#9b59b6','#e67e22','#1abc9c'];
-  el.innerHTML='';
-  entries.forEach(([cat,amt],i)=>{
-    const row=document.createElement('div');
-    row.className='chart-bar-row';
-    row.innerHTML='<div class="chart-bar-label" title="'+cat+'">'+cat+'</div>'
-      +'<div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+(amt/max*100).toFixed(0)+'%;background:'+colors[i%colors.length]+'"></div></div>'
-      +'<div class="chart-bar-val">'+fmt(amt)+'</div>';
-    el.appendChild(row);
-  });
-}
 
 // ── ONLINE INDICATOR ──────────────────────────────────────────────────
 let onlineHeartbeat=null;
@@ -2918,7 +2423,7 @@ function archiveYear(){
     return db.ref('ims-asb-archive-'+year).set({...current,archivedAt:new Date().toISOString(),summary:{totalInc,totalExp,eventCount,doneIdeas}});
   }).then(()=>db.ref('ims-asb').remove())
   .then(()=>{
-    data={txns:[],events:[],notes:[],ideas:[]};
+    data={events:[],notes:[],ideas:[]};
     renderAll();renderConvoList([]);renderPeople([]);
     toast('Archived! Starting fresh for '+(year+1));
     closeModal('customize-modal');
