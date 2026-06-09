@@ -383,7 +383,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <input type="text" id="search-input" placeholder="🔍  Search events, ideas, notes..." oninput="renderSearch(this.value)">
   </div>
   <div id="search-results" class="card" style="display:none;padding:8px 16px;margin-bottom:14px"></div>
-  <div class="grid2" id="w-metrics"></div>
+  <div class="grid2" id="w-metrics">
     <div class="metric"><div class="metric-lbl">Upcoming events</div><div class="metric-val neu" id="h-events">0</div></div>
     <div class="metric"><div class="metric-lbl">Open ideas</div><div class="metric-val neu" id="h-ideas">0</div></div>
   </div>
@@ -401,7 +401,6 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       </div>
     </div>
   </div>
-</div>
   <div class="card" style="display:none" id="w-agenda">
     <div class="card-title">Agenda</div>
     <div id="agenda-list"></div>
@@ -411,27 +410,6 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <div class="card-title">Upcoming events</div>
     <div id="home-events-list"></div>
     <div id="home-events-empty" class="empty" style="padding:1rem 0;display:none"><p style="margin-bottom:0;font-size:13px">No upcoming events.</p></div>
-  </div>
-  <div class="card" id="w-finances" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <span class="card-title" style="margin-bottom:0">💰 Finances</span>
-      <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--hint)">read-only</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-      <div style="text-align:center;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px">BALANCE</div>
-        <div style="font-size:18px;font-weight:600" id="fin-bal">$0.00</div>
-      </div>
-      <div style="text-align:center;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px">INCOME</div>
-        <div style="font-size:18px;font-weight:600;color:var(--green)" id="fin-inc">$0.00</div>
-      </div>
-      <div style="text-align:center;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px">EXPENSES</div>
-        <div style="font-size:18px;font-weight:600;color:var(--red)" id="fin-exp">$0.00</div>
-      </div>
-    </div>
-    <div id="fin-top-cat" style="font-size:13px;color:var(--muted)"></div>
   </div>
 </div>
 
