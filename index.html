@@ -302,6 +302,25 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .avatar-preview{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--border);display:block}
 .avatar-change-hint{font-size:11px;color:var(--hint);margin-top:4px;text-align:center}
 .ob-step-hide{display:none!important}
+.hdr-menu-wrap{position:relative}
+.hdr-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:60;padding:4px;flex-direction:column}
+.hdr-menu.open{display:flex}
+.hdr-menu-item{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 12px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);cursor:pointer;border-radius:4px;white-space:nowrap}
+.hdr-menu-item:hover{background:var(--bg)}
+.cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-head span{font-size:10px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;text-align:center;padding:4px 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day{min-height:64px;background:var(--bg);border-radius:6px;padding:4px 5px;font-size:11px;color:var(--muted);position:relative}
+.cal-day.other{opacity:.35}
+.cal-day.today{outline:2px solid var(--accent);outline-offset:-2px}
+.cal-day .d-num{font-family:'DM Mono',monospace;font-size:11px}
+.cal-event{margin-top:3px;background:var(--accent);color:#fff;border-radius:4px;padding:2px 5px;font-size:10px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
+.cal-nav{display:flex;align-items:center;gap:10px}
+.cal-nav button{background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:13px;color:var(--text)}
+.cal-nav .cal-title{font-size:14px;font-weight:500;min-width:130px;text-align:center}
+.view-toggle-btn{background:none;border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif}
+.view-toggle-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+@media(max-width:540px){.cal-day{min-height:48px}.cal-event{font-size:9px;padding:1px 3px}}
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
 .role-btn{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;text-align:left;transition:all .15s}
 .role-btn:hover{border-color:var(--accent);background:var(--bg)}
@@ -322,11 +341,16 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <span class="sync-dot" id="sync-dot"></span><span id="sync-label">Not connected to Firebase</span>
     </span>
     <button id="theme-btn" class="test-btn" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
-    <button class="test-btn" id="btn-test" onclick="loadTest()">⚗ test</button>
-    <button id="btn-firebase" class="icon-btn" onclick="openModal('firebase-modal')">🔥 Firebase</button>
-    <button id="btn-groq" class="icon-btn" onclick="openModal('groq-modal')">⚙ Groq</button>
-    <button id="btn-settings" class="icon-btn" onclick="openModal('settings-modal')" style="display:none">🔑 Passwords</button>
-    <button id="btn-finance" class="icon-btn" onclick="window.open('https://ims-asb.github.io/ims-finance','_blank')" style="display:none" title="Open Financial Manager">📊 Finances</button>
+    <div class="hdr-menu-wrap">
+      <button id="hdr-menu-btn" class="icon-btn" onclick="toggleHdrMenu(event)">☰ Menu</button>
+      <div id="hdr-menu" class="hdr-menu">
+        <button id="btn-finance" class="hdr-menu-item" onclick="window.open('https://ims-asb.github.io/ims-finance','_blank')" style="display:none">📊 Finances</button>
+        <button id="btn-settings" class="hdr-menu-item" onclick="closeHdrMenu();openModal('settings-modal')" style="display:none">🔑 Passwords</button>
+        <button id="btn-firebase" class="hdr-menu-item" onclick="closeHdrMenu();openModal('firebase-modal')">🔥 Firebase</button>
+        <button id="btn-groq" class="hdr-menu-item" onclick="closeHdrMenu();openModal('groq-modal')">⚙ Groq</button>
+        <button id="btn-test" class="hdr-menu-item" onclick="closeHdrMenu();loadTest()">⚗ Test mode</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -432,11 +456,41 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <div class="fg"><label class="fl">Est. cost ($)</label><input type="number" id="ev-cost" min="0" step="0.01" placeholder="0.00"></div>
     </div>
     <div class="fg" style="margin-bottom:14px"><label class="fl">Notes</label><input type="text" id="ev-notes" placeholder="Location, details, etc."></div>
+    <div style="margin-bottom:14px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">✨ AI date suggester</span>
+        <input type="date" id="ds-from" style="width:auto;font-size:12px;padding:4px 8px">
+        <span style="font-size:12px;color:var(--hint)">to</span>
+        <input type="date" id="ds-to" style="width:auto;font-size:12px;padding:4px 8px">
+        <button class="btn sm" type="button" onclick="suggestDate()">Suggest</button>
+      </div>
+      <div id="date-result" style="font-size:12px;color:var(--muted);margin-top:6px;min-height:16px"></div>
+    </div>
     <div style="display:flex;gap:8px"><button class="btn primary" onclick="addEvent()">Save event</button><button class="btn" onclick="hideForm('event-form')">Cancel</button></div>
   </div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="font-size:16px;font-weight:500">Events</h2><button class="btn sm primary" onclick="showForm('event-form')">+ Add event</button></div>
-  <div id="events-list" class="card" style="display:none"></div>
-  <div id="events-empty" class="empty"><div class="ico">📅</div><p>No events yet.</p></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h2 style="font-size:16px;font-weight:500">Events</h2>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="view-toggle-btn on" id="vt-cal" onclick="setEventView('cal')">📅 Calendar</button>
+      <button class="view-toggle-btn" id="vt-list" onclick="setEventView('list')">☰ List</button>
+      <button class="btn sm primary" onclick="showForm('event-form')">+ Add event</button>
+    </div>
+  </div>
+  <div id="cal-view" class="card">
+    <div style="display:flex;justify-content:center;margin-bottom:12px">
+      <div class="cal-nav">
+        <button onclick="calStep(-1)">‹</button>
+        <span class="cal-title" id="cal-title"></span>
+        <button onclick="calStep(1)">›</button>
+      </div>
+    </div>
+    <div class="cal-head"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+  <div id="list-view" style="display:none">
+    <div id="events-list" class="card" style="display:none"></div>
+    <div id="events-empty" class="empty"><div class="ico">📅</div><p>No events yet.</p></div>
+  </div>
 </div>
 
 <!-- NOTES -->
@@ -643,7 +697,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <p style="font-size:12px;font-weight:500;margin-bottom:6px">⚠️ Nuclear reset</p>
       <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Wipes all data for everyone. Requires Treasurer + Advisors.</p>
       <button class="btn danger sm" onclick="requestNuclearReset()">Request nuclear reset</button>
-      <div id="reset-request-banner" style="display:none;margin-top:8px;font-size:12px;color:var(--red)"></div>
+      <div id="reset-request-status" style="display:none;margin-top:8px;font-size:12px;color:var(--red)"></div>
     </div>
 
     <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -914,7 +968,8 @@ function save(){
   if(testMode)return;
   if(db&&isConnected){
     const toObj=(arr)=>arr.reduce((o,i)=>{o[i.id]=i;return o;},{});
-    db.ref('ims-asb').set({events:toObj(data.events),notes:toObj(data.notes),ideas:toObj(data.ideas)})
+    // update() only touches these three children — set() here would wipe chat/users/votes/announcements
+    db.ref('ims-asb').update({events:toObj(data.events),notes:toObj(data.notes),ideas:toObj(data.ideas)})
       .catch(e=>toast('Save error: '+e.message));
   } else {
     try{localStorage.setItem('ims-asb-local',JSON.stringify(data));}catch(e){}
@@ -1001,16 +1056,111 @@ function renderHome(){
 
 
 // ── EVENTS ────────────────────────────────────────────────────────────
+// HTML-escape helper for any user-typed content injected via innerHTML
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── HEADER MENU ───────────────────────────────────────────────────────
+function toggleHdrMenu(e){
+  e.stopPropagation();
+  document.getElementById('hdr-menu').classList.toggle('open');
+}
+function closeHdrMenu(){document.getElementById('hdr-menu').classList.remove('open');}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.hdr-menu-wrap'))closeHdrMenu();
+});
+
+// ── CALENDAR ──────────────────────────────────────────────────────────
+let calMonth=new Date().getMonth(),calYear=new Date().getFullYear();
+let eventView=localStorage.getItem('ims-event-view')||'cal';
+
+function setEventView(v){
+  eventView=v;
+  localStorage.setItem('ims-event-view',v);
+  document.getElementById('vt-cal').classList.toggle('on',v==='cal');
+  document.getElementById('vt-list').classList.toggle('on',v==='list');
+  document.getElementById('cal-view').style.display=v==='cal'?'':'none';
+  document.getElementById('list-view').style.display=v==='list'?'':'none';
+  if(v==='cal')renderCal();else renderEvents();
+}
+
+function calStep(dir){
+  calMonth+=dir;
+  if(calMonth<0){calMonth=11;calYear--;}
+  if(calMonth>11){calMonth=0;calYear++;}
+  renderCal();
+}
+
+function renderCal(){
+  const grid=document.getElementById('cal-grid');
+  const title=document.getElementById('cal-title');
+  if(!grid||!title)return;
+  title.textContent=new Date(calYear,calMonth,1).toLocaleDateString('default',{month:'long',year:'numeric'});
+  const first=new Date(calYear,calMonth,1);
+  const startDow=first.getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  const todayStr=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  // events by date for this month view
+  const byDate={};
+  data.events.forEach(e=>{(byDate[e.date]=byDate[e.date]||[]).push(e);});
+  let html='';
+  const totalCells=Math.ceil((startDow+daysInMonth)/7)*7;
+  for(let cell=0;cell<totalCells;cell++){
+    let dnum,dateStr,other=false;
+    const offset=cell-startDow;
+    if(offset<0){dnum=daysInPrev+offset+1;other=true;const m=calMonth===0?11:calMonth-1;const y=calMonth===0?calYear-1:calYear;dateStr=y+'-'+String(m+1).padStart(2,'0')+'-'+String(dnum).padStart(2,'0');}
+    else if(offset>=daysInMonth){dnum=offset-daysInMonth+1;other=true;const m=calMonth===11?0:calMonth+1;const y=calMonth===11?calYear+1:calYear;dateStr=y+'-'+String(m+1).padStart(2,'0')+'-'+String(dnum).padStart(2,'0');}
+    else{dnum=offset+1;dateStr=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(dnum).padStart(2,'0');}
+    const evs=byDate[dateStr]||[];
+    html+='<div class="cal-day'+(other?' other':'')+(dateStr===todayStr?' today':'')+'">'
+      +'<span class="d-num">'+dnum+'</span>'
+      +evs.map(e=>'<div class="cal-event" title="'+esc(e.name)+(e.notes?' — '+esc(e.notes):'')+'">'+esc(e.name)+'</div>').join('')
+      +'</div>';
+  }
+  grid.innerHTML=html;
+}
+
+// ── AI DATE SUGGESTER ─────────────────────────────────────────────────
+async function suggestDate(){
+  const out=document.getElementById('date-result');
+  const key=localStorage.getItem('ims-groq-key')||'';
+  if(!key){out.textContent='Add a Groq key (☰ Menu → Groq) to use AI suggestions.';return;}
+  const from=document.getElementById('ds-from').value;
+  const to=document.getElementById('ds-to').value;
+  if(!from||!to){out.textContent='Pick a date range first.';return;}
+  const evName=document.getElementById('ev-name').value.trim()||'an ASB event';
+  const existing=data.events.map(e=>e.name+' on '+e.date).join('; ')||'none';
+  out.textContent='Thinking…';
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'llama-3.3-70b-versatile',max_tokens:60,temperature:0.3,
+        messages:[{role:'user',content:'Suggest the single best date for "'+evName+'" at a middle school. Must be a WEEKDAY between '+from+' and '+to+'. Avoid clashing with existing events: '+existing+'. Reply with ONLY the date in YYYY-MM-DD format followed by a 5-10 word reason.'}]})});
+    const d=await res.json();
+    const text=(d.choices?.[0]?.message?.content||'').trim();
+    const m=text.match(/\d{4}-\d{2}-\d{2}/);
+    if(m){
+      const suggested=new Date(m[0]+'T00:00:00');
+      const dow=suggested.getDay();
+      if(dow===0||dow===6){out.textContent='AI suggested a weekend — try again or pick manually.';return;}
+      document.getElementById('ev-date').value=m[0];
+      out.textContent='✓ '+text;
+    } else out.textContent=text||'No suggestion — try again.';
+  }catch(e){out.textContent='Error: '+e.message;}
+}
+
 const ECHIPS={Dance:'blue',Fundraiser:'green','Spirit Week':'yellow',Assembly:'yellow',Meeting:'',Other:''};
 function eventRowHTML(e,del){
   const d=daysUntil(e.date),past=d<0;
   const dateStr=new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'});
   const cc=ECHIPS[e.type]||'';
-  return `<div class="event-item"><div class="event-countdown ${past?'past':''}"><div class="num">${Math.abs(d)}</div><div class="unit">${past?'ago':'days'}</div></div><div class="event-info"><div class="event-title">${e.name}</div><div class="event-sub">${dateStr}${e.estimatedCost?` · est. ${fmt(e.estimatedCost)}`:''}${e.notes?` · ${e.notes}`:''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><span class="chip ${cc}">${e.type}</span>${del?`<button class="del-btn" onclick="delEvent(${e.id})">✕</button>`:''}</div></div>`;
+  return `<div class="event-item"><div class="event-countdown ${past?'past':''}"><div class="num">${Math.abs(d)}</div><div class="unit">${past?'ago':'days'}</div></div><div class="event-info"><div class="event-title">${esc(e.name)}</div><div class="event-sub">${dateStr}${e.estimatedCost?` · est. ${fmt(e.estimatedCost)}`:''}${e.notes?` · ${esc(e.notes)}`:''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><span class="chip ${cc}">${e.type}</span>${del?`<button class="del-btn" onclick="delEvent(${e.id})">✕</button>`:''}</div></div>`;
 }
 function renderEvents(){
+  renderCal();
   const sorted=[...data.events].sort((a,b)=>new Date(a.date)-new Date(b.date));
   const el=document.getElementById('events-list'),ee=document.getElementById('events-empty');
+  if(!el)return;
   if(!sorted.length){el.style.display='none';ee.style.display='block';return;}
   ee.style.display='none';el.style.display='block';
   el.innerHTML=sorted.map(e=>eventRowHTML(e,true)).join('');
@@ -1033,11 +1183,11 @@ function renderNotes(){
   ne.style.display='none';nl.style.display='block';
   nl.innerHTML=sorted.map(n=>`<div class="note-item" onclick="this.classList.toggle('expanded')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div><div class="note-title">${n.title}</div><div class="note-date">${new Date(n.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})}</div></div>
+      <div><div class="note-title">${esc(n.title)}</div><div class="note-date">${new Date(n.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})}</div></div>
       <button class="del-btn" onclick="event.stopPropagation();delNote(${n.id})">✕</button>
     </div>
-    <div class="note-preview">${n.content.slice(0,90)}${n.content.length>90?'…':''}</div>
-    <div class="note-full">${n.content}</div>
+    <div class="note-preview">${esc(n.content.slice(0,90))}${n.content.length>90?'…':''}</div>
+    <div class="note-full">${esc(n.content)}</div>
   </div>`).join('');
 }
 function addNote(){
@@ -1058,8 +1208,8 @@ function renderIdeas(){
   const order={idea:0,progress:1,done:2,shelved:3};
   il.innerHTML=[...data.ideas].sort((a,b)=>order[a.status]-order[b.status]).map(i=>`<div class="idea-item">
     <div class="idea-content">
-      <div class="idea-title">${i.title}</div>
-      ${i.description?`<div class="idea-desc">${i.description}</div>`:''}
+      <div class="idea-title">${esc(i.title)}</div>
+      ${i.description?`<div class="idea-desc">${esc(i.description)}</div>`:''}
       <div class="vote-row" id="votes-${i.id}"></div>
     </div>
     <div class="idea-actions">
@@ -1116,7 +1266,7 @@ function renderConvoList(users){
     const duid=u.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
     chtml+=`<div class="convo-item" onclick="openConvo('dm:${u.name}')" data-convo-uid="${duid}">
       <div class="convo-avatar" style="position:relative">${initials}<span class="online-dot" style="position:absolute;bottom:1px;right:1px;border:2px solid var(--surface)"></span></div>
-      <div class="convo-info"><div class="convo-name">${u.name}<span class="role-badge">${u.role||'Member'}</span></div></div>
+      <div class="convo-info"><div class="convo-name">${esc(u.name)}<span class="role-badge">${u.role||'Member'}</span></div></div>
     </div>`;
   });
   cl.innerHTML=chtml;
@@ -1769,8 +1919,8 @@ function renderAnnouncements(items){
   list.innerHTML=items.map(a=>`<div class="announce-item">
     <span class="announce-pin">📌</span>
     <div class="announce-body">
-      <div class="announce-text">${a.text}</div>
-      <div class="announce-meta">${a.author} · ${a.at}${canEdit?' · <span style="cursor:pointer;color:var(--red)" onclick="delAnnouncement('+a.id+')">remove</span>':''}</div>
+      <div class="announce-text">${esc(a.text)}</div>
+      <div class="announce-meta">${esc(a.author)} · ${a.at}${canEdit?' · <span style="cursor:pointer;color:var(--red)" onclick="delAnnouncement('+a.id+')">remove</span>':''}</div>
     </div>
   </div>`).join('');
 }
@@ -2354,13 +2504,16 @@ document.getElementById('nt-date').value=today;
 const gk=localStorage.getItem('ims-groq-key')||'';
 if(gk){document.getElementById('groq-key').value=gk;}
 document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
-// catch any silent JS errors and show them
+// catch any silent JS errors and show them (each unique error only once)
+const _seenErrors=new Set();
 window.onerror=function(msg,src,line){
-  toast('JS Error: '+msg+' (line '+line+')');
+  const key=String(msg);
+  if(!_seenErrors.has(key)){_seenErrors.add(key);toast('JS Error: '+msg+' (line '+line+')');}
   return false;
 };
 // check Firebase SDK loaded
 buildRoleGrid();
+setEventView(eventView);
 if(typeof firebase==='undefined'){
   toast('Firebase SDK failed to load — check your internet connection');
 } else {
