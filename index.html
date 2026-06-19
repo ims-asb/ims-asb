@@ -349,6 +349,8 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
         <button id="btn-firebase" class="hdr-menu-item" onclick="closeHdrMenu();openModal('firebase-modal')">🔥 Firebase</button>
         <button id="btn-groq" class="hdr-menu-item" onclick="closeHdrMenu();openModal('groq-modal')">⚙ Groq</button>
         <button id="btn-test" class="hdr-menu-item" onclick="closeHdrMenu();loadTest()">⚗ Test mode</button>
+        <div style="height:1px;background:var(--border);margin:4px 6px"></div>
+        <button class="hdr-menu-item" onclick="closeHdrMenu();window.open('https://github.com/ims-asb/ims-asb/blob/main/index.html','_blank')">🐙 View on GitHub</button>
       </div>
     </div>
   </div>
@@ -834,7 +836,7 @@ const TEST={
   ],
   users:[
     {name:'Luke Li',role:'Treasurer',joinedAt:'2026-09-01'},
-    {name:'Joodal Jabi',role:'President',joinedAt:'2026-09-01'},
+    {name:'Jood Aljabi',role:'President',joinedAt:'2026-09-01'},
     {name:'Nathan Green',role:'Vice President',joinedAt:'2026-09-02'},
     {name:'Jionni Tolosa',role:'Secretary',joinedAt:'2026-09-01'},
     {name:'Mrs. Gale',role:'Advisor',joinedAt:'2026-09-01'},
@@ -842,7 +844,7 @@ const TEST={
   ],
   goal:1500,
   votes:{
-    1:{'luke-li':'Luke Li','joodal-jabi':'Joodal Jabi'},
+    1:{'luke-li':'Luke Li','jood-aljabi':'Jood Aljabi'},
     4:{'nathan-green':'Nathan Green'},
   }
 };
@@ -1015,6 +1017,10 @@ function closeModal(id){document.getElementById(id).classList.remove('on');}
 function showForm(id){document.getElementById(id).style.display='block';}
 function hideForm(id){document.getElementById(id).style.display='none';}
 function go(t){
+  if(t==='notes'){
+    const canSeeNotes=prefs.role==='Secretary'||prefs.role==='Advisor'||prefs.role==='Treasurer';
+    if(!canSeeNotes){toast('Notes are restricted to Secretary, Advisors, and Treasurer');t='home';}
+  }
   ['home','events','notes','ideas','chat','people'].forEach(n=>{
     const tab=document.getElementById('tab-'+n);
     const sec=document.getElementById('s-'+n);
@@ -1023,7 +1029,7 @@ function go(t){
   });
 
   if(t==='chat'){renderConvoList();}
-  if(t==='people'&&db&&isConnected){db.ref('ims-asb/users').once('value').then(snap=>{const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):[];renderPeople(users);knownUsers=users;});}
+  if(t==='people'&&db&&isConnected&&!testMode){db.ref('ims-asb/users').once('value').then(snap=>{const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):[];renderPeople(users);knownUsers=users;});}
   if(t==='events')renderCal();
 }
 function daysUntil(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/(864e5));}
@@ -1253,7 +1259,7 @@ function renderConvoList(users){
   if(users)knownUsers=users;
   const cl=document.getElementById('convo-list');
   if(!cl)return;
-  if(!db||!isConnected){cl.innerHTML='<p style="font-size:13px;color:var(--muted)">Connect to Firebase to start chatting.</p>';return;}
+  if(!testMode&&(!db||!isConnected)){cl.innerHTML='<p style="font-size:13px;color:var(--muted)">Connect to Firebase to start chatting.</p>';return;}
   const storedUser=knownUsers.find(u=>u.name===prefs.name);
   const roleVerified=!storedUser||(storedUser.role===prefs.role);
   let chtml=`<div class="convo-item" onclick="openConvo('general')">
@@ -1279,6 +1285,17 @@ function openConvo(id){
   document.getElementById('chat-convo-view').style.display='block';
   const title=document.getElementById('chat-convo-title');
   const membersEl=document.getElementById('chat-members');
+  if(testMode){
+    // never touch real chat data while previewing test mode
+    title.textContent=id==='general'?'# General':id.replace('dm:','');
+    membersEl.textContent=id==='general'?knownUsers.length+' member'+(knownUsers.length!==1?'s':''):'';
+    renderMsgs(id==='general'?[
+      {id:Date.now()-3600000,name:'Jood Aljabi',role:'President',text:'Test mode — this is sample chat, not real messages.'},
+      {id:Date.now()-1800000,name:prefs.name||'You',role:prefs.role||'',text:'Got it, looks good!'},
+    ]:[]);
+    document.getElementById('chat-input').focus();
+    return;
+  }
   if(id==='general'){
     title.textContent='# General';
     membersEl.textContent=knownUsers.length+' member'+(knownUsers.length!==1?'s':'');
@@ -1501,12 +1518,13 @@ function applyPrefs(){
   // widgets
   const w=prefs.widgets||{};
 
-  // NOTES tab: Secretary + Advisor
-  if(!isSecretary&&!isAdvisor){
-    const notesTab=document.getElementById('tab-notes');
-    if(notesTab){notesTab.style.display='none';notesTab.classList.remove('on');}
-    if(document.getElementById('s-notes').classList.contains('on'))go('home');
-  }
+  // NOTES: Secretary, Advisor, and Treasurer can access; everyone else cannot
+  const canSeeNotes=isSecretary||isAdvisor||isTreasurer;
+  const notesTab=document.getElementById('tab-notes');
+  if(notesTab){notesTab.style.display=canSeeNotes?'':'none';if(!canSeeNotes)notesTab.classList.remove('on');}
+  if(!canSeeNotes&&document.getElementById('s-notes').classList.contains('on'))go('home');
+  const qaNote=document.getElementById('qa-note');
+  if(qaNote)qaNote.style.display=canSeeNotes?'':'none';
 
   // SUPPORTER: hide delete buttons
   if(isSupporter)applyReadOnly(['del-btn']);
@@ -1937,9 +1955,12 @@ function renderSearch(q){
   data.ideas.filter(i=>i.title.toLowerCase().includes(ql)||(i.desc&&i.desc.toLowerCase().includes(ql))).slice(0,3).forEach(i=>{
     results.push({type:'Idea',title:i.title,sub:i.status,action:()=>go('ideas')});
   });
-  data.notes.filter(n=>n.title.toLowerCase().includes(ql)||(n.content&&n.content.toLowerCase().includes(ql))).slice(0,3).forEach(n=>{
-    results.push({type:'Note',title:n.title,sub:n.date,action:()=>go('notes')});
-  });
+  const canSeeNotes=prefs.role==='Secretary'||prefs.role==='Advisor'||prefs.role==='Treasurer';
+  if(canSeeNotes){
+    data.notes.filter(n=>n.title.toLowerCase().includes(ql)||(n.content&&n.content.toLowerCase().includes(ql))).slice(0,3).forEach(n=>{
+      results.push({type:'Note',title:n.title,sub:n.date,action:()=>go('notes')});
+    });
+  }
   if(!results.length){res.style.display='block';res.innerHTML='<p style="font-size:13px;color:var(--hint);padding:8px 0">No results for "'+q+'"</p>';return;}
   res.style.display='block';
   res.innerHTML=results.map((r,i)=>`<div class="search-result" onclick="searchResultClick(${i})">
@@ -2027,6 +2048,7 @@ function clearChatBadge(){
 // archive moved to year summary section
 
 function removeUser(name){
+  if(testMode){toast('Removing people is disabled in test mode');return;}
   if(!confirm('Remove '+name+' from the hub? They will need to re-register.'))return;
   if(!db||!isConnected){toast('Not connected');return;}
   const uid=name.toLowerCase().replace(/[^a-z0-9]/g,'-');
@@ -2455,6 +2477,12 @@ function loadTest(){
   data={events:TEST.events.map(e=>({...e})),notes:TEST.notes.map(n=>({...n})),ideas:TEST.ideas.map(i=>({...i}))};
   if(TEST.announcements)renderAnnouncements(TEST.announcements);
   if(TEST.users){renderPeople(TEST.users);renderConvoList(TEST.users);}
+  // jump calendar to the first test event so it's actually visible
+  if(data.events.length){
+    const first=[...data.events].sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+    const d=new Date(first.date+'T00:00:00');
+    calMonth=d.getMonth();calYear=d.getFullYear();
+  }
   document.getElementById('test-banner').classList.add('on');
   renderAll();go('home');toast('Test data loaded!');
 }
@@ -2462,6 +2490,7 @@ function clearTest(){
   testMode=false;
   data={events:[],notes:[],ideas:[]};
   renderAnnouncements([]);renderPeople([]);renderConvoList([]);
+  const now=new Date();calMonth=now.getMonth();calYear=now.getFullYear();
   document.getElementById('test-banner').classList.remove('on');
   if(db&&isConnected){
     db.ref('ims-asb').once('value').then(snap=>{
