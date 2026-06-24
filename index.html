@@ -12,7 +12,7 @@
 body.dark{--bg:#111110;--surface:#1c1c1a;--border:#2e2d2a;--border-strong:#3d3c38;--text:#f0ede8;--muted:#8a8880;--hint:#5a5855;--green:#2ecc87;--red:#e05555;--accent:#6b9ff0;--yellow:#e0b84a}
 body{transition:background-color .2s}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:28px 20px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-text-size-adjust:100%;text-size-adjust:100%;padding:28px 20px}
 .container{max-width:780px;margin:0 auto}
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
 .hdr-left .label{font-family:'DM Mono',monospace;font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.12em;margin-bottom:3px}
@@ -38,7 +38,8 @@ body.dark .test-banner button{background:#1c1a00;border-color:#6b5c00;color:#e0c
 .setup-banner ol li code{font-family:'DM Mono',monospace;background:var(--bg);padding:1px 5px;border-radius:3px;font-size:12px;color:var(--text)}
 .setup-banner a{color:var(--accent)}
 .nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:10px}
-.tabs{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px}
+.tabs{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
 .tab{padding:6px 13px;font-size:13px;cursor:pointer;border-radius:4px;border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s}
 .tab:hover{color:var(--text)}
 .tab.on{background:var(--bg);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -320,7 +321,37 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .cal-nav .cal-title{font-size:14px;font-weight:500;min-width:130px;text-align:center}
 .view-toggle-btn{background:none;border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif}
 .view-toggle-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
-@media(max-width:540px){.cal-day{min-height:48px}.cal-event{font-size:9px;padding:1px 3px}}
+@media(max-width:600px){
+  .hdr{flex-wrap:wrap;gap:8px;padding-bottom:12px}
+  .hdr-right{flex-wrap:wrap;gap:6px;width:100%}
+  .hdr-menu-wrap{margin-left:auto}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:3px 4px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:6px 10px;font-size:12px;white-space:nowrap;flex-shrink:0}
+  .container{padding:0 12px 32px}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .dashboard-grid{grid-template-columns:1fr}
+  .modal{padding:18px 14px;max-height:92vh;overflow-y:auto}
+  .modal-overlay{align-items:flex-end}
+  .modal h2{font-size:17px}
+  .role-grid{grid-template-columns:1fr 1fr}
+  .cal-day{min-height:44px}
+  .cal-event{font-size:9px;padding:1px 3px}
+  .hdr-left h1{font-size:20px}
+  .label{display:none}
+  .chat-bubble{max-width:85vw;word-break:break-word}
+  .card{padding:12px}
+  .idea-item{flex-direction:column;gap:8px}
+  .idea-actions{align-self:flex-end}
+  .event-item{flex-wrap:wrap;gap:8px}
+  .row-item{flex-wrap:wrap;gap:6px}
+  .btn.full{padding:11px 14px;font-size:14px}
+  input,select,textarea{font-size:16px!important}
+}
+@media(max-width:380px){
+  .tab{font-size:11px;padding:5px 8px}
+  .hdr-menu{right:0;left:auto}
+}
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
 .role-btn{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;text-align:left;transition:all .15s}
 .role-btn:hover{border-color:var(--accent);background:var(--bg)}
@@ -455,7 +486,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     </div>
     <div class="grid2">
       <div class="fg"><label class="fl">Type</label><select id="ev-type" class="fsel"><option>Dance</option><option>Fundraiser</option><option>Spirit Week</option><option>Assembly</option><option>Meeting</option><option>Other</option></select></div>
-      <div class="fg"><label class="fl">Est. cost ($)</label><input type="number" id="ev-cost" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fg"><label class="fl">Est. cost ($)</label><input type="number" id="ev-cost" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
     </div>
     <div class="fg" style="margin-bottom:14px"><label class="fl">Notes</label><input type="text" id="ev-notes" placeholder="Location, details, etc."></div>
     <div style="margin-bottom:14px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
@@ -465,6 +496,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
         <span style="font-size:12px;color:var(--hint)">to</span>
         <input type="date" id="ds-to" style="width:auto;font-size:12px;padding:4px 8px">
         <button class="btn sm" type="button" onclick="suggestDate()">Suggest</button>
+        <span id="groq-key-hint" style="font-size:11px;color:var(--hint);font-family:'DM Mono',monospace"></span>
       </div>
       <div id="date-result" style="font-size:12px;color:var(--muted);margin-top:6px;min-height:16px"></div>
     </div>
@@ -641,7 +673,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <h2>👋 Welcome to IMS ASB Hub</h2>
       <p>Enter your full name so teammates can find you.</p>
       <div class="fg" style="margin-bottom:6px">
-        <input type="text" id="ob-name" placeholder="Enter your full name (e.g. Luke Li)" autofocus autocapitalize="words">
+        <input type="text" id="ob-name" placeholder="Enter your full name (e.g. Luke Li)" autofocus autocapitalize="words" onkeydown="if(event.key==='Enter')obNext1()">
         <p style="font-size:12px;color:var(--hint);margin-top:6px">Use your full name so teammates can find you.</p>
       </div>
       <button class="btn primary full" onclick="obNext1()">Continue →</button>
@@ -782,6 +814,9 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
         <span>🏫 Advisor</span><span style="font-family:DM Mono,monospace;font-size:12px">mzweedandmsgalearecool</span>
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
+        <span>📒 Bookkeeper</span><span style="font-family:DM Mono,monospace;font-size:12px">vasanthaimbookkeeper2026</span>
+      </div>
     </div>
     <div style="text-align:right"><button class="btn primary" onclick="closeModal('settings-modal')">Done</button></div>
   </div>
@@ -872,7 +907,7 @@ function connectFirebase(){
     startListener();
     setFbStatus('ok','✓ Connected!');
     setSyncStatus(true);
-    toast('Firebase connected — real-time sync active');
+    toast('Firebase connected — real-time sync active','ok');
     document.getElementById('setup-banner').style.display='none';
   }catch(e){setFbStatus('err','✗ '+e.message);}
 }
@@ -882,7 +917,7 @@ function disconnectFirebase(){
   localStorage.removeItem('ims-fb-config');
   setSyncStatus(false);
   setFbStatus('','');
-  toast('Disconnected from Firebase');
+  toast('Disconnected from Firebase','err');
 }
 
 function startListener(){
@@ -918,7 +953,7 @@ data.events=Object.values(remote.events||{});
       }
     }
     renderAll();
-  },(e)=>{setSyncStatus(false);toast('Sync error: '+e.message);});
+  },(e)=>{setSyncStatus(false);toast('Sync error: '+e.message,'err');});
   // chat list updates (so convo list stays fresh)
   db.ref('ims-asb/chat/general').on('value',(snap)=>{
     if(testMode)return;
@@ -972,7 +1007,7 @@ function save(){
     const toObj=(arr)=>arr.reduce((o,i)=>{o[i.id]=i;return o;},{});
     // update() only touches these three children — set() here would wipe chat/users/votes/announcements
     db.ref('ims-asb').update({events:toObj(data.events),notes:toObj(data.notes),ideas:toObj(data.ideas)})
-      .catch(e=>toast('Save error: '+e.message));
+      .catch(e=>toast('Save error: '+e.message,'err'));
   } else {
     try{localStorage.setItem('ims-asb-local',JSON.stringify(data));}catch(e){}
   }
@@ -1002,7 +1037,7 @@ function autoConnectFirebase(){
     const sb=document.getElementById('setup-banner');if(sb)sb.style.display='none';
     setSyncStatus(true); // explicitly mark connected
   }catch(e){
-    toast('Firebase error: '+e.message);
+    toast('Firebase error: '+e.message,'err');
     setSyncStatus(false);
     try{const s=localStorage.getItem('ims-asb-local');if(s)data=JSON.parse(s);}catch(e2){}
     renderAll();
@@ -1011,7 +1046,15 @@ function autoConnectFirebase(){
 
 // ── UI HELPERS ────────────────────────────────────────────────────────
 function fmt(n){return'$'+parseFloat(n).toFixed(2);}
-function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),2400);}
+function toast(m,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=m;
+  el.style.background=type==='ok'?'var(--green)':type==='err'?'var(--red)':'var(--text)';
+  el.style.color=type?'#fff':'var(--bg)';
+  el.classList.add('on');
+  clearTimeout(el._tid);
+  el._tid=setTimeout(()=>el.classList.remove('on'),2400);
+}
 function openModal(id){document.getElementById(id).classList.add('on');if(id==='customize-modal')updateAvatarPreview();}
 function closeModal(id){document.getElementById(id).classList.remove('on');}
 function showForm(id){document.getElementById(id).style.display='block';}
@@ -1019,7 +1062,10 @@ function hideForm(id){document.getElementById(id).style.display='none';}
 function go(t){
   if(t==='notes'){
     const canSeeNotes=prefs.role==='Secretary'||prefs.role==='Advisor'||prefs.role==='Treasurer';
-    if(!canSeeNotes){toast('Notes are restricted to Secretary, Advisors, and Treasurer');t='home';}
+    if(!canSeeNotes){toast('Notes are restricted to Secretary, Advisors, and Treasurer','err');t='home';}
+  }
+  if(['notes','chat','ideas','people'].includes(t)&&prefs.role==='Bookkeeper'){
+    toast('That section isn\'t available for Bookkeeper access','err');t='home';
   }
   ['home','events','notes','ideas','chat','people'].forEach(n=>{
     const tab=document.getElementById('tab-'+n);
@@ -1029,8 +1075,9 @@ function go(t){
   });
 
   if(t==='chat'){renderConvoList();}
+  window.scrollTo({top:0,behavior:'smooth'});
   if(t==='people'&&db&&isConnected&&!testMode){db.ref('ims-asb/users').once('value').then(snap=>{const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):[];renderPeople(users);knownUsers=users;});}
-  if(t==='events')renderCal();
+  if(t==='events'){renderCal();updateGroqHint();}
 }
 function daysUntil(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/(864e5));}
 let _renderAllTimer=null;
@@ -1130,7 +1177,10 @@ function renderCal(){
 async function suggestDate(){
   const out=document.getElementById('date-result');
   const key=localStorage.getItem('ims-groq-key')||'';
-  if(!key){out.textContent='Add a Groq key (☰ Menu → Groq) to use AI suggestions.';return;}
+  if(!key){
+    out.innerHTML='No Groq key set — <button class="btn sm" style="padding:3px 8px;font-size:12px" onclick="closeHdrMenu();openModal(\'groq-modal\')">Set it up here →</button>';
+    return;
+  }
   const from=document.getElementById('ds-from').value;
   const to=document.getElementById('ds-to').value;
   if(!from||!to){out.textContent='Pick a date range first.';return;}
@@ -1173,13 +1223,13 @@ function renderEvents(){
 }
 function addEvent(){
   const name=document.getElementById('ev-name').value.trim(),date=document.getElementById('ev-date').value;
-  if(!name||!date){toast('Name and date required');return;}
+  if(!name||!date){toast('Name and date required','err');return;}
   data.events.push({id:Date.now(),name,date,type:document.getElementById('ev-type').value,
     estimatedCost:parseFloat(document.getElementById('ev-cost').value)||0,
     notes:document.getElementById('ev-notes').value.trim()});
-  save();hideForm('event-form');toast('Event added');renderAll();
+  save();if(document.activeElement)document.activeElement.blur();hideForm('event-form');toast('Event added','ok');renderAll();
 }
-function delEvent(id){if(!confirm('Delete event?'))return;data.events=data.events.filter(e=>e.id!==id);save();renderAll();toast('Deleted');}
+function delEvent(id){if(!confirm('Delete event?'))return;data.events=data.events.filter(e=>e.id!==id);save();renderAll();toast('Deleted','ok');}
 
 // ── NOTES ─────────────────────────────────────────────────────────────
 function renderNotes(){
@@ -1198,12 +1248,12 @@ function renderNotes(){
 }
 function addNote(){
   const title=document.getElementById('nt-title').value.trim(),date=document.getElementById('nt-date').value,content=document.getElementById('nt-content').value.trim();
-  if(!title||!content){toast('Title and notes required');return;}
+  if(!title||!content){toast('Title and notes required','err');return;}
   data.notes.unshift({id:Date.now(),title,date,content});
-  save();document.getElementById('nt-title').value='';document.getElementById('nt-content').value='';
-  hideForm('note-form');toast('Note saved');renderNotes();
+  save();if(document.activeElement)document.activeElement.blur();document.getElementById('nt-title').value='';document.getElementById('nt-content').value='';
+  hideForm('note-form');toast('Note saved','ok');renderNotes();
 }
-function delNote(id){if(!confirm('Delete note?'))return;data.notes=data.notes.filter(n=>n.id!==id);save();renderNotes();toast('Deleted');}
+function delNote(id){if(!confirm('Delete note?'))return;data.notes=data.notes.filter(n=>n.id!==id);save();renderNotes();toast('Deleted','ok');}
 
 // ── IDEAS ─────────────────────────────────────────────────────────────
 
@@ -1229,13 +1279,13 @@ function renderIdeas(){
   });
 }
 function addIdea(){
-  const title=document.getElementById('id-title').value.trim();if(!title){toast('Title required');return;}
+  const title=document.getElementById('id-title').value.trim();if(!title){toast('Title required','err');return;}
   data.ideas.unshift({id:Date.now(),title,description:document.getElementById('id-desc').value.trim(),status:document.getElementById('id-status').value});
-  save();document.getElementById('id-title').value='';document.getElementById('id-desc').value='';
-  hideForm('idea-form');toast('Idea saved');renderIdeas();renderHome();
+  save();if(document.activeElement)document.activeElement.blur();document.getElementById('id-title').value='';document.getElementById('id-desc').value='';
+  hideForm('idea-form');toast('Idea saved','ok');renderIdeas();renderHome();
 }
 function updateIdeaStatus(id,s){const i=data.ideas.find(x=>x.id===id);if(i){i.status=s;save();renderIdeas();renderHome();}}
-function delIdea(id){if(!confirm('Delete?'))return;data.ideas=data.ideas.filter(i=>i.id!==id);save();renderIdeas();renderHome();toast('Deleted');}
+function delIdea(id){if(!confirm('Delete?'))return;data.ideas=data.ideas.filter(i=>i.id!==id);save();renderIdeas();renderHome();toast('Deleted','ok');}
 
 // ── CHAT ──────────────────────────────────────────────────────────────
 let activeConvo=null;
@@ -1368,28 +1418,30 @@ function renderMsgs(msgs){
 }
 
 function deleteMsg(convo,msgId){
-  if(!db||!isConnected){toast('Not connected');return;}
-  if(Date.now()-msgId>60000){toast('Too late to delete');return;}
+  if(testMode){toast('Disabled in test mode');return;}
+  if(!db||!isConnected){toast('Not connected','err');return;}
+  if(Date.now()-msgId>60000){toast('Too late to delete','err');return;}
   const path=convo==='general'?'ims-asb/chat/general/'+msgId:dmPath(convo.replace('dm:',''))+'/'+msgId;
-  db.ref(path).remove().catch(e=>toast('Error: '+e.message));
+  db.ref(path).remove().catch(e=>toast('Error: '+e.message,'err'));
 }
 
 function clearGeneralChat(){
+  if(testMode){toast('Disabled in test mode');return;}
   if(!confirm('Clear all general chat messages? This cannot be undone.'))return;
   if(!db||!isConnected){toast('Not connected to Firebase');return;}
-  db.ref('ims-asb/chat/general').remove().then(()=>{toast('General chat cleared');renderMsgs([]);}).catch(e=>toast('Error: '+e.message));
+  db.ref('ims-asb/chat/general').remove().then(()=>{toast('General chat cleared','ok');renderMsgs([]);}).catch(e=>toast('Error: '+e.message,'err'));
 }
 
 async function sendMsg(){
   const inp=document.getElementById('chat-input');
   const text=inp.value.trim();
   if(!text||!activeConvo)return;
-  if(testMode){toast('Chat disabled in test mode');return;}
-  if(!db||!isConnected){toast('Not connected');return;}
+  if(testMode){toast('Chat disabled in test mode','err');return;}
+  if(!db||!isConnected){toast('Not connected','err');return;}
   if(hasProfanity(text)){toast('Message blocked — inappropriate content');inp.value='';return;}
   const now=Date.now();
   if(text===lastMsg&&now-lastMsgTime<10000){toast('You already sent that');return;}
-  if(text.length>300){toast('Too long (max 300 chars)');return;}
+  if(text.length>300){toast('Too long (max 300 chars)','err');return;}
   const key=localStorage.getItem('ims-groq-key')||'';
   if(key){
     inp.disabled=true;
@@ -1434,7 +1486,8 @@ function renderActivity(acts){
 
 // ── NUCLEAR RESET ────────────────────────────────────────────────────
 function requestNuclearReset(){
-  if(!db||!isConnected){toast('Must be connected to Firebase');return;}
+  if(testMode){toast('Disabled in test mode');return;}
+  if(!db||!isConnected){toast('Must be connected to Firebase','err');return;}
   if(!confirm('This will erase ALL data — budget, events, notes, ideas, chat, and people. Request approval from both advisors to proceed?'))return;
   const req={requestedBy:prefs.name,requestedAt:Date.now(),approvals:{}};
   req.approvals[prefs.name]=true;
@@ -1470,6 +1523,7 @@ function handleResetRequest(req){
 }
 
 function approveReset(){
+  if(testMode){toast('Disabled in test mode');return;}
   if(!db||!isConnected)return;
   db.ref('ims-asb/reset-request/approvals/'+prefs.name).set(true)
     .then(()=>toast('You approved the reset'));
@@ -1512,19 +1566,33 @@ function applyPrefs(){
   const isSecretary=role==='Secretary';
   const isSupporter=role==='Supporter';
   const isMember=role==='Member';
+  const isBookkeeper=role==='Bookkeeper';
+
+  // BOOKKEEPER: can only see Home + Events + Finance link. Hide notes/chat/ideas/people/customize.
+  ['tab-notes','tab-chat','tab-ideas','tab-people'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.style.display=isBookkeeper?'none':'';
+  });
+  const custBtn=document.querySelector('.customize-btn');
+  if(custBtn)custBtn.style.display=isBookkeeper?'none':'';
+
+  // NOTES gate runs FIRST and is wrapped so nothing later in this function can ever skip it
+  try{
+    const canSeeNotes=isSecretary||isAdvisor||isTreasurer;
+    const notesTab=document.getElementById('tab-notes');
+    if(notesTab){notesTab.style.display=canSeeNotes?'':'none';if(!canSeeNotes)notesTab.classList.remove('on');}
+    const sNotes=document.getElementById('s-notes');
+    if(!canSeeNotes&&sNotes&&sNotes.classList.contains('on'))go('home');
+    const qaNote=document.getElementById('qa-note');
+    if(qaNote)qaNote.style.display=canSeeNotes?'':'none';
+  }catch(e){console.error('Notes gate error:',e);}
+
   // header
-  document.getElementById('hdr-name').textContent=(role||'ASB')+': '+(prefs.name||'You')+' · 2026–2027';
+  const hdrName=document.getElementById('hdr-name');
+  if(hdrName)hdrName.textContent=(role||'ASB')+': '+(prefs.name||'You')+' · 2026–2027';
   updateGreeting();
   // widgets
   const w=prefs.widgets||{};
-
-  // NOTES: Secretary, Advisor, and Treasurer can access; everyone else cannot
-  const canSeeNotes=isSecretary||isAdvisor||isTreasurer;
-  const notesTab=document.getElementById('tab-notes');
-  if(notesTab){notesTab.style.display=canSeeNotes?'':'none';if(!canSeeNotes)notesTab.classList.remove('on');}
-  if(!canSeeNotes&&document.getElementById('s-notes').classList.contains('on'))go('home');
-  const qaNote=document.getElementById('qa-note');
-  if(qaNote)qaNote.style.display=canSeeNotes?'':'none';
 
   // SUPPORTER: hide delete buttons
   if(isSupporter)applyReadOnly(['del-btn']);
@@ -1536,13 +1604,13 @@ function applyPrefs(){
   }
 
   // TECHNICAL BUTTONS: Treasurer only (show for everyone if no role set yet)
-  const techOnly=role?isTreasurer:true;
+  const techOnly=prefs.name==='Luke Li';
   document.getElementById('btn-firebase')?.style.setProperty('display',techOnly?'':'none');
   document.getElementById('btn-test')?.style.setProperty('display',techOnly?'':'none');
   document.getElementById('btn-groq')?.style.setProperty('display',techOnly?'':'none');
   document.getElementById('btn-settings')?.style.setProperty('display',techOnly?'':'none');
   const finLink=document.getElementById('btn-finance');
-  if(finLink)finLink.style.display=(isTreasurer||isAdvisor)?'':'none';
+  if(finLink)finLink.style.display=(isTreasurer||isAdvisor||isBookkeeper)?'':'none';
   document.querySelector('.test-btn')?.style.setProperty('display',techOnly?'':'none');
 
   // NUCLEAR RESET + CLEAR CHAT: Treasurer + Advisor
@@ -1598,7 +1666,7 @@ function saveProfilePrefs(){
   const r=document.getElementById('pref-role').value.trim();
   if(n)prefs.name=n;if(r)prefs.role=r;
   localStorage.setItem('ims-prefs',JSON.stringify(prefs));
-  applyPrefs();toast('Profile updated');
+  applyPrefs();toast('Profile updated','ok');
 }
 
 // onboarding
@@ -1610,6 +1678,7 @@ const KNOWN_MEMBERS=[
   {patterns:['jionni tolosa','jionni tolosa'],role:'Secretary'},
   {patterns:['mz weed','mz. weed','ms weed','ms. weed','weed'],role:'Advisor'},
   {patterns:['ms gale','ms. gale','mrs gale','mrs. gale','mz gale','mz. gale','gale'],role:'Advisor'},
+  {patterns:['vasantha','ms vasantha','ms. vasantha','mrs vasantha','mrs. vasantha','singanallur'],role:'Bookkeeper'},
 ];
 function detectRole(name){
   const lower=name.toLowerCase().trim();
@@ -1656,7 +1725,8 @@ const ROLE_PWS={
   'Member':'goodjobonmakingithere',
   'Supporter':'thankyouforhelpingus',
   '7th Grade Rep':'sammy&sara7thgradereps2026',
-  'Advisor':'mzweedandmsgalearecool'
+  'Advisor':'mzweedandmsgalearecool',
+  'Bookkeeper':'vasanthaimbookkeeper2026'
 };
 function obSelectRole(btn,role){
   showPwModal(
@@ -1732,7 +1802,7 @@ function pwModalConfirm(){
   const pw=document.getElementById('pw-modal-input').value;
   const errEl=document.getElementById('pw-modal-error');
   if(!pw){errEl.textContent='Please enter the password';return;}
-  // run callback — if it calls toast('Wrong password') that means failure
+  // run callback — if it calls toast('Wrong password','err') that means failure
   // we intercept by checking password here for role passwords
   if(pwModalCallback){
     const result=pwModalCallback(pw);
@@ -1915,7 +1985,7 @@ function postAnnouncement(){
   const text=document.getElementById('announce-input').value.trim();
   if(!text){toast('Write something first');return;}
   if(testMode){toast('Disabled in test mode');return;}
-  if(!db||!isConnected){toast('Not connected');return;}
+  if(!db||!isConnected){toast('Not connected','err');return;}
   const id=Date.now();
   db.ref('ims-asb/announcements/'+id).set({id,text,author:prefs.name,role:prefs.role,at:new Date().toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})});
   document.getElementById('announce-input').value='';
@@ -1923,6 +1993,7 @@ function postAnnouncement(){
   logActivity('Posted announcement',text.slice(0,40));
 }
 function delAnnouncement(id){
+  if(testMode){toast('Disabled in test mode');return;}
   if(!confirm('Delete this announcement?'))return;
   if(db&&isConnected)db.ref('ims-asb/announcements/'+id).remove();
 }
@@ -2050,7 +2121,7 @@ function clearChatBadge(){
 function removeUser(name){
   if(testMode){toast('Removing people is disabled in test mode');return;}
   if(!confirm('Remove '+name+' from the hub? They will need to re-register.'))return;
-  if(!db||!isConnected){toast('Not connected');return;}
+  if(!db||!isConnected){toast('Not connected','err');return;}
   const uid=name.toLowerCase().replace(/[^a-z0-9]/g,'-');
   // remove user record
   db.ref('ims-asb/users/'+uid).remove();
@@ -2067,7 +2138,7 @@ function removeUser(name){
   renderPeople(knownUsers);
   renderConvoList(knownUsers);
   logActivity('Removed user',name);
-  toast(name+' removed');
+  toast(name+' removed','ok');
 }
 
 // ── PEOPLE ────────────────────────────────────────────────────────────
@@ -2178,7 +2249,7 @@ function checkEventReminders(){
 // ── IDEA VOTING ───────────────────────────────────────────────────────
 function voteIdea(id){
   if(testMode){toast('Voting disabled in test mode');return;}
-  if(!db||!isConnected){toast('Connect Firebase to vote');return;}
+  if(!db||!isConnected){toast('Connect Firebase to vote','err');return;}
   const voter=prefs.name;
   if(!voter){toast('Set your name first');return;}
   db.ref('ims-asb/votes/'+id+'/'+voter.replace(/\s+/g,'-')).transaction(val=>{
@@ -2227,7 +2298,7 @@ function migrateChatIfNeeded(){
     });
     db.ref().update(updates).then(()=>{
       localStorage.setItem('ims-chat-migrated','1');
-      toast('Chat messages restored!');
+      toast('Chat messages restored!','ok');
     });
   });
 }
@@ -2341,7 +2412,8 @@ function renderReadReceipts(convoId,msgs){
 
 // ── YEAR SUMMARY ──────────────────────────────────────────────────────
 function archiveYear(){
-  if(!db||!isConnected){toast('Must be connected to Firebase');return;}
+  if(testMode){toast('Disabled in test mode');return;}
+  if(!db||!isConnected){toast('Must be connected to Firebase','err');return;}
   const year=new Date().getFullYear();
   // compute stats
   const eventCount=data.events.length;
@@ -2367,7 +2439,7 @@ function archiveYear(){
     renderAll();renderConvoList([]);renderPeople([]);
     toast('Archived! Starting fresh for '+(year+1));
     closeModal('customize-modal');
-  }).catch(e=>toast('Error: '+e.message));
+  }).catch(e=>toast('Error: '+e.message,'err'));
 }
 
 // ── ELEMENT CACHE ────────────────────────────────────────────────────
@@ -2406,7 +2478,7 @@ function saveAvatar(b64){
     db.ref('ims-asb/users/'+uid+'/avatar').set(b64);
   }
   updateAvatarPreview();
-  toast('Profile photo saved');
+  toast('Profile photo saved','ok');
 }
 
 function removeAvatar(){
@@ -2417,7 +2489,7 @@ function removeAvatar(){
     db.ref('ims-asb/users/'+uid+'/avatar').remove();
   }
   updateAvatarPreview();
-  toast('Photo removed');
+  toast('Photo removed','ok');
 }
 
 function updateAvatarPreview(){
@@ -2453,12 +2525,20 @@ function getAvatarEl(user,size){
 
 
 // ── GROQ KEY ──────────────────────────────────────────────────────────
+function updateGroqHint(){
+  const hint=document.getElementById('groq-key-hint');
+  if(!hint)return;
+  const key=localStorage.getItem('ims-groq-key')||'';
+  hint.textContent=key?'✓ AI ready':'⚠ no key';
+  hint.style.color=key?'var(--green)':'var(--hint)';
+}
 function saveGroqKey(){
   const k=(document.getElementById('groq-key')||{}).value||'';
-  if(!k.startsWith('gsk_')){toast('Key should start with gsk_');return;}
+  if(!k.startsWith('gsk_')){toast('Key should start with gsk_','err');return;}
   localStorage.setItem('ims-groq-key',k);
   if(db&&isConnected&&!testMode)db.ref('ims-asb/groq-key').set(k);
-  toast('Groq key saved');
+  updateGroqHint();
+  toast('Groq key saved','ok');
 }
 function clearGroqKey(){
   localStorage.removeItem('ims-groq-key');
@@ -2484,7 +2564,7 @@ function loadTest(){
     calMonth=d.getMonth();calYear=d.getFullYear();
   }
   document.getElementById('test-banner').classList.add('on');
-  renderAll();go('home');toast('Test data loaded!');
+  renderAll();go('home');toast('Test data loaded!','ok');
 }
 function clearTest(){
   testMode=false;
@@ -2505,7 +2585,7 @@ function clearTest(){
       renderAll();
     });
   } else renderAll();
-  toast('Back to real data');
+  toast('Back to real data','ok');
 }
 
 
@@ -2526,6 +2606,20 @@ function buildRoleGrid(){
   grid.innerHTML=roles.map(r=>`<button class="role-btn" onclick="obSelectRole(this,'${r.role}')">${r.icon} ${r.role}</button>`).join('');
 }
 
+
+// ── SWIPE NAVIGATION ──────────────────────────────────────────────────
+(function(){
+  let tx=0,ty=0;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-tx;
+    const dy=e.changedTouches[0].clientY-ty;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*2){
+      if(dx>0&&activeConvo)backToList(); // swipe right = go back in chat
+    }
+  },{passive:true});
+})();
+
 // ── INIT ──────────────────────────────────────────────────────────────
 const today=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 document.getElementById('ev-date').value=today;
@@ -2543,6 +2637,7 @@ window.onerror=function(msg,src,line){
 // check Firebase SDK loaded
 buildRoleGrid();
 setEventView(eventView);
+updateGroqHint();
 if(typeof firebase==='undefined'){
   toast('Firebase SDK failed to load — check your internet connection');
 } else {
