@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ASB Hub">
+  <meta name="theme-color" content="#2a5caa">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IMS ASB Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -107,7 +115,7 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .event-item:last-child{border-bottom:none}
 .event-countdown{text-align:center;min-width:48px}
 .event-countdown .num{font-size:20px;font-weight:600;line-height:1;color:var(--accent)}
-.event-countdown .unit{font-size:10px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase}
+.event-countdown .unit{font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase}
 .event-countdown.past .num{color:var(--hint)}
 .event-info{flex:1;min-width:0}
 .event-title{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -123,7 +131,7 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .cal-cell.past{opacity:.5}
 .cal-num{font-size:12px;font-weight:500;color:var(--text);line-height:1}
 .cal-cell.has-event .cal-num{color:#fff}
-.cal-event-dot{font-size:10px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.cal-event-dot{font-size:11px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
 .cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .cal-nav h3{font-size:15px;font-weight:500;flex:1;text-align:center}
 .cal-nav button{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 10px;cursor:pointer;font-size:14px;color:var(--text)}
@@ -250,7 +258,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 
 .progress-wrap{background:var(--border);border-radius:20px;height:10px;overflow:hidden;margin:8px 0 4px}
 .progress-bar{height:10px;border-radius:20px;background:var(--green);transition:width .4s}
-.badge{display:inline-block;background:var(--red);color:#fff;border-radius:20px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 5px;margin-left:4px;vertical-align:middle;line-height:1.4}
+.badge{display:inline-block;background:var(--red);color:#fff;border-radius:20px;font-size:11px;font-family:'DM Mono',monospace;padding:1px 5px;margin-left:4px;vertical-align:middle;line-height:1.4}
 .announce-item{padding:12px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
 .announce-item:last-child{border-bottom:none}
 .announce-pin{font-size:18px;flex-shrink:0}
@@ -262,7 +270,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .search-result{padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
 .search-result:last-child{border-bottom:none}
 .search-result:hover{opacity:.75}
-.search-result-type{font-size:10px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;margin-bottom:2px}
+.search-result-type{font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;margin-bottom:2px}
 .search-result-title{font-size:14px;color:var(--text)}
 .search-result-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .agenda-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
@@ -271,7 +279,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .agenda-text{font-size:14px;color:var(--text);flex:1}
 .agenda-text.done{text-decoration:line-through;color:var(--hint)}
 
-.role-badge{display:inline-block;font-size:10px;font-family:'DM Mono',monospace;padding:2px 6px;border-radius:20px;background:var(--bg);border:1px solid var(--border);color:var(--muted);margin-left:6px;vertical-align:middle}
+.role-badge{display:inline-block;font-size:11px;font-family:'DM Mono',monospace;padding:2px 6px;border-radius:20px;background:var(--bg);border:1px solid var(--border);color:var(--muted);margin-left:6px;vertical-align:middle}
 .vote-row{display:flex;align-items:center;gap:8px;margin-top:6px}
 .vote-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s}
 .vote-btn:hover{border-color:var(--accent);color:var(--accent)}
@@ -309,13 +317,13 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .hdr-menu-item{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 12px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);cursor:pointer;border-radius:4px;white-space:nowrap}
 .hdr-menu-item:hover{background:var(--bg)}
 .cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
-.cal-head span{font-size:10px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;text-align:center;padding:4px 0}
+.cal-head span{font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;text-align:center;padding:4px 0}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .cal-day{min-height:64px;background:var(--bg);border-radius:6px;padding:4px 5px;font-size:11px;color:var(--muted);position:relative}
 .cal-day.other{opacity:.35}
 .cal-day.today{outline:2px solid var(--accent);outline-offset:-2px}
 .cal-day .d-num{font-family:'DM Mono',monospace;font-size:11px}
-.cal-event{margin-top:3px;background:var(--accent);color:#fff;border-radius:4px;padding:2px 5px;font-size:10px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
+.cal-event{margin-top:3px;background:var(--accent);color:#fff;border-radius:4px;padding:2px 5px;font-size:11px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
 .cal-nav{display:flex;align-items:center;gap:10px}
 .cal-nav button{background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:13px;color:var(--text)}
 .cal-nav .cal-title{font-size:14px;font-weight:500;min-width:130px;text-align:center}
@@ -336,7 +344,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
   .modal h2{font-size:17px}
   .role-grid{grid-template-columns:1fr 1fr}
   .cal-day{min-height:44px}
-  .cal-event{font-size:9px;padding:1px 3px}
+  .cal-event{font-size:11px;padding:1px 3px}
   .hdr-left h1{font-size:20px}
   .label{display:none}
   .chat-bubble{max-width:85vw;word-break:break-word}
@@ -356,9 +364,78 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .role-btn{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;text-align:left;transition:all .15s}
 .role-btn:hover{border-color:var(--accent);background:var(--bg)}
 .role-btn.on{border-color:var(--accent);background:var(--accent);color:#fff}
+
+/* ── TAB ICONS ── */
+.tab-icon{display:inline-flex;align-items:center;vertical-align:middle;margin-right:5px;opacity:.7;transition:opacity .15s}
+.tab.on .tab-icon{opacity:1}
+.tab-label{vertical-align:middle}
+.tab:hover .tab-icon{opacity:.9}
+
+/* ── SEARCH BAR ── */
+.search-bar{position:relative;margin-bottom:16px}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--hint);pointer-events:none;display:flex;align-items:center}
+.search-bar input{padding-left:36px!important;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;padding:10px 14px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box}
+.search-bar input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(42,92,170,.12)}
+.search-bar input::placeholder{color:var(--hint)}
+
+/* ── CARD HOVER ── */
+.card{transition:box-shadow .15s,border-color .15s}
+.card:hover{border-color:var(--border-strong)}
+.event-item,.note-item,.idea-item{transition:background .12s}
+.event-item:hover,.note-item:hover,.idea-item:hover{background:var(--bg)}
+.convo-item:hover{background:var(--bg)}
+
+/* ── QUICK-ADD BUTTONS ── */
+.btn.full{display:flex;align-items:center;gap:8px}
+.btn.full svg{flex-shrink:0;opacity:.7}
+.btn.full:hover svg{opacity:1}
+
+/* ── BETTER EMPTY STATES ── */
+.empty{text-align:center;padding:32px 16px;color:var(--hint)}
+.empty .ico{font-size:28px;margin-bottom:8px;opacity:.5}
+.empty p{font-size:13px;color:var(--hint);margin:0}
+
+/* ── FOCUS RING ── */
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── METRIC CARDS ── */
+.metric{transition:box-shadow .15s}
+.metric:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+
+/* ── STATUS CHIPS ── */
+.status-chip{display:inline-flex;align-items:center;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500;font-family:'DM Mono',monospace}
+.status-chip.idea{background:rgba(42,92,170,.1);color:var(--accent)}
+.status-chip.progress{background:rgba(146,117,10,.12);color:var(--yellow)}
+.status-chip.done{background:rgba(26,107,74,.1);color:var(--green)}
+.status-chip.shelved{background:var(--bg);color:var(--hint)}
 </style>
 </head>
 <body>
+
+<!-- PWA MOBILE SPLASH — only shows on mobile, not in standalone mode -->
+<div id="pwa-splash" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;padding:24px">
+  <div style="width:100%;max-width:380px;margin:auto;display:flex;flex-direction:column;align-items:center;text-align:center">
+    <!-- Icon -->
+    <img src="icon-192.png" width="72" height="72" style="border-radius:18px;margin-bottom:28px;box-shadow:0 4px 20px rgba(0,0,0,.12)" alt="ASB Hub">
+    <!-- Title -->
+    <h1 style="font-size:28px;font-weight:600;letter-spacing:-.5px;margin-bottom:10px;line-height:1.2">IMS ASB Hub</h1>
+    <p style="font-size:15px;color:var(--muted);line-height:1.6;margin-bottom:36px;max-width:280px">Add to your home screen for the full app experience — no browser bar, instant load, works offline.</p>
+    <!-- Primary CTA -->
+    <button onclick="pwaSplashInstall()" style="width:100%;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:12px;transition:opacity .15s">Yes, take me there →</button>
+    <!-- Secondary -->
+    <button onclick="pwaSplashDismiss()" style="width:100%;padding:12px;background:none;color:var(--muted);border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:border-color .15s">No, I'll stay on the web</button>
+    <!-- iOS specific hint shown after tapping install on iOS -->
+    <div id="pwa-ios-hint" style="display:none;margin-top:20px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--muted);line-height:1.7;text-align:left">
+      <strong style="color:var(--text)">On iPhone:</strong><br>
+      1. Tap the <strong>Share</strong> button <span style="font-size:15px">⎙</span> at the bottom of Safari<br>
+      2. Scroll down and tap <strong>"Add to Home Screen"</strong><br>
+      3. Tap <strong>Add</strong> — done!
+      <br><br>
+      <button onclick="pwaSplashDismiss()" style="width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer">Got it — open the hub</button>
+    </div>
+  </div>
+</div>
+
 <div class="container">
 
 <div class="hdr">
@@ -407,12 +484,12 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 
 <div class="nav">
   <div class="tabs">
-    <button class="tab on" id="tab-home" onclick="go('home')">🏠 Home</button>
-    <button class="tab" id="tab-events" onclick="go('events')">📅 Events</button>
-    <button class="tab" id="tab-notes" onclick="go('notes')">📝 Notes</button>
-    <button class="tab" id="tab-ideas" onclick="go('ideas')">💡 Ideas</button>
-    <button class="tab" id="tab-chat" onclick="go('chat');clearChatBadge()">💬 Chat<span id="chat-badge" class="badge" style="display:none">0</span></button>
-    <button class="tab" id="tab-people" onclick="go('people')">👥 People</button>
+    <button class="tab on" id="tab-home" role="tab" aria-label="Home" onclick="go('home')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5L8 2l6 4.5V14a.5.5 0 01-.5.5h-3.5v-3.5h-4V14.5H2.5A.5.5 0 012 14V6.5z"/></svg></span><span class="tab-label">Home</span></button>
+    <button class="tab" id="tab-events" role="tab" aria-label="Events" onclick="go('events')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M1.5 6.5h13M5 1.5v2M11 1.5v2"/><circle cx="5" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="8" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="11" cy="10" r=".75" fill="currentColor" stroke="none"/></svg></span><span class="tab-label">Events</span></button>
+    <button class="tab" id="tab-notes" role="tab" aria-label="Notes" onclick="go('notes')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="1.5" width="10" height="13" rx="1.5"/><path d="M5 5.5h5M5 8h5M5 10.5h3"/><path d="M12 10.5l2.5 2.5-1.5 1.5-2.5-2.5v-1.5h1.5z" stroke-width="1.3"/></svg></span><span class="tab-label">Notes</span></button>
+    <button class="tab" id="tab-ideas" role="tab" aria-label="Ideas" onclick="go('ideas')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2a4.5 4.5 0 013 7.8V11H5v-1.2A4.5 4.5 0 018 2z"/><path d="M5.5 12.5h5M6 14h4"/></svg></span><span class="tab-label">Ideas</span></button>
+    <button class="tab" id="tab-chat" role="tab" aria-label="Chat" onclick="go('chat');clearChatBadge()"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2.5h9a1 1 0 011 1v5a1 1 0 01-1 1H6l-3 2.5V9.5H2.5a1 1 0 01-1-1v-5a1 1 0 011-1z"/><path d="M11.5 5.5h2a1 1 0 011 1v3a1 1 0 01-1 1H13v2l-2-2h-.5"/></svg></span><span class="tab-label">Chat</span><span id="chat-badge" class="badge" style="display:none">0</span></button>
+    <button class="tab" id="tab-people" role="tab" aria-label="People" onclick="go('people')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/><circle cx="12" cy="5.5" r="2"/><path d="M12 9.5c1.93 0 3.5 1.57 3.5 3.5"/></svg></span><span class="tab-label">People</span></button>
   </div>
 </div>
 
@@ -443,7 +520,8 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <button class="customize-btn" onclick="openModal('customize-modal')">⚙ Customize home</button>
   </div>
   <div class="search-bar">
-    <input type="text" id="search-input" placeholder="🔍  Search events, ideas, notes..." oninput="renderSearch(this.value)">
+    <span class="search-icon"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l3 3"/></svg></span>
+    <input type="text" id="search-input" placeholder="Search events, ideas, notes..." oninput="renderSearch(this.value)">
   </div>
   <div id="search-results" class="card" style="display:none;padding:8px 16px;margin-bottom:14px"></div>
   <div class="grid2" id="w-metrics">
@@ -458,9 +536,9 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
     <div class="card">
       <div class="card-title">Quick add</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn full" onclick="go('events');showForm('event-form')">+ Event</button>
-        <button class="btn full" id="qa-note" onclick="go('notes');showForm('note-form')">+ Meeting note</button>
-        <button class="btn full" onclick="go('ideas');showForm('idea-form')">+ Idea</button>
+        <button class="btn full" onclick="go('events');showForm('event-form')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 6h12M4.5 1v2M9.5 1v2"/></svg> Add event</button>
+        <button class="btn full" id="qa-note" onclick="go('notes');showForm('note-form')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M4.5 5h4M4.5 7.5h4M4.5 10h2.5"/></svg> Meeting note</button>
+        <button class="btn full" onclick="go('ideas');showForm('idea-form')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 1.5a4 4 0 012.7 6.9V10H4.3V8.4A4 4 0 017 1.5z"/><path d="M4.5 11.5h5M5 13h4"/></svg> Add idea</button>
       </div>
     </div>
   </div>
@@ -481,14 +559,14 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
   <div id="event-form" class="card" style="display:none">
     <div class="card-title">New event</div>
     <div class="grid2">
-      <div class="fg"><label class="fl">Event name</label><input type="text" id="ev-name" placeholder="e.g. Winter Formal"></div>
+      <div class="fg"><label class="fl">Event name</label><input type="text" id="ev-name" placeholder="e.g. Winter Formal" maxlength="80"></div>
       <div class="fg"><label class="fl">Date</label><input type="date" id="ev-date"></div>
     </div>
     <div class="grid2">
       <div class="fg"><label class="fl">Type</label><select id="ev-type" class="fsel"><option>Dance</option><option>Fundraiser</option><option>Spirit Week</option><option>Assembly</option><option>Meeting</option><option>Other</option></select></div>
       <div class="fg"><label class="fl">Est. cost ($)</label><input type="number" id="ev-cost" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
     </div>
-    <div class="fg" style="margin-bottom:14px"><label class="fl">Notes</label><input type="text" id="ev-notes" placeholder="Location, details, etc."></div>
+    <div class="fg" style="margin-bottom:14px"><label class="fl">Notes</label><input type="text" id="ev-notes" placeholder="Location, details, etc." maxlength="200"></div>
     <div style="margin-bottom:14px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">✨ AI date suggester</span>
@@ -523,7 +601,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
   </div>
   <div id="list-view" style="display:none">
     <div id="events-list" class="card" style="display:none"></div>
-    <div id="events-empty" class="empty"><div class="ico">📅</div><p>No events yet.</p></div>
+    <div id="events-empty" class="empty"><div class="ico">📅</div><p>No events yet — add the first one.</p></div>
   </div>
 </div>
 
@@ -532,10 +610,10 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
   <div id="note-form" class="card" style="display:none">
     <div class="card-title">New meeting note</div>
     <div class="grid2" style="margin-bottom:12px">
-      <div class="fg"><label class="fl">Title</label><input type="text" id="nt-title" placeholder="e.g. October ASB meeting"></div>
+      <div class="fg"><label class="fl">Title</label><input type="text" id="nt-title" placeholder="e.g. October ASB meeting" maxlength="120"></div>
       <div class="fg"><label class="fl">Date</label><input type="date" id="nt-date"></div>
     </div>
-    <div class="fg" style="margin-bottom:14px"><label class="fl">Notes</label><textarea id="nt-content" placeholder="What was discussed, decisions made, action items..." style="min-height:120px"></textarea></div>
+    <div class="fg" style="margin-bottom:14px"><label class="fl">Notes</label><textarea id="nt-content" placeholder="What was discussed, decisions made, action items..." maxlength="5000" style="min-height:120px"></textarea></div>
     <div style="display:flex;gap:8px"><button class="btn primary" onclick="addNote()">Save note</button><button class="btn" onclick="hideForm('note-form')">Cancel</button></div>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="font-size:16px;font-weight:500">Meeting notes</h2><button class="btn sm primary" onclick="showForm('note-form')">+ Add note</button></div>
@@ -547,14 +625,14 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 <div id="s-ideas" class="sec">
   <div id="idea-form" class="card" style="display:none">
     <div class="card-title">New idea</div>
-    <div class="fg" style="margin-bottom:12px"><label class="fl">Title</label><input type="text" id="id-title" placeholder="e.g. Boba fundraiser"></div>
-    <div class="fg" style="margin-bottom:14px"><label class="fl">Description</label><textarea id="id-desc" placeholder="Details, why it would work..."></textarea></div>
+    <div class="fg" style="margin-bottom:12px"><label class="fl">Title</label><input type="text" id="id-title" placeholder="e.g. Boba fundraiser" maxlength="120"></div>
+    <div class="fg" style="margin-bottom:14px"><label class="fl">Description</label><textarea id="id-desc" placeholder="Details, why it would work..." maxlength="500"></textarea></div>
     <div class="fg" style="margin-bottom:14px"><label class="fl">Status</label><select id="id-status" class="fsel"><option value="idea">💡 Idea</option><option value="progress">⚙️ In progress</option><option value="done">✅ Done</option><option value="shelved">📦 Shelved</option></select></div>
     <div style="display:flex;gap:8px"><button class="btn primary" onclick="addIdea()">Save idea</button><button class="btn" onclick="hideForm('idea-form')">Cancel</button></div>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="font-size:16px;font-weight:500">Ideas board</h2><button class="btn sm primary" onclick="showForm('idea-form')">+ Add idea</button></div>
   <div id="ideas-list" class="card" style="display:none"></div>
-  <div id="ideas-empty" class="empty"><div class="ico">💡</div><p>No ideas yet. Drop one in!</p></div>
+  <div id="ideas-empty" class="empty"><div class="ico">💡</div><p>No ideas yet — what's on your mind?</p></div>
 </div>
 
 <!-- CHAT -->
@@ -740,6 +818,16 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
       <button class="btn primary" onclick="closeModal('customize-modal')">Done</button>
     </div>
   </div>
+</div>
+
+<div id="install-banner" style="display:none;position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:400;align-items:center;gap:12px;max-width:340px;width:calc(100vw - 32px)">
+  <img src="icon-192.png" width="36" height="36" style="border-radius:8px;flex-shrink:0" alt="ASB Hub icon">
+  <div style="flex:1;min-width:0">
+    <div style="font-size:13px;font-weight:500">Add to Home Screen</div>
+    <div style="font-size:11px;color:var(--muted)">Opens fullscreen, works offline</div>
+  </div>
+  <button class="btn primary sm" onclick="installApp()">Install</button>
+  <button class="btn sm" onclick="dismissInstall()" style="padding:5px 8px">✕</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1061,12 +1149,13 @@ function showForm(id){document.getElementById(id).style.display='block';}
 function hideForm(id){document.getElementById(id).style.display='none';}
 function go(t){
   if(t==='notes'){
-    const canSeeNotes=prefs.role==='Secretary'||prefs.role==='Advisor'||prefs.role==='Treasurer';
-    if(!canSeeNotes){toast('Notes are restricted to Secretary, Advisors, and Treasurer','err');t='home';}
+    const canSeeNotes=(['Treasurer','President','Vice President','Secretary','Advisor'].includes(prefs.role));
+    if(!canSeeNotes){toast('Notes are restricted to ASB senate members','err');t='home';}
   }
   if(['notes','chat','ideas','people'].includes(t)&&prefs.role==='Bookkeeper'){
     toast('That section isn\'t available for Bookkeeper access','err');t='home';
   }
+  // smooth section switch
   ['home','events','notes','ideas','chat','people'].forEach(n=>{
     const tab=document.getElementById('tab-'+n);
     const sec=document.getElementById('s-'+n);
@@ -1224,6 +1313,13 @@ function renderEvents(){
 function addEvent(){
   const name=document.getElementById('ev-name').value.trim(),date=document.getElementById('ev-date').value;
   if(!name||!date){toast('Name and date required','err');return;}
+  if(name.length>80){toast('Event name too long (max 80 chars)','err');return;}
+  // warn on past dates but allow (some events get added retroactively)
+  const eventDate=new Date(date+'T00:00:00');
+  const today=new Date();today.setHours(0,0,0,0);
+  if(eventDate<today){
+    if(!confirm('That date is in the past — add it anyway?'))return;
+  }
   data.events.push({id:Date.now(),name,date,type:document.getElementById('ev-type').value,
     estimatedCost:parseFloat(document.getElementById('ev-cost').value)||0,
     notes:document.getElementById('ev-notes').value.trim()});
@@ -1249,6 +1345,9 @@ function renderNotes(){
 function addNote(){
   const title=document.getElementById('nt-title').value.trim(),date=document.getElementById('nt-date').value,content=document.getElementById('nt-content').value.trim();
   if(!title||!content){toast('Title and notes required','err');return;}
+  if(title.length>120){toast('Title too long (max 120 chars)','err');return;}
+  if(content.length>5000){toast('Notes too long (max 5000 chars)','err');return;}
+  if(hasProfanity(title)||hasProfanity(content)){toast('Keep it school-appropriate 🙂','err');return;}
   data.notes.unshift({id:Date.now(),title,date,content});
   save();if(document.activeElement)document.activeElement.blur();document.getElementById('nt-title').value='';document.getElementById('nt-content').value='';
   hideForm('note-form');toast('Note saved','ok');renderNotes();
@@ -1264,7 +1363,7 @@ function renderIdeas(){
   const order={idea:0,progress:1,done:2,shelved:3};
   il.innerHTML=[...data.ideas].sort((a,b)=>order[a.status]-order[b.status]).map(i=>`<div class="idea-item">
     <div class="idea-content">
-      <div class="idea-title">${esc(i.title)}</div>
+      <div class="idea-title">${esc(i.title)}</div><span class="status-chip ${i.status}">${STATUS_LABELS[i.status]||i.status}</span>
       ${i.description?`<div class="idea-desc">${esc(i.description)}</div>`:''}
       <div class="vote-row" id="votes-${i.id}"></div>
     </div>
@@ -1279,7 +1378,11 @@ function renderIdeas(){
   });
 }
 function addIdea(){
-  const title=document.getElementById('id-title').value.trim();if(!title){toast('Title required','err');return;}
+  const title=document.getElementById('id-title').value.trim();
+  if(!title){toast('Title required','err');return;}
+  if(title.length>120){toast('Title too long (max 120 chars)','err');return;}
+  const desc=document.getElementById('id-desc').value.trim();
+  if(hasProfanity(title)||hasProfanity(desc)){toast('Keep it school-appropriate 🙂','err');return;}
   data.ideas.unshift({id:Date.now(),title,description:document.getElementById('id-desc').value.trim(),status:document.getElementById('id-status').value});
   save();if(document.activeElement)document.activeElement.blur();document.getElementById('id-title').value='';document.getElementById('id-desc').value='';
   hideForm('idea-form');toast('Idea saved','ok');renderIdeas();renderHome();
@@ -1578,7 +1681,7 @@ function applyPrefs(){
 
   // NOTES gate runs FIRST and is wrapped so nothing later in this function can ever skip it
   try{
-    const canSeeNotes=isSecretary||isAdvisor||isTreasurer;
+    const canSeeNotes=(isTreasurer||isPresident||isVP||isSecretary||isAdvisor);
     const notesTab=document.getElementById('tab-notes');
     if(notesTab){notesTab.style.display=canSeeNotes?'':'none';if(!canSeeNotes)notesTab.classList.remove('on');}
     const sNotes=document.getElementById('s-notes');
@@ -2026,7 +2129,7 @@ function renderSearch(q){
   data.ideas.filter(i=>i.title.toLowerCase().includes(ql)||(i.desc&&i.desc.toLowerCase().includes(ql))).slice(0,3).forEach(i=>{
     results.push({type:'Idea',title:i.title,sub:i.status,action:()=>go('ideas')});
   });
-  const canSeeNotes=prefs.role==='Secretary'||prefs.role==='Advisor'||prefs.role==='Treasurer';
+  const canSeeNotes=(['Treasurer','President','Vice President','Secretary','Advisor'].includes(prefs.role));
   if(canSeeNotes){
     data.notes.filter(n=>n.title.toLowerCase().includes(ql)||(n.content&&n.content.toLowerCase().includes(ql))).slice(0,3).forEach(n=>{
       results.push({type:'Note',title:n.title,sub:n.date,action:()=>go('notes')});
@@ -2423,7 +2526,7 @@ function archiveYear(){
     '💰 Total raised: '+fmt(totalInc),
     '💸 Total spent: '+fmt(totalExp),
     '📈 Net surplus: '+fmt(totalInc-totalExp),
-    '📅 Events held: '+eventCount,
+    '<span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M1.5 6.5h13M5 1.5v2M11 1.5v2"/><circle cx="5" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="8" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="11" cy="10" r=".75" fill="currentColor" stroke="none"/></svg></span><span class="tab-label">Events</span> held: '+eventCount,
     '✅ Ideas completed: '+doneIdeas,
     topIdea?'🏆 Top idea: '+topIdea.title:'',
     '','Archive this year and start fresh for '+(year+1)+'?'];
@@ -2620,6 +2723,80 @@ function buildRoleGrid(){
   },{passive:true});
 })();
 
+
+// ── PWA ───────────────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+// Install prompt — show a subtle banner after 30s if not installed
+let _installPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _installPrompt=e;
+  setTimeout(()=>{
+    if(_installPrompt){
+      const banner=document.getElementById('install-banner');
+      if(banner)banner.style.display='flex';
+    }
+  },30000);
+});
+window.addEventListener('appinstalled',()=>{
+  _installPrompt=null;
+  const banner=document.getElementById('install-banner');
+  if(banner)banner.style.display='none';
+});
+function installApp(){
+  if(!_installPrompt)return;
+  _installPrompt.prompt();
+  _installPrompt.userChoice.then(()=>{
+    _installPrompt=null;
+    const banner=document.getElementById('install-banner');
+    if(banner)banner.style.display='none';
+  });
+}
+function dismissInstall(){
+  const banner=document.getElementById('install-banner');
+  if(banner)banner.style.display='none';
+  _installPrompt=null;
+}
+
+
+// ── PWA MOBILE SPLASH ─────────────────────────────────────────────────
+(function(){
+  const isPhone = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  const dismissed = localStorage.getItem('ims-pwa-splash-dismissed');
+  const splash = document.getElementById('pwa-splash');
+  if(isPhone && !isStandalone && !dismissed && splash){
+    splash.style.display='flex';
+  }
+})();
+
+function pwaSplashInstall(){
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(isIOS){
+    // Can't trigger install on iOS — show manual instructions
+    document.getElementById('pwa-ios-hint').style.display='block';
+    document.querySelector('#pwa-splash > div > button:first-of-type').style.display='none';
+    document.querySelector('#pwa-splash > div > button:nth-of-type(2)').style.display='none';
+  } else if(_installPrompt){
+    // Android Chrome — trigger native install
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(()=>{ pwaSplashDismiss(); });
+  } else {
+    // Fallback — show iOS instructions anyway
+    document.getElementById('pwa-ios-hint').style.display='block';
+  }
+}
+
+function pwaSplashDismiss(){
+  const splash = document.getElementById('pwa-splash');
+  if(splash) splash.style.display='none';
+  localStorage.setItem('ims-pwa-splash-dismissed','1');
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────
 const today=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 document.getElementById('ev-date').value=today;
@@ -2638,6 +2815,9 @@ window.onerror=function(msg,src,line){
 buildRoleGrid();
 setEventView(eventView);
 updateGroqHint();
+
+// iOS hint replaced by PWA splash screen
+
 if(typeof firebase==='undefined'){
   toast('Firebase SDK failed to load — check your internet connection');
 } else {
