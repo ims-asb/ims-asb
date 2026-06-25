@@ -415,9 +415,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <!-- PWA MOBILE SPLASH — only shows on mobile, not in standalone mode -->
 <div id="pwa-splash" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;padding:24px">
   <div style="width:100%;max-width:380px;margin:auto;display:flex;flex-direction:column;align-items:center;text-align:center">
-    <!-- Icon -->
-    <img src="icon-192.png" width="72" height="72" style="border-radius:18px;margin-bottom:28px;box-shadow:0 4px 20px rgba(0,0,0,.12)" alt="ASB Hub">
     <!-- Title -->
+    <div style="font-size:42px;margin-bottom:16px">🏫</div>
     <h1 style="font-size:28px;font-weight:600;letter-spacing:-.5px;margin-bottom:10px;line-height:1.2">IMS ASB Hub</h1>
     <p style="font-size:15px;color:var(--muted);line-height:1.6;margin-bottom:36px;max-width:280px">Add to your home screen for the full app experience — no browser bar, instant load, works offline.</p>
     <!-- Primary CTA -->
@@ -425,11 +424,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <!-- Secondary -->
     <button onclick="pwaSplashDismiss()" style="width:100%;padding:12px;background:none;color:var(--muted);border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:border-color .15s">No, I'll stay on the web</button>
     <!-- iOS specific hint shown after tapping install on iOS -->
-    <div id="pwa-ios-hint" style="display:none;margin-top:20px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--muted);line-height:1.7;text-align:left">
-      <strong style="color:var(--text)">On iPhone:</strong><br>
-      1. Tap the <strong>Share</strong> button <span style="font-size:15px">⎙</span> at the bottom of Safari<br>
-      2. Scroll down and tap <strong>"Add to Home Screen"</strong><br>
-      3. Tap <strong>Add</strong> — done!
+    <div id="pwa-ios-hint" style="display:none;margin-top:20px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--muted);line-height:1.9;text-align:left">
+      <strong style="color:var(--text);display:block;margin-bottom:6px">Add to Home Screen on iPhone:</strong>
+      1. Tap the <strong>⋯</strong> button in the bottom right of Safari<br>
+      2. Tap <strong>Share</strong><br>
+      3. Scroll down and tap <strong>"Add to Home Screen"</strong><br>
+      4. Rename it if you like, then tap <strong>Add</strong><br>
+      5. Done — find it on your home screen!
       <br><br>
       <button onclick="pwaSplashDismiss()" style="width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer">Got it — open the hub</button>
     </div>
@@ -473,6 +474,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div>
 <div id="test-banner" class="test-banner">
   <span>⚗ <strong>Test mode</strong> — sample data only, nothing saved to Firebase.</span>
+  <button onclick="previewSplash()">📱 Preview install screen</button>
   <button onclick="clearTest()">Exit test mode</button>
 </div>
 
@@ -2773,6 +2775,17 @@ function dismissInstall(){
     splash.style.display='flex';
   }
 })();
+
+function previewSplash(){
+  const splash=document.getElementById('pwa-splash');
+  if(splash){
+    // reset to initial state in case iOS hint was shown
+    document.getElementById('pwa-ios-hint').style.display='none';
+    const btns=splash.querySelectorAll(':scope > div > button');
+    btns.forEach(b=>b.style.display='');
+    splash.style.display='flex';
+  }
+}
 
 function pwaSplashInstall(){
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
