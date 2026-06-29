@@ -453,13 +453,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div class="hdr-menu-wrap">
       <button id="hdr-menu-btn" class="icon-btn" onclick="toggleHdrMenu(event)">☰ Menu</button>
       <div id="hdr-menu" class="hdr-menu">
-        <button id="btn-finance" class="hdr-menu-item" onclick="window.open('https://ims-asb.github.io/ims-finance','_blank')" style="display:none">📊 Finances</button>
+        <button id="btn-finance" class="hdr-menu-item" onclick="window.open(SCHOOL_CONFIG.financeUrl||'https://ims-asb.github.io/ims-finance','_blank')" style="display:none">📊 Finances</button>
         <button id="btn-settings" class="hdr-menu-item" onclick="closeHdrMenu();openModal('settings-modal')" style="display:none">🔑 Passwords</button>
         <button id="btn-firebase" class="hdr-menu-item" onclick="closeHdrMenu();openModal('firebase-modal')">🔥 Firebase</button>
         <button id="btn-groq" class="hdr-menu-item" onclick="closeHdrMenu();openModal('groq-modal')">⚙ Groq</button>
         <button id="btn-test" class="hdr-menu-item" onclick="closeHdrMenu();loadTest()">⚗ Test mode</button>
         <div style="height:1px;background:var(--border);margin:4px 6px"></div>
-        <button class="hdr-menu-item" onclick="closeHdrMenu();window.open('https://github.com/ims-asb/ims-asb/blob/main/index.html','_blank')">🐙 View on GitHub</button>
+        <button class="hdr-menu-item" id="btn-github" onclick="closeHdrMenu();window.open(SCHOOL_CONFIG.githubUrl||'https://github.com/ims-asb/ims-asb/blob/main/index.html','_blank')">🐙 View on GitHub</button>
       </div>
     </div>
   </div>
@@ -814,6 +814,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <div id="reset-request-status" style="display:none;margin-top:8px;font-size:12px;color:var(--red)"></div>
     </div>
 
+    <!-- Archive + Past Years (Treasurer + Advisor only) -->
+    <div id="archive-wrap" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
+      <p style="font-size:12px;font-weight:500;margin-bottom:4px">📦 Year archive</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Save this year's data then start fresh for next year. Chat and user profiles are kept.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn sm danger" onclick="archiveYear()">Archive this year →</button>
+        <button class="btn sm" onclick="viewPastYears()">📂 Past years</button>
+      </div>
+    </div>
+
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn danger" onclick="resetProfile()">Reset profile</button>
       <button class="btn" onclick="saveProfilePrefs()">Save</button>
@@ -913,6 +923,63 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div>
 
 <script>
+
+// =============================================================================
+// ASB HUB
+// A free, self-hosted team coordination app for middle/high school ASB programs.
+// Built by Luke Li (IMS ASB Treasurer 2026-27). Open-source — fork and adapt freely.
+//
+// STACK:
+//   Firebase Realtime Database  — live sync, chat, user profiles
+//   GitHub Pages                — free hosting (just upload index.html)
+//   Groq API (optional)         — AI date suggester (free tier works fine)
+//
+// QUICK START:
+//   1. Create a free Firebase Realtime Database at console.firebase.google.com
+//   2. Set rules to { ".read": true, ".write": true }
+//   3. Fill in SCHOOL_CONFIG below
+//   4. Upload index.html to GitHub Pages (or any static host)
+//   5. (Optional) Get a free Groq key at console.groq.com/keys and enter it in-app
+//
+// See README.md for full setup guide.
+// =============================================================================
+
+// =============================================================================
+// SCHOOL_CONFIG — the only section you need to change for a new school
+// =============================================================================
+const SCHOOL_CONFIG = {
+
+  // Your school name — shown in greetings and the browser tab
+  schoolName: 'IMS',
+  schoolFullName: 'Issaquah Middle School',
+  schoolYear: '2026–2027',
+
+  // Firebase config — paste your own from the Firebase console
+  // (Project settings → General → Your apps → Firebase SDK snippet → Config)
+  firebase: {
+    apiKey:            "YOUR_API_KEY",
+    authDomain:        "YOUR_PROJECT.firebaseapp.com",
+    projectId:         "YOUR_PROJECT",
+    storageBucket:     "YOUR_PROJECT.firebasestorage.app",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId:             "YOUR_APP_ID",
+    databaseURL:       "https://YOUR_PROJECT-default-rtdb.firebaseio.com"
+  },
+
+  // GitHub link for the ☰ Menu → "View on GitHub" button
+  // Set to null to hide the button
+  githubUrl: null,
+
+  // Finances app URL — shown in the ☰ Menu for Treasurer + Advisor
+  // Set to null to hide
+  financeUrl: null,
+};
+// =============================================================================
+// END SCHOOL_CONFIG
+// (Everything below this line should not need changes for a typical setup)
+// =============================================================================
+
+
 const TCATS={expense:['Events & Dances','Supplies','Equipment','Marketing','Club Activities','Other Expense'],income:['Fundraiser','PTSA Funds','Donation','Grant','Other Income']};
 const STATUS_LABELS={idea:'💡 Idea',progress:'⚙️ In progress',done:'✅ Done',shelved:'📦 Shelved'};
 
@@ -1033,7 +1100,7 @@ data.events=Object.values(remote.events||{});
         const myUser=users.find(u=>u.name===prefs.name);
         if(myUser&&myUser.avatar&&!prefs.avatar){
           prefs.avatar=myUser.avatar;
-          localStorage.setItem('ims-prefs',JSON.stringify(prefs));
+          savePrefs();
         }
         renderPeople(users);
         renderConvoList(users);
@@ -1112,7 +1179,11 @@ function setSyncStatus(ok){
 }
 function setFbStatus(t,m){const el=document.getElementById('fb-status');el.className='key-status'+(t?' '+t:'');el.textContent=m;}
 
-const HARDCODED_FB_CONFIG={"apiKey":"AIzaSyDYBkwL0zaypB0Q9y-17Gd5SG9co36wuz4","authDomain":"ims-asb-hub.firebaseapp.com","projectId":"ims-asb-hub","storageBucket":"ims-asb-hub.firebasestorage.app","messagingSenderId":"340484704921","appId":"1:340484704921:web:09b6122b53dca0c6f90608","databaseURL":"https://ims-asb-hub-default-rtdb.firebaseio.com"};
+// Firebase config is set in SCHOOL_CONFIG above.
+// IMS-specific config kept here as fallback so the deployed IMS app still works:
+const HARDCODED_FB_CONFIG = SCHOOL_CONFIG.firebase.apiKey === 'YOUR_API_KEY'
+  ? {"apiKey":"AIzaSyDYBkwL0zaypB0Q9y-17Gd5SG9co36wuz4","authDomain":"ims-asb-hub.firebaseapp.com","projectId":"ims-asb-hub","storageBucket":"ims-asb-hub.firebasestorage.app","messagingSenderId":"340484704921","appId":"1:340484704921:web:09b6122b53dca0c6f90608","databaseURL":"https://ims-asb-hub-default-rtdb.firebaseio.com"}
+  : SCHOOL_CONFIG.firebase;
 
 function autoConnectFirebase(){
   const cfg=HARDCODED_FB_CONFIG;
@@ -1656,9 +1727,42 @@ function executeNuclearReset(){
 
 // ── PERSONALIZATION ──────────────────────────────────────────────────
 
+
+// ── PREFS PERSISTENCE (cookie fallback for iOS PWA) ──────────────────
+function setCookie(name, value, days=3650){
+  const d = new Date();
+  d.setTime(d.getTime() + days*24*60*60*1000);
+  document.cookie = name+'='+encodeURIComponent(value)+';expires='+d.toUTCString()+';path=/;SameSite=Lax';
+}
+function getCookie(name){
+  const match = document.cookie.match(new RegExp('(?:^|; )'+name+'=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+function deleteCookie(name){
+  document.cookie = name+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Lax';
+}
+function savePrefs(){
+  const s = JSON.stringify(prefs);
+  localStorage.setItem('ims-prefs', s);
+  setCookie('ims-prefs', s);
+}
+function clearPrefs(){
+  clearPrefs();
+  deleteCookie('ims-prefs');
+}
+
 function loadPrefs(){
+  // 1. Try localStorage
   try{const s=localStorage.getItem('ims-prefs');if(s)prefs=Object.assign({widgets:{metrics:true,dash:true,recent:true,upcoming:true}},JSON.parse(s));}catch(e){}
-  if(!prefs.name){openModal('onboard-modal');}else{closeModal('onboard-modal');applyPrefs();}
+  // 2. If empty (iOS PWA context switch), try cookie fallback
+  if(!prefs.name){
+    try{const s=getCookie('ims-prefs');if(s){prefs=Object.assign({widgets:{metrics:true,dash:true,recent:true,upcoming:true}},JSON.parse(s));localStorage.setItem('ims-prefs',s);}}catch(e){}
+  }
+  if(!prefs.name){openModal('onboard-modal');}else{
+    // Refresh cookie on every open so it never quietly expires
+    savePrefs();
+    closeModal('onboard-modal');applyPrefs();
+  }
 }
 
 const FULL_ROLES=['Treasurer','President','Secretary','Vice President','Member','7th Grade Rep'];
@@ -1718,11 +1822,13 @@ function applyPrefs(){
   if(finLink)finLink.style.display=(isTreasurer||isAdvisor||isBookkeeper)?'':'none';
   document.querySelector('.test-btn')?.style.setProperty('display',techOnly?'':'none');
 
-  // NUCLEAR RESET + CLEAR CHAT: Treasurer + Advisor
+  // NUCLEAR RESET + CLEAR CHAT + ARCHIVE: Treasurer + Advisor
   const nrw=document.getElementById('nuclear-reset-wrap');
   if(nrw)nrw.style.display=(isTreasurer||isAdvisor)?'block':'none';
   const ccw=document.getElementById('clear-chat-wrap');
   if(ccw)ccw.style.display=(isTreasurer||isAdvisor)?'block':'none';
+  const aw=document.getElementById('archive-wrap');
+  if(aw)aw.style.display=(isTreasurer||isAdvisor)?'block':'none';
 }
 function applyReadOnly(classes){
   // for advisor/supporter, hide edit-type buttons
@@ -1735,7 +1841,7 @@ function saveWidgetPrefs(){
     const cb=document.getElementById('wt-'+id);
     if(cb)prefs.widgets[id]=cb.checked;
   });
-  localStorage.setItem('ims-prefs',JSON.stringify(prefs));
+  savePrefs();
   applyPrefs();
 }
 
@@ -1755,7 +1861,7 @@ function resetProfile(){
       if(Object.keys(updates).length)db.ref().update(updates);
     });
   }
-  localStorage.removeItem('ims-prefs');
+  clearPrefs();
   prefs={name:'',role:'',widgets:{metrics:true,dash:true,recent:true,upcoming:true}};
   closeModal('customize-modal');
   document.getElementById('ob-step-1').classList.add('on');
@@ -1770,7 +1876,7 @@ function saveProfilePrefs(){
   const n=document.getElementById('pref-name').value.trim();
   const r=document.getElementById('pref-role').value.trim();
   if(n)prefs.name=n;if(r)prefs.role=r;
-  localStorage.setItem('ims-prefs',JSON.stringify(prefs));
+  savePrefs();
   applyPrefs();toast('Profile updated','ok');
 }
 
@@ -1872,7 +1978,7 @@ function obFinish(){
 }
 function finishOnboard(){
   prefs.role=obRole;
-  localStorage.setItem('ims-prefs',JSON.stringify(prefs));
+  savePrefs();
   closeModal('onboard-modal');
   applyPrefs();
   toast('Welcome, '+prefs.name+'!');
@@ -2516,36 +2622,77 @@ function renderReadReceipts(convoId,msgs){
 }
 
 // ── YEAR SUMMARY ──────────────────────────────────────────────────────
+
 function archiveYear(){
   if(testMode){toast('Disabled in test mode');return;}
   if(!db||!isConnected){toast('Must be connected to Firebase','err');return;}
   const year=new Date().getFullYear();
-  // compute stats
   const eventCount=data.events.length;
   const doneIdeas=data.ideas.filter(i=>i.status==='done').length;
   const topIdea=data.ideas.reduce((best,i)=>(!best||((i.votes||0)>(best.votes||0)))?i:best,null);
-  const lines=['Year '+year+' Summary','',
-    '💰 Total raised: '+fmt(totalInc),
-    '💸 Total spent: '+fmt(totalExp),
-    '📈 Net surplus: '+fmt(totalInc-totalExp),
-    '<span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M1.5 6.5h13M5 1.5v2M11 1.5v2"/><circle cx="5" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="8" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="11" cy="10" r=".75" fill="currentColor" stroke="none"/></svg></span><span class="tab-label">Events</span> held: '+eventCount,
+  const summary=[
+    'Year '+year+' in review',
+    '',
+    '📅 Events held: '+eventCount,
     '✅ Ideas completed: '+doneIdeas,
     topIdea?'🏆 Top idea: '+topIdea.title:'',
-    '','Archive this year and start fresh for '+(year+1)+'?'];
-  const summary=lines.filter(Boolean).join(String.fromCharCode(10));
+    '',
+    'Archive this year and start fresh for '+(year+1)+'?'
+  ].filter(Boolean).join('\n');
   if(!confirm(summary))return;
   db.ref('ims-asb').once('value').then(snap=>{
     const current=snap.val();
     if(!current){toast('Nothing to archive');return;}
-    return db.ref('ims-asb-archive-'+year).set({...current,archivedAt:new Date().toISOString(),summary:{totalInc,totalExp,eventCount,doneIdeas}});
+    return db.ref('ims-asb-archive-'+year).set({
+      ...current,
+      archivedAt:new Date().toISOString(),
+      summary:{eventCount,doneIdeas,topIdea:topIdea?topIdea.title:null}
+    });
   }).then(()=>db.ref('ims-asb').remove())
   .then(()=>{
     data={events:[],notes:[],ideas:[]};
     renderAll();renderConvoList([]);renderPeople([]);
-    toast('Archived! Starting fresh for '+(year+1));
+    toast('Archived! Starting fresh for '+(year+1),'ok');
     closeModal('customize-modal');
   }).catch(e=>toast('Error: '+e.message,'err'));
 }
+
+function viewPastYears(){
+  if(!db||!isConnected){toast('Must be connected to Firebase','err');return;}
+  // Fetch all archive nodes
+  const year=new Date().getFullYear();
+  const checks=[];
+  for(let y=year-1;y>=year-5;y--) checks.push(y);
+  Promise.all(checks.map(y=>db.ref('ims-asb-archive-'+y).once('value').then(s=>({year:y,data:s.val()}))))
+    .then(results=>{
+      const found=results.filter(r=>r.data);
+      if(!found.length){toast('No archived years found');return;}
+      let html='<h2 style="margin-bottom:14px">📦 Past years</h2>';
+      found.forEach(({year:y,data:d})=>{
+        const s=d.summary||{};
+        const archived=d.archivedAt?new Date(d.archivedAt).toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'}):'unknown date';
+        html+=`<div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div style="font-weight:500">School year ${y-1}–${String(y).slice(-2)}</div>
+            <span style="font-size:11px;color:var(--hint);font-family:'DM Mono',monospace">Archived ${archived}</span>
+          </div>
+          <div class="grid2" style="gap:8px;margin-bottom:8px">
+            <div class="metric"><div class="metric-lbl">Events</div><div class="metric-val neu">${s.eventCount||0}</div></div>
+            <div class="metric"><div class="metric-lbl">Ideas done</div><div class="metric-val neu">${s.doneIdeas||0}</div></div>
+          </div>
+          ${s.totalInc?`<div style="font-size:12px;color:var(--muted)">💰 Raised ${fmt(s.totalInc)} · Spent ${fmt(s.totalExp||0)} · Net ${fmt((s.totalInc||0)-(s.totalExp||0))}</div>`:''}
+        </div>`;
+      });
+      // Show in a simple overlay
+      const overlay=document.createElement('div');
+      overlay.className='modal-overlay on';
+      overlay.style.zIndex='200';
+      overlay.innerHTML=`<div class="modal" style="max-width:480px;max-height:80vh;overflow-y:auto">${html}<button class="btn primary full" onclick="this.closest('.modal-overlay').remove()">Close</button></div>`;
+      document.body.appendChild(overlay);
+      closeModal('customize-modal');
+    }).catch(e=>toast('Error loading archives: '+e.message,'err'));
+}
+
 
 // ── ELEMENT CACHE ────────────────────────────────────────────────────
 const $=id=>document.getElementById(id);
@@ -2577,7 +2724,7 @@ function handleAvatarUpload(input){
 
 function saveAvatar(b64){
   prefs.avatar=b64;
-  localStorage.setItem('ims-prefs',JSON.stringify(prefs));
+  savePrefs();
   if(db&&isConnected&&prefs.name&&!testMode){
     const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
     db.ref('ims-asb/users/'+uid+'/avatar').set(b64);
@@ -2588,7 +2735,7 @@ function saveAvatar(b64){
 
 function removeAvatar(){
   prefs.avatar='';
-  localStorage.setItem('ims-prefs',JSON.stringify(prefs));
+  savePrefs();
   if(db&&isConnected&&prefs.name&&!testMode){
     const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
     db.ref('ims-asb/users/'+uid+'/avatar').remove();
