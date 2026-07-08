@@ -814,6 +814,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <div id="reset-request-status" style="display:none;margin-top:8px;font-size:12px;color:var(--red)"></div>
     </div>
 
+
+    <!-- Control Panel Access (Advisor only) -->
+    <div id="cp-grant-wrap" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
+      <p style="font-size:12px;font-weight:500;margin-bottom:4px">🔧 Control panel access</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Grant or revoke access to Firebase, Groq, and test mode for specific senate members.</p>
+      <div id="cp-grant-list" style="margin-bottom:10px;display:flex;flex-direction:column;gap:6px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="cp-grant-name" placeholder="Member name" style="flex:1;font-size:13px">
+        <button class="btn sm primary" onclick="grantControlPanel()">Grant</button>
+      </div>
+    </div>
+
     <!-- Archive + Past Years (Treasurer + Advisor only) -->
     <div id="archive-wrap" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
       <p style="font-size:12px;font-weight:500;margin-bottom:4px">📦 Year archive</p>
@@ -1725,6 +1737,35 @@ function executeNuclearReset(){
   });
 }
 
+
+// ── RATE LIMITING ─────────────────────────────────────────────────────
+const RL_MAX = 5;
+const RL_LOCKOUT = 10 * 60 * 1000; // 10 minutes
+
+function rlCheck(key){
+  try{
+    const d = JSON.parse(localStorage.getItem('ims-rl-'+key)||'{}');
+    if(d.until && Date.now() < d.until){
+      const mins = Math.ceil((d.until - Date.now()) / 60000);
+      return {locked:true, mins};
+    }
+    return {locked:false, attempts: d.attempts||0};
+  }catch(e){return {locked:false, attempts:0};}
+}
+function rlFail(key){
+  try{
+    const d = JSON.parse(localStorage.getItem('ims-rl-'+key)||'{}');
+    const attempts = (d.attempts||0) + 1;
+    if(attempts >= RL_MAX){
+      localStorage.setItem('ims-rl-'+key, JSON.stringify({attempts, until: Date.now()+RL_LOCKOUT}));
+      return {locked:true, mins:10};
+    }
+    localStorage.setItem('ims-rl-'+key, JSON.stringify({attempts}));
+    return {locked:false, left: RL_MAX - attempts};
+  }catch(e){return {locked:false, left:1};}
+}
+function rlClear(key){ localStorage.removeItem('ims-rl-'+key); }
+
 // ── PERSONALIZATION ──────────────────────────────────────────────────
 
 
@@ -1813,14 +1854,11 @@ function applyPrefs(){
   }
 
   // TECHNICAL BUTTONS: Treasurer only (show for everyone if no role set yet)
-  const techOnly=prefs.name==='Luke Li';
-  document.getElementById('btn-firebase')?.style.setProperty('display',techOnly?'':'none');
-  document.getElementById('btn-test')?.style.setProperty('display',techOnly?'':'none');
-  document.getElementById('btn-groq')?.style.setProperty('display',techOnly?'':'none');
-  document.getElementById('btn-settings')?.style.setProperty('display',techOnly?'':'none');
+  // Tech buttons: based on Firebase flag, not name matching
+  // (avoids false positives if another student shares the same name)
+  applyTechButtons();
   const finLink=document.getElementById('btn-finance');
   if(finLink)finLink.style.display=(isTreasurer||isAdvisor||isBookkeeper)?'':'none';
-  document.querySelector('.test-btn')?.style.setProperty('display',techOnly?'':'none');
 
   // NUCLEAR RESET + CLEAR CHAT + ARCHIVE: Treasurer + Advisor
   const nrw=document.getElementById('nuclear-reset-wrap');
@@ -1829,6 +1867,9 @@ function applyPrefs(){
   if(ccw)ccw.style.display=(isTreasurer||isAdvisor)?'block':'none';
   const aw=document.getElementById('archive-wrap');
   if(aw)aw.style.display=(isTreasurer||isAdvisor)?'block':'none';
+  const cpw=document.getElementById('cp-grant-wrap');
+  if(cpw)cpw.style.display=isAdvisor?'block':'none';
+  if(isAdvisor)renderControlPanelGrants();
 }
 function applyReadOnly(classes){
   // for advisor/supporter, hide edit-type buttons
@@ -1944,7 +1985,7 @@ function obSelectRole(btn,role){
     role+' password',
     ROLE_HINTS[role]||'',
     (pw)=>{
-      if(pw!==ROLE_PWS[role]){return false;}
+      if(pw!==getPassword(role)){return false;}
       obRole=role;
       document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
       btn.classList.add('on');
@@ -1979,6 +2020,18 @@ function obFinish(){
 function finishOnboard(){
   prefs.role=obRole;
   savePrefs();
+  // Migration: if this is the original admin (IMS only), auto-grant techAdmin
+  // This runs once — after that the Firebase flag persists
+  if(prefs.name==='Luke Li' && db && isConnected){
+    const uid='luke-li';
+    db.ref('ims-asb/users/'+uid+'/techAdmin').once('value').then(snap=>{
+      if(!snap.val()){
+        db.ref('ims-asb/users/'+uid+'/techAdmin').set(true);
+        isTechAdmin=true;
+        applyTechButtons();
+      }
+    });
+  }
   closeModal('onboard-modal');
   applyPrefs();
   toast('Welcome, '+prefs.name+'!');
@@ -1991,6 +2044,43 @@ function finishOnboard(){
       db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role,joinedAt:existing.joinedAt||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
     });
   }
+}
+
+
+// ── FIREBASE PASSWORDS ────────────────────────────────────────────────
+// Passwords are stored in Firebase so they never appear in View Source.
+// ROLE_PWS below is the SEED (first-run only). After that Firebase is
+// the source of truth. Luke Li can update them via the hub UI.
+let ROLE_PWS_LIVE = null; // null = not yet loaded from Firebase
+
+function getPassword(role){
+  // use Firebase-loaded passwords if available, fall back to seed
+  return (ROLE_PWS_LIVE && ROLE_PWS_LIVE[role]) || ROLE_PWS[role] || '';
+}
+
+function loadPasswordsFromFirebase(){
+  if(!db || !isConnected) return;
+  db.ref('ims-asb/config/passwords').once('value').then(snap=>{
+    const stored = snap.val();
+    if(stored){
+      ROLE_PWS_LIVE = stored;
+    } else {
+      // First run — seed Firebase with the defaults
+      db.ref('ims-asb/config/passwords').set(ROLE_PWS);
+      ROLE_PWS_LIVE = {...ROLE_PWS};
+    }
+  }).catch(()=>{});
+}
+
+function updatePassword(role, newPw, callback){
+  if(!db || !isConnected){toast('Must be connected to Firebase','err');return;}
+  if(!newPw || newPw.length < 8){toast('Password must be at least 8 characters','err');return;}
+  db.ref('ims-asb/config/passwords/'+role).set(newPw).then(()=>{
+    if(!ROLE_PWS_LIVE) ROLE_PWS_LIVE = {};
+    ROLE_PWS_LIVE[role] = newPw;
+    if(callback) callback();
+    toast(role+' password updated','ok');
+  }).catch(e=>toast('Error: '+e.message,'err'));
 }
 
 // ── PASSWORD MODAL ───────────────────────────────────────────────────────
@@ -2006,6 +2096,9 @@ function showPwModal(title, hint, onConfirm, onCancel){
   pwModalCallback=onConfirm;
   pwModalCancelCb=onCancel||null;
   document.getElementById('pw-modal').classList.add('on');
+  document.getElementById('pw-modal-input').disabled=false;
+  document.getElementById('pw-modal-input').value='';
+  document.getElementById('pw-modal-error').textContent='';
   setTimeout(()=>document.getElementById('pw-modal-input').focus(),100);
 }
 
@@ -2013,24 +2106,37 @@ function pwModalConfirm(){
   const pw=document.getElementById('pw-modal-input').value;
   const errEl=document.getElementById('pw-modal-error');
   if(!pw){errEl.textContent='Please enter the password';return;}
-  // run callback — if it calls toast('Wrong password','err') that means failure
-  // we intercept by checking password here for role passwords
+
+  // Rate limiting — check before attempting
+  const rl = rlCheck('pw');
+  if(rl.locked){
+    errEl.textContent='Too many attempts — try again in '+rl.mins+' min';
+    document.getElementById('pw-modal-input').disabled=true;
+    return;
+  }
+
   if(pwModalCallback){
     const result=pwModalCallback(pw);
-    // if callback returned false explicitly, show error
     if(result===false){
-      errEl.textContent='Wrong password — try again';
-      document.getElementById('pw-modal-input').value='';
-      document.getElementById('pw-modal-input').focus();
+      const fail = rlFail('pw');
+      if(fail.locked){
+        errEl.textContent='Too many attempts — locked for 10 minutes';
+        document.getElementById('pw-modal-input').disabled=true;
+      } else {
+        errEl.textContent='Wrong password — '+fail.left+' attempt'+(fail.left===1?'':'s')+' left';
+        document.getElementById('pw-modal-input').value='';
+        document.getElementById('pw-modal-input').focus();
+      }
       return;
     }
-    // show success briefly then close
+    rlClear('pw'); // success — reset counter
     errEl.style.color='var(--green)';
     errEl.textContent='✓ Correct!';
     setTimeout(()=>{
       document.getElementById('pw-modal').classList.remove('on');
       errEl.textContent='';
       errEl.style.color='var(--red)';
+      document.getElementById('pw-modal-input').disabled=false;
     },600);
   }
 }
@@ -2185,6 +2291,52 @@ function loadTheme(){
   const saved=localStorage.getItem('ims-theme');
   const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
   applyTheme(saved==='dark'||(saved===null&&prefersDark));
+}
+
+
+// ── TECH ADMIN FLAG ───────────────────────────────────────────────────
+// Stored in Firebase per-user so it's not based on name matching.
+// Set by the original admin (Luke Li) — survives across sessions.
+let isTechAdmin = false;
+
+function loadTechAdminFlag(){
+  if(!db||!isConnected||!prefs.name)return;
+  const uid = prefs.name.toLowerCase().replace(/\s+/g,'-');
+  db.ref('ims-asb/users/'+uid+'/techAdmin').once('value').then(snap=>{
+    isTechAdmin = snap.val()===true;
+    applyTechButtons();
+  }).catch(()=>{});
+}
+
+function applyTechButtons(){
+  // Also check advisor-granted control panel access
+  const hasAccess = isTechAdmin || isControlPanelGranted;
+  ['btn-firebase','btn-test','btn-groq','btn-settings'].forEach(id=>{
+    document.getElementById(id)?.style.setProperty('display',hasAccess?'':'none');
+  });
+  document.querySelector('.test-btn')?.style.setProperty('display',hasAccess?'':'none');
+}
+
+// One-time setup: grant yourself techAdmin (run once from console or auto on first load)
+function grantSelfTechAdmin(){
+  if(!db||!isConnected||!prefs.name)return;
+  const uid = prefs.name.toLowerCase().replace(/\s+/g,'-');
+  db.ref('ims-asb/users/'+uid+'/techAdmin').set(true).then(()=>{
+    isTechAdmin=true;
+    applyTechButtons();
+    toast('Tech admin access granted','ok');
+  });
+}
+
+// Advisor-granted control panel access (separate from isTechAdmin)
+let isControlPanelGranted = false;
+function loadControlPanelGrant(){
+  if(!db||!isConnected||!prefs.name)return;
+  const uid = prefs.name.toLowerCase().replace(/\s+/g,'-');
+  db.ref('ims-asb/config/controlPanel/'+uid).once('value').then(snap=>{
+    isControlPanelGranted = snap.val()===true;
+    applyTechButtons();
+  }).catch(()=>{});
 }
 
 // ── ANNOUNCEMENTS ──────────────────────────────────────────────────────
@@ -2619,6 +2771,55 @@ function renderReadReceipts(convoId,msgs){
     if(!receipt){receipt=document.createElement('div');receipt.className='read-receipt';last.appendChild(receipt);}
     receipt.textContent=readers.length?'Seen by '+readers.join(', '):'';
   });
+}
+
+
+// ── CONTROL PANEL GRANTS ──────────────────────────────────────────────
+function renderControlPanelGrants(){
+  if(!db||!isConnected)return;
+  db.ref('ims-asb/config/controlPanel').once('value').then(snap=>{
+    const grants=snap.val()||{};
+    const list=document.getElementById('cp-grant-list');
+    if(!list)return;
+    const entries=Object.entries(grants).filter(([,v])=>v===true);
+    if(!entries.length){
+      list.innerHTML='<p style="font-size:12px;color:var(--hint)">No one granted yet.</p>';
+      return;
+    }
+    list.innerHTML=entries.map(([uid])=>{
+      const name=uid.replace(/-/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+      return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0">
+        <span>${name}</span>
+        <button class="btn sm danger" onclick="revokeControlPanel('${uid}')">Revoke</button>
+      </div>`;
+    }).join('');
+  });
+}
+
+function grantControlPanel(){
+  const name=document.getElementById('cp-grant-name').value.trim();
+  if(!name){toast('Enter a name','err');return;}
+  if(!db||!isConnected){toast('Must be connected','err');return;}
+  const uid=name.toLowerCase().replace(/\s+/g,'-');
+  db.ref('ims-asb/config/controlPanel/'+uid).set(true).then(()=>{
+    toast(name+' granted control panel access','ok');
+    document.getElementById('cp-grant-name').value='';
+    renderControlPanelGrants();
+  }).catch(e=>toast('Error: '+e.message,'err'));
+}
+
+function revokeControlPanel(uid){
+  if(!db||!isConnected)return;
+  db.ref('ims-asb/config/controlPanel/'+uid).remove().then(()=>{
+    const name=uid.replace(/-/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+    toast(name+' access revoked','ok');
+    renderControlPanelGrants();
+    // If this user is currently logged in, remove their access immediately
+    if(prefs.name.toLowerCase().replace(/\s+/g,'-')===uid){
+      isControlPanelGranted=false;
+      applyTechButtons();
+    }
+  }).catch(e=>toast('Error: '+e.message,'err'));
 }
 
 // ── YEAR SUMMARY ──────────────────────────────────────────────────────
