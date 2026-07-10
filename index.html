@@ -826,6 +826,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
     </div>
 
+    <!-- Password Management (gated by PW_MGMT_ROLES) -->
+    <div id="pw-mgmt-wrap" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
+      <p style="font-size:12px;font-weight:500;margin-bottom:4px">🔑 Role passwords</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">View or change the password for each role. Changes apply immediately for everyone.</p>
+      <div id="pw-mgmt-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
     <!-- Archive + Past Years (Treasurer + Advisor only) -->
     <div id="archive-wrap" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
       <p style="font-size:12px;font-weight:500;margin-bottom:4px">📦 Year archive</p>
@@ -985,6 +992,12 @@ const SCHOOL_CONFIG = {
   // Finances app URL — shown in the ☰ Menu for Treasurer + Advisor
   // Set to null to hide
   financeUrl: null,
+
+  // Which roles can view/change role passwords in Customize Home.
+  // Default is Advisor-only (the adult in the room) — safest starting
+  // point for a new school. IMS overrides this below since the
+  // Treasurer (author of this tool) is also trusted with it there.
+  passwordMgmtRoles: ['Advisor'],
 };
 // =============================================================================
 // END SCHOOL_CONFIG
@@ -1196,6 +1209,14 @@ function setFbStatus(t,m){const el=document.getElementById('fb-status');el.class
 const HARDCODED_FB_CONFIG = SCHOOL_CONFIG.firebase.apiKey === 'YOUR_API_KEY'
   ? {"apiKey":"AIzaSyDYBkwL0zaypB0Q9y-17Gd5SG9co36wuz4","authDomain":"ims-asb-hub.firebaseapp.com","projectId":"ims-asb-hub","storageBucket":"ims-asb-hub.firebasestorage.app","messagingSenderId":"340484704921","appId":"1:340484704921:web:09b6122b53dca0c6f90608","databaseURL":"https://ims-asb-hub-default-rtdb.firebaseio.com"}
   : SCHOOL_CONFIG.firebase;
+
+// Same fallback pattern as Firebase config above: IMS deployment gets
+// Treasurer+Advisor access to password management; a from-scratch
+// school deployment gets the safer Advisor-only default until they
+// choose to widen it.
+const PW_MGMT_ROLES = SCHOOL_CONFIG.firebase.apiKey === 'YOUR_API_KEY'
+  ? SCHOOL_CONFIG.passwordMgmtRoles
+  : ['Treasurer','Advisor'];
 
 function autoConnectFirebase(){
   const cfg=HARDCODED_FB_CONFIG;
@@ -1870,6 +1891,44 @@ function applyPrefs(){
   const cpw=document.getElementById('cp-grant-wrap');
   if(cpw)cpw.style.display=isAdvisor?'block':'none';
   if(isAdvisor)renderControlPanelGrants();
+
+  // PASSWORD MANAGEMENT: gated by PW_MGMT_ROLES (see SCHOOL_CONFIG)
+  const canManagePws = PW_MGMT_ROLES.includes(prefs.role);
+  const pmw=document.getElementById('pw-mgmt-wrap');
+  if(pmw)pmw.style.display=canManagePws?'block':'none';
+  if(canManagePws)renderPasswordMgmt();
+}
+
+function renderPasswordMgmt(){
+  const list=document.getElementById('pw-mgmt-list');
+  if(!list)return;
+  loadPasswordsFromFirebase();
+  list.innerHTML=Object.keys(ROLE_PWS).map(role=>{
+    const safeId=role.replace(/[^a-zA-Z0-9]/g,'_');
+    return `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+      <span style="width:110px;flex-shrink:0">${role}</span>
+      <span id="pw-reveal-${safeId}" style="flex:1;font-family:monospace;color:var(--hint);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
+      <input type="text" id="pw-new-${safeId}" placeholder="New password" style="width:140px;font-size:12px">
+      <button class="btn sm" onclick="submitPasswordChange('${role}','${safeId}')">Set</button>
+    </div>`;
+  }).join('');
+}
+
+function revealPassword(role,safeId){
+  const el=document.getElementById('pw-reveal-'+safeId);
+  if(!el)return;
+  el.textContent=getPassword(role);
+}
+
+function submitPasswordChange(role,safeId){
+  const input=document.getElementById('pw-new-'+safeId);
+  const newPw=input?input.value.trim():'';
+  if(!newPw)return;
+  updatePassword(role,newPw,()=>{
+    input.value='';
+    const el=document.getElementById('pw-reveal-'+safeId);
+    if(el)el.textContent='••••••••';
+  });
 }
 function applyReadOnly(classes){
   // for advisor/supporter, hide edit-type buttons
