@@ -1152,6 +1152,7 @@ data.events=Object.values(remote.events||{});
   isConnected=true;setSyncStatus(true);
   renderConvoList();
   migrateChatIfNeeded();
+  migrateDmCasingIfNeeded();
   startOnlineHeartbeat();
   // online status listener
   db.ref('ims-asb/online').on('value',snap=>renderOnlineStatus(snap.val()));
@@ -1509,7 +1510,13 @@ function hasProfanity(text){
   return BLOCKED.some(w=>norm.includes(w.replace(/\s/g,'')));
 }
 
-function dmId(a,b){return [a,b].sort().join('___');}
+function dmId(a,b){
+  // Normalize (trim + lowercase) before hashing so a display-name edit
+  // (capitalization, stray whitespace) can't silently point someone at
+  // a brand-new empty thread instead of their real conversation.
+  const norm=s=>(s||'').trim().toLowerCase();
+  return [norm(a),norm(b)].sort().join('___');
+}
 function dmPath(partner){return 'ims-asb/chat/dm/'+dmId(prefs.name,partner);}
 
 function scrollChat(){const el=document.getElementById('chat-msgs');if(el)el.scrollTop=el.scrollHeight;}
@@ -2720,6 +2727,40 @@ function renderIdeaVotes(id,el){
     el.appendChild(btn);
     el.appendChild(ct);
   });
+}
+
+// ── DM CASING MIGRATION ─────────────────────────────────────────────────
+// dmId() used to hash names verbatim, so a display-name edit (e.g.
+// "Luke Li" -> "Luke LI") pointed the app at a new, empty Firebase path
+// and made an existing conversation look deleted even though the old
+// messages were untouched. dmId() is now normalized (trim+lowercase);
+// this merges any old mixed-case thread into its new normalized key,
+// once, so nobody has to notice or re-type their name to recover it.
+function migrateDmCasingIfNeeded(){
+  if(!db||!isConnected)return;
+  if(localStorage.getItem('ims-dm-casing-migrated'))return;
+  db.ref('ims-asb/chat/dm').once('value').then(snap=>{
+    const val=snap.val();
+    if(!val){localStorage.setItem('ims-dm-casing-migrated','1');return;}
+    const norm=s=>(s||'').trim().toLowerCase();
+    const normalizeKey=k=>k.split('___').map(norm).sort().join('___');
+    const updates={};
+    Object.entries(val).forEach(([oldKey,msgs])=>{
+      const newKey=normalizeKey(oldKey);
+      if(newKey===oldKey||!msgs)return;
+      Object.entries(msgs).forEach(([msgId,msg])=>{
+        updates['ims-asb/chat/dm/'+newKey+'/'+msgId]=msg;
+      });
+      updates['ims-asb/chat/dm/'+oldKey]=null;
+    });
+    if(Object.keys(updates).length){
+      db.ref().update(updates).then(()=>{
+        localStorage.setItem('ims-dm-casing-migrated','1');
+      });
+    } else {
+      localStorage.setItem('ims-dm-casing-migrated','1');
+    }
+  }).catch(()=>{});
 }
 
 // ── CHAT MIGRATION ────────────────────────────────────────────────────
