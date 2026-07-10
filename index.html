@@ -1916,11 +1916,15 @@ function renderPasswordMgmt(){
   loadPasswordsFromFirebase();
   list.innerHTML=Object.keys(ROLE_PWS).map(role=>{
     const safeId=role.replace(/[^a-zA-Z0-9]/g,'_');
-    return `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
-      <span style="width:110px;flex-shrink:0">${role}</span>
-      <span id="pw-reveal-${safeId}" style="flex:1;font-family:monospace;color:var(--hint);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
-      <input type="text" id="pw-new-${safeId}" placeholder="New password" style="width:140px;font-size:12px">
-      <button class="btn sm" onclick="submitPasswordChange('${role}','${safeId}')">Set</button>
+    return `<div style="display:flex;flex-direction:column;gap:6px;padding-bottom:8px;border-bottom:1px solid var(--border);font-size:13px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-weight:500">${role}</span>
+        <span id="pw-reveal-${safeId}" style="font-family:monospace;color:var(--hint);cursor:pointer;word-break:break-all;text-align:right" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="pw-new-${safeId}" placeholder="New password" style="flex:1;font-size:12px;min-width:0">
+        <button class="btn sm" onclick="submitPasswordChange('${role}','${safeId}')">Set</button>
+      </div>
     </div>`;
   }).join('');
 }
