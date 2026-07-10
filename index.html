@@ -458,6 +458,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
         <button id="btn-firebase" class="hdr-menu-item" onclick="closeHdrMenu();openModal('firebase-modal')">🔥 Firebase</button>
         <button id="btn-groq" class="hdr-menu-item" onclick="closeHdrMenu();openModal('groq-modal')">⚙ Groq</button>
         <button id="btn-test" class="hdr-menu-item" onclick="closeHdrMenu();loadTest()">⚗ Test mode</button>
+        <button id="btn-seed-events" class="hdr-menu-item" onclick="closeHdrMenu();seedRealEvents()">📅 Seed 2026–27 events</button>
         <div style="height:1px;background:var(--border);margin:4px 6px"></div>
         <button class="hdr-menu-item" id="btn-github" onclick="closeHdrMenu();window.open(SCHOOL_CONFIG.githubUrl||'https://github.com/ims-asb/ims-asb/blob/main/index.html','_blank')">🐙 View on GitHub</button>
       </div>
@@ -2414,7 +2415,7 @@ function loadTechAdminFlag(){
 function applyTechButtons(){
   // Also check advisor-granted control panel access
   const hasAccess = isTechAdmin || isControlPanelGranted;
-  ['btn-firebase','btn-test','btn-groq','btn-settings'].forEach(id=>{
+  ['btn-firebase','btn-test','btn-groq','btn-settings','btn-seed-events'].forEach(id=>{
     document.getElementById(id)?.style.setProperty('display',hasAccess?'':'none');
   });
   document.querySelector('.test-btn')?.style.setProperty('display',hasAccess?'':'none');
@@ -3034,6 +3035,61 @@ function viewPastYears(){
     }).catch(e=>toast('Error loading archives: '+e.message,'err'));
 }
 
+
+
+// ── SEED REAL 2026-27 EVENTS ──────────────────────────────────────────
+// One-time seed of confirmed dates pulled from the actual IMS school
+// calendar (issaquahmiddle.isd411.org), verified month-by-month for the
+// 2026-27 school year. Idempotent — checks a Firebase flag so running
+// this twice won't create duplicates.
+const REAL_EVENTS_2026_27 = [
+  {name:'ASB Work Day',date:'2026-08-25',type:'Meeting',notes:'8am\u201312pm, before school starts'},
+  {name:'ASB Welcome for New 7th & 8th Graders',date:'2026-08-26',type:'Assembly',notes:'12:30\u20131pm'},
+  {name:'First Day of School',date:'2026-08-27',type:'Other',notes:''},
+  {name:'Panther Palooza \u2014 Family/Staff Night',date:'2026-09-14',type:'Other',notes:'5\u20138pm'},
+  {name:'Spirit Week',date:'2026-09-21',type:'Spirit Week',notes:'Runs Sept 21\u201325'},
+  {name:'PM Assembly \u2014 Welcome Back Panthers',date:'2026-09-25',type:'Assembly',notes:''},
+  {name:'Salmon Days PTSA Parking Lot Fundraiser',date:'2026-10-02',type:'Fundraiser',notes:'Runs Oct 2\u20134'},
+  {name:'Monster Mash BINGO',date:'2026-10-30',type:'Fundraiser',notes:'Sponsored by IMPTSA'},
+  {name:'End of Tri 1 \u2014 Half Day',date:'2026-11-20',type:'Other',notes:'11am dismissal'},
+  {name:'Winter Fest Spirit Week',date:'2026-12-14',type:'Spirit Week',notes:'Runs Dec 14\u201318'},
+  {name:'PM Assembly \u2014 Winter Fest Fun',date:'2026-12-18',type:'Assembly',notes:''},
+  {name:'MLK Jr. AM Assembly',date:'2027-01-15',type:'Assembly',notes:''},
+  {name:'Mid Tri 2',date:'2027-01-21',type:'Other',notes:''},
+  {name:'8th Grade Dance',date:'2027-03-05',type:'Dance',notes:'Sponsored by IM PTSA, 6\u20138pm'},
+  {name:'End of Tri 2 \u2014 Half Day',date:'2027-03-11',type:'Other',notes:''},
+  {name:'ASB Assembly \u2014 PM Assembly',date:'2027-03-12',type:'Assembly',notes:''},
+  {name:'ASB Fundraiser \"Restaurant Week\"',date:'2027-04-26',type:'Fundraiser',notes:'Runs Apr 26\u201330'},
+  {name:'Cultural Fair',date:'2027-05-07',type:'Other',notes:'Sponsored by IM PTSA, 6\u20138:30pm'},
+  {name:'8th Grade Field Trip',date:'2027-06-04',type:'Other',notes:'Tentative'},
+  {name:'8th Grade Promotion',date:'2027-06-07',type:'Other',notes:'9\u201311am'},
+  {name:'PM Assembly \u2014 ASB End of the Year',date:'2027-06-10',type:'Assembly',notes:''},
+  {name:'Field Day / Yearbook Disbursement',date:'2027-06-11',type:'Other',notes:''},
+  {name:'Last Day of School',date:'2027-06-14',type:'Other',notes:'11am dismissal'},
+];
+
+function seedRealEvents(){
+  if(testMode){toast('Disabled in test mode','err');return;}
+  if(!db||!isConnected){toast('Must be connected to Firebase','err');return;}
+  db.ref('ims-asb/config/eventsSeeded').once('value').then(snap=>{
+    if(snap.val()){
+      if(!confirm('Events already seeded once before. Add them again anyway? (may create duplicates)'))return;
+    }
+    let added=0;
+    REAL_EVENTS_2026_27.forEach(ev=>{
+      const exists=data.events.some(e=>e.date===ev.date&&e.name===ev.name);
+      if(!exists){
+        data.events.push({id:Date.now()+added,name:ev.name,date:ev.date,type:ev.type,estimatedCost:0,notes:ev.notes});
+        added++;
+      }
+    });
+    if(added===0){toast('All events already present \u2014 nothing added');return;}
+    save();
+    db.ref('ims-asb/config/eventsSeeded').set(true);
+    renderAll();
+    toast(added+' events added to the calendar','ok');
+  }).catch(e=>toast('Error: '+e.message,'err'));
+}
 
 // ── ELEMENT CACHE ────────────────────────────────────────────────────
 const $=id=>document.getElementById(id);
