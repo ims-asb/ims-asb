@@ -2036,13 +2036,36 @@ function finishOnboard(){
   applyPrefs();
   toast('Welcome, '+prefs.name+'!');
   startOnlineHeartbeat();
-  if(!localStorage.getItem('ims-tour-done'))setTimeout(startTour,600);
+  // Tour: skip immediately if this device has already seen it (checks both
+  // localStorage and the cookie fallback, same pattern as prefs persistence,
+  // so it survives the iOS Safari <-> installed-PWA storage split).
+  const tourAlreadyDone = localStorage.getItem('ims-tour-done') || getCookie('ims-tour-done');
   if(db&&isConnected&&prefs.name&&!testMode){
     const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
     db.ref('ims-asb/users/'+uid).once('value').then(snap=>{
       const existing=snap.val()||{};
+      // existing.joinedAt means this person has completed onboarding before,
+      // on ANY device (Firebase is the source of truth for "have they used
+      // the hub before"). If so, skip the tour and remember that locally too
+      // so we don't need to check Firebase again on future visits.
+      if(!tourAlreadyDone){
+        if(existing.joinedAt){
+          localStorage.setItem('ims-tour-done','1');
+          setCookie('ims-tour-done','1');
+        } else {
+          setTimeout(startTour,600);
+        }
+      }
       db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role,joinedAt:existing.joinedAt||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
+    }).catch(()=>{
+      // Firebase check failed — fail safe by showing the tour rather than
+      // silently blocking a possibly-new user from ever seeing it.
+      if(!tourAlreadyDone)setTimeout(startTour,600);
     });
+  } else if(!tourAlreadyDone){
+    // Not connected to Firebase (or in test mode) — can't verify account
+    // history, so fall back to the original behavior: show the tour.
+    setTimeout(startTour,600);
   }
 }
 
@@ -2273,6 +2296,7 @@ function endTour(){
   document.getElementById('tour-tooltip').classList.remove('on');
   clearMask();
   localStorage.setItem('ims-tour-done','1');
+  setCookie('ims-tour-done','1');
   go('home');
 }
 

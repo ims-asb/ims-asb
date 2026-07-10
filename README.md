@@ -116,11 +116,13 @@ The Events tab has an AI button that suggests the best date for an event, avoidi
 |---|---|
 | **Treasurer** | Everything + technical controls (Firebase, Groq, test mode) |
 | **President, VP, Secretary** | All tabs including meeting notes |
-| **Advisor** | All tabs including meeting notes + destructive controls |
+| **Advisor** | All tabs including meeting notes + destructive controls (clear chat, archive year, nuclear reset) |
 | **Bookkeeper** | Home + Events + Finance link only |
 | **Member** | Home, Events, Ideas, Chat, People |
 | **Supporter** | Same as Member, read-only (no deletes) |
 | **7th Grade Rep** | Same as Member |
+
+> **Meeting notes** are visible to all five senate roles (Treasurer, President, VP, Secretary, Advisor) so any officer can take notes if the Secretary is absent.
 
 ---
 
