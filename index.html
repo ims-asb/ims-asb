@@ -994,10 +994,10 @@ const SCHOOL_CONFIG = {
   financeUrl: null,
 
   // Which roles can view/change role passwords in Customize Home.
-  // Default is Advisor-only (the adult in the room) — safest starting
-  // point for a new school. IMS overrides this below since the
-  // Treasurer (author of this tool) is also trusted with it there.
-  passwordMgmtRoles: ['Advisor'],
+  // This IMS deployment trusts Treasurer + Advisor with it. If you're
+  // setting this up fresh for a different school and want a stricter
+  // starting point, change this to just ['Advisor'].
+  passwordMgmtRoles: ['Treasurer','Advisor'],
 };
 // =============================================================================
 // END SCHOOL_CONFIG
@@ -1211,13 +1211,10 @@ const HARDCODED_FB_CONFIG = SCHOOL_CONFIG.firebase.apiKey === 'YOUR_API_KEY'
   ? {"apiKey":"AIzaSyDYBkwL0zaypB0Q9y-17Gd5SG9co36wuz4","authDomain":"ims-asb-hub.firebaseapp.com","projectId":"ims-asb-hub","storageBucket":"ims-asb-hub.firebasestorage.app","messagingSenderId":"340484704921","appId":"1:340484704921:web:09b6122b53dca0c6f90608","databaseURL":"https://ims-asb-hub-default-rtdb.firebaseio.com"}
   : SCHOOL_CONFIG.firebase;
 
-// Same fallback pattern as Firebase config above: IMS deployment gets
-// Treasurer+Advisor access to password management; a from-scratch
-// school deployment gets the safer Advisor-only default until they
-// choose to widen it.
-const PW_MGMT_ROLES = SCHOOL_CONFIG.firebase.apiKey === 'YOUR_API_KEY'
-  ? SCHOOL_CONFIG.passwordMgmtRoles
-  : ['Treasurer','Advisor'];
+// Unlike Firebase config, there's no secret to protect here, so this
+// is just read straight from SCHOOL_CONFIG (edit passwordMgmtRoles
+// above to change who can manage passwords).
+const PW_MGMT_ROLES = SCHOOL_CONFIG.passwordMgmtRoles;
 
 function autoConnectFirebase(){
   const cfg=HARDCODED_FB_CONFIG;
@@ -1816,7 +1813,7 @@ function savePrefs(){
   setCookie('ims-prefs', s);
 }
 function clearPrefs(){
-  clearPrefs();
+  localStorage.removeItem('ims-prefs');
   deleteCookie('ims-prefs');
 }
 
