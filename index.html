@@ -1153,6 +1153,13 @@ data.events=Object.values(remote.events||{});
   renderConvoList();
   migrateChatIfNeeded();
   migrateDmCasingIfNeeded();
+  // These were previously never called on normal page load — only ever set
+  // during the exact moment of onboarding — so tech admin / control-panel
+  // access silently reverted to "hidden" on every reload unless you'd just
+  // finished onboarding with an exact name match. Now they actually refresh
+  // from Firebase every time the app connects.
+  loadTechAdminFlag();
+  loadControlPanelGrant();
   startOnlineHeartbeat();
   // online status listener
   db.ref('ims-asb/online').on('value',snap=>renderOnlineStatus(snap.val()));
@@ -2084,8 +2091,10 @@ function finishOnboard(){
   prefs.role=obRole;
   savePrefs();
   // Migration: if this is the original admin (IMS only), auto-grant techAdmin
-  // This runs once — after that the Firebase flag persists
-  if(prefs.name==='Luke Li' && db && isConnected){
+  // This runs once — after that the Firebase flag persists.
+  // Normalized (trim+lowercase) so a stray space or capitalization slip
+  // during onboarding can't silently skip this grant.
+  if(prefs.name && prefs.name.trim().toLowerCase()==='luke li' && db && isConnected){
     const uid='luke-li';
     db.ref('ims-asb/users/'+uid+'/techAdmin').once('value').then(snap=>{
       if(!snap.val()){
@@ -2984,7 +2993,10 @@ function viewPastYears(){
   // Fetch all archive nodes
   const year=new Date().getFullYear();
   const checks=[];
-  for(let y=year-1;y>=year-5;y--) checks.push(y);
+  // Includes the current year: archiveYear() names the snapshot after the
+  // year it was archived IN (not the prior year), so a year archived today
+  // would never have shown up here until literally next year otherwise.
+  for(let y=year;y>=year-5;y--) checks.push(y);
   Promise.all(checks.map(y=>db.ref('ims-asb-archive-'+y).once('value').then(s=>({year:y,data:s.val()}))))
     .then(results=>{
       const found=results.filter(r=>r.data);
