@@ -1962,10 +1962,13 @@ function saveWidgetPrefs(){
 
 function resetProfile(){
   if(!confirm("Reset your profile? You'll go through onboarding again. Your data stays."))return;
-  // remove from Firebase
+  // Clear the identity fields but keep techAdmin/joinedAt — the confirm
+  // dialog above promises "your data stays," but a full .remove() here
+  // used to wipe the whole record, silently revoking tech admin access
+  // (and losing the "returning user" signal) on every reset.
   if(db&&isConnected&&prefs.name){
     const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
-    db.ref('ims-asb/users/'+uid).remove();
+    db.ref('ims-asb/users/'+uid).update({name:null,role:null,avatar:null});
     // delete all general chat messages from this user
     db.ref('ims-asb/chat/general').once('value').then(snap=>{
       if(!snap.val())return;
