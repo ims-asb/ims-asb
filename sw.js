@@ -1,7 +1,7 @@
 // IMS ASB Hub — Service Worker
 // Caches the app shell so it loads even with patchy school wifi
 
-const CACHE = 'ims-asb-v1';
+const CACHE = 'ims-asb-v2';
 const SHELL = [
   '/ims-asb/',
   '/ims-asb/index.html',
