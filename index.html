@@ -1184,7 +1184,7 @@ data.events=Object.values(remote.events||{});
   });
   // register this user in Firebase
   if(prefs.name){
-    const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
+    const uid=nameToUid(prefs.name);
     db.ref('ims-asb/users/'+uid).once('value').then(snap=>{
       const existing=snap.val()||{};
       db.ref('ims-asb/users/'+uid).set({name:prefs.name,role:prefs.role||'',avatar:prefs.avatar||'',joinedAt:existing.joinedAt||(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})()});
@@ -2098,20 +2098,8 @@ function obFinish(){
 function finishOnboard(){
   prefs.role=obRole;
   savePrefs();
-  // Migration: if this is the original admin (IMS only), auto-grant techAdmin
-  // This runs once — after that the Firebase flag persists.
-  // Normalized (trim+lowercase) so a stray space or capitalization slip
-  // during onboarding can't silently skip this grant.
-  if(prefs.name && prefs.name.trim().toLowerCase()==='luke li' && db && isConnected){
-    const uid='luke-li';
-    db.ref('ims-asb/users/'+uid+'/techAdmin').once('value').then(snap=>{
-      if(!snap.val()){
-        db.ref('ims-asb/users/'+uid+'/techAdmin').set(true);
-        isTechAdmin=true;
-        applyTechButtons();
-      }
-    });
-  }
+  // Tech admin grant is now handled by loadTechAdminFlag() on every
+  // connection (not just here at onboarding) — see that function.
   closeModal('onboard-modal');
   applyPrefs();
   toast('Welcome, '+prefs.name+'!');
@@ -2121,7 +2109,7 @@ function finishOnboard(){
   // so it survives the iOS Safari <-> installed-PWA storage split).
   const tourAlreadyDone = localStorage.getItem('ims-tour-done') || getCookie('ims-tour-done');
   if(db&&isConnected&&prefs.name&&!testMode){
-    const uid=prefs.name.toLowerCase().replace(/\s+/g,'-');
+    const uid=nameToUid(prefs.name);
     db.ref('ims-asb/users/'+uid).once('value').then(snap=>{
       const existing=snap.val()||{};
       // existing.joinedAt means this person has completed onboarding before,
@@ -2159,6 +2147,23 @@ let ROLE_PWS_LIVE = null; // null = not yet loaded from Firebase
 function getPassword(role){
   // use Firebase-loaded passwords if available, fall back to seed
   return (ROLE_PWS_LIVE && ROLE_PWS_LIVE[role]) || ROLE_PWS[role] || '';
+}
+
+// ── NAME → UID (canonical) ────────────────────────────────────────────
+// Single source of truth for turning a display name into a Firebase key.
+// Firebase forbids . $ # [ ] / in keys, so we strip everything except
+// a-z0-9 (not just whitespace). Use this EVERYWHERE a uid is derived
+// from a name — do not inline your own regex, or names with periods
+// (e.g. "Mz. Weed", "Ms. Gale") will silently split into two different
+// Firebase records depending on which code path touched them.
+function nameToUid(name){
+  return (name||'').toLowerCase().replace(/[^a-z0-9]/g,'-');
+}
+// Old (buggy) pattern some code used to use — kept only so we can check
+// for and migrate any data that got written under the wrong key before
+// this fix shipped.
+function legacyNameToUid(name){
+  return (name||'').toLowerCase().replace(/\s+/g,'-');
 }
 
 function loadPasswordsFromFirebase(){
@@ -2405,10 +2410,40 @@ let isTechAdmin = false;
 
 function loadTechAdminFlag(){
   if(!db||!isConnected||!prefs.name)return;
-  const uid = prefs.name.toLowerCase().replace(/\s+/g,'-');
+  const uid = nameToUid(prefs.name);
+  const isOriginalAdmin = prefs.name.trim().toLowerCase()==='luke li';
   db.ref('ims-asb/users/'+uid+'/techAdmin').once('value').then(snap=>{
-    isTechAdmin = snap.val()===true;
-    applyTechButtons();
+    if(snap.val()===true){ isTechAdmin=true; applyTechButtons(); return; }
+    // Migration: check the old buggy uid pattern in case this flag was
+    // set before the nameToUid() fix shipped (e.g. names with periods)
+    const legacyUid = legacyNameToUid(prefs.name);
+    if(legacyUid!==uid){
+      db.ref('ims-asb/users/'+legacyUid+'/techAdmin').once('value').then(legacySnap=>{
+        if(legacySnap.val()===true){
+          db.ref('ims-asb/users/'+uid+'/techAdmin').set(true);
+          db.ref('ims-asb/users/'+legacyUid+'/techAdmin').remove();
+          isTechAdmin=true;
+          applyTechButtons();
+        } else if(isOriginalAdmin){
+          // Self-heal: the original admin's flag was never set (or got
+          // wiped) — grant it here so this doesn't depend on ever going
+          // through onboarding again. Runs on every connect, not once.
+          db.ref('ims-asb/users/'+uid+'/techAdmin').set(true);
+          isTechAdmin=true;
+          applyTechButtons();
+        } else {
+          isTechAdmin=false;
+          applyTechButtons();
+        }
+      }).catch(()=>{isTechAdmin=false;applyTechButtons();});
+    } else if(isOriginalAdmin){
+      db.ref('ims-asb/users/'+uid+'/techAdmin').set(true);
+      isTechAdmin=true;
+      applyTechButtons();
+    } else {
+      isTechAdmin=false;
+      applyTechButtons();
+    }
   }).catch(()=>{});
 }
 
@@ -2424,7 +2459,7 @@ function applyTechButtons(){
 // One-time setup: grant yourself techAdmin (run once from console or auto on first load)
 function grantSelfTechAdmin(){
   if(!db||!isConnected||!prefs.name)return;
-  const uid = prefs.name.toLowerCase().replace(/\s+/g,'-');
+  const uid = nameToUid(prefs.name);
   db.ref('ims-asb/users/'+uid+'/techAdmin').set(true).then(()=>{
     isTechAdmin=true;
     applyTechButtons();
@@ -2436,10 +2471,25 @@ function grantSelfTechAdmin(){
 let isControlPanelGranted = false;
 function loadControlPanelGrant(){
   if(!db||!isConnected||!prefs.name)return;
-  const uid = prefs.name.toLowerCase().replace(/\s+/g,'-');
+  const uid = nameToUid(prefs.name);
   db.ref('ims-asb/config/controlPanel/'+uid).once('value').then(snap=>{
-    isControlPanelGranted = snap.val()===true;
-    applyTechButtons();
+    if(snap.val()===true){ isControlPanelGranted=true; applyTechButtons(); return; }
+    const legacyUid = legacyNameToUid(prefs.name);
+    if(legacyUid!==uid){
+      db.ref('ims-asb/config/controlPanel/'+legacyUid).once('value').then(legacySnap=>{
+        if(legacySnap.val()===true){
+          db.ref('ims-asb/config/controlPanel/'+uid).set(true);
+          db.ref('ims-asb/config/controlPanel/'+legacyUid).remove();
+          isControlPanelGranted=true;
+        } else {
+          isControlPanelGranted=false;
+        }
+        applyTechButtons();
+      }).catch(()=>{isControlPanelGranted=false;applyTechButtons();});
+    } else {
+      isControlPanelGranted=false;
+      applyTechButtons();
+    }
   }).catch(()=>{});
 }
 
@@ -2938,7 +2988,7 @@ function grantControlPanel(){
   const name=document.getElementById('cp-grant-name').value.trim();
   if(!name){toast('Enter a name','err');return;}
   if(!db||!isConnected){toast('Must be connected','err');return;}
-  const uid=name.toLowerCase().replace(/\s+/g,'-');
+  const uid=nameToUid(name);
   db.ref('ims-asb/config/controlPanel/'+uid).set(true).then(()=>{
     toast(name+' granted control panel access','ok');
     document.getElementById('cp-grant-name').value='';
@@ -2953,7 +3003,7 @@ function revokeControlPanel(uid){
     toast(name+' access revoked','ok');
     renderControlPanelGrants();
     // If this user is currently logged in, remove their access immediately
-    if(prefs.name.toLowerCase().replace(/\s+/g,'-')===uid){
+    if(nameToUid(prefs.name)===uid){
       isControlPanelGranted=false;
       applyTechButtons();
     }
