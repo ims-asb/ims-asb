@@ -10,6 +10,8 @@
   <meta name="apple-mobile-web-app-title" content="ASB Hub">
   <meta name="theme-color" content="#2a5caa">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <!-- favicon.ico at the repo root is auto-detected by browsers — no link tag needed -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IMS ASB Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -319,7 +321,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
 .cal-head span{font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase;text-align:center;padding:4px 0}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal-day{min-height:64px;background:var(--bg);border-radius:6px;padding:4px 5px;font-size:11px;color:var(--muted);position:relative}
+.cal-day{min-height:64px;background:var(--bg);border-radius:6px;padding:4px 5px;font-size:11px;color:var(--muted);position:relative;min-width:0;overflow:hidden}
 .cal-day.other{opacity:.35}
 .cal-day.today{outline:2px solid var(--accent);outline-offset:-2px}
 .cal-day .d-num{font-family:'DM Mono',monospace;font-size:11px}
@@ -1163,7 +1165,7 @@ data.events=Object.values(remote.events||{});
   loadControlPanelGrant();
   startOnlineHeartbeat();
   // online status listener
-  db.ref('ims-asb/online').on('value',snap=>renderOnlineStatus(snap.val()));
+  db.ref('ims-asb/online').on('value',snap=>{if(!testMode)renderOnlineStatus(snap.val());});
   setTimeout(checkEventReminders,2000);
   // announcements listener
   db.ref('ims-asb/announcements').on('value',(snap)=>{
@@ -1300,7 +1302,7 @@ function renderHome(){
     document.getElementById('h-events').textContent=upcoming.length;
   document.getElementById('h-ideas').textContent=data.ideas.filter(i=>i.status==='idea'||i.status==='progress').length;
   const nec=document.getElementById('next-event-content');
-  if(upcoming.length){const e=upcoming[0];const d=daysUntil(e.date);nec.innerHTML=`<div class="days">${d}</div><div class="days-lbl">day${d!==1?'s':''} away</div><div class="event-name">${e.name}</div><div class="event-date">${new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})}</div>`;}
+  if(upcoming.length){const e=upcoming[0];const d=daysUntil(e.date);nec.innerHTML=`<div class="days">${d}</div><div class="days-lbl">day${d!==1?'s':''} away</div><div class="event-name">${esc(e.name)}</div><div class="event-date">${new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})}</div>`;}
   else nec.innerHTML='<p style="font-size:13px;color:var(--muted)">No upcoming events.</p>';
 
   const hel=document.getElementById('home-events-list'),hee=document.getElementById('home-events-empty');
@@ -1312,6 +1314,21 @@ function renderHome(){
 // ── EVENTS ────────────────────────────────────────────────────────────
 // HTML-escape helper for any user-typed content injected via innerHTML
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// Separate escaper specifically for values embedded inside an inline
+// onclick="...('VALUE')" attribute. esc() alone is NOT safe here — HTML
+// entities get decoded by the browser BEFORE the resulting string is
+// parsed as JS, so escaping a quote as &#39; just decodes back to a
+// literal quote and breaks out of the string exactly the same way.
+// This escapes backslashes and quotes as real JS string escapes instead,
+// which survive HTML-attribute decoding intact.
+function escJsAttr(s){
+  return String(s==null?'':s)
+    .replace(/\\/g,'\\\\')
+    .replace(/'/g,"\\'")
+    .replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
 
 // ── HEADER MENU ───────────────────────────────────────────────────────
 function toggleHdrMenu(e){
@@ -1541,7 +1558,7 @@ function renderConvoList(users){
   knownUsers.filter(u=>u.name!==prefs.name).forEach(u=>{
     const initials=u.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
     const duid=u.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
-    chtml+=`<div class="convo-item" onclick="openConvo('dm:${u.name}')" data-convo-uid="${duid}">
+    chtml+=`<div class="convo-item" onclick="openConvo('dm:${escJsAttr(u.name)}')" data-convo-uid="${duid}">
       <div class="convo-avatar" style="position:relative">${initials}<span class="online-dot" style="position:absolute;bottom:1px;right:1px;border:2px solid var(--surface)"></span></div>
       <div class="convo-info"><div class="convo-name">${esc(u.name)}<span class="role-badge">${u.role||'Member'}</span></div></div>
     </div>`;
@@ -1716,6 +1733,7 @@ function requestNuclearReset(){
 }
 
 function handleResetRequest(req){
+  if(testMode)return; // never act on real reset-request data while demoing test mode
   const banner=document.getElementById('reset-request-banner');
   const txt=document.getElementById('reset-banner-text');
   const approveBtn=document.getElementById('reset-approve-btn');
@@ -1757,6 +1775,7 @@ function denyReset(){
 }
 
 function executeNuclearReset(){
+  if(testMode)return; // second, independent guard — never wipe real data during a demo
   if(!db||!isConnected)return;
   // wipe everything except firebase config
   db.ref('ims-asb').remove().then(()=>{
@@ -2549,11 +2568,11 @@ function renderSearch(q){
       results.push({type:'Note',title:n.title,sub:n.date,action:()=>go('notes')});
     });
   }
-  if(!results.length){res.style.display='block';res.innerHTML='<p style="font-size:13px;color:var(--hint);padding:8px 0">No results for "'+q+'"</p>';return;}
+  if(!results.length){res.style.display='block';res.innerHTML='<p style="font-size:13px;color:var(--hint);padding:8px 0">No results for "'+esc(q)+'"</p>';return;}
   res.style.display='block';
   res.innerHTML=results.map((r,i)=>`<div class="search-result" onclick="searchResultClick(${i})">
     <div class="search-result-type">${r.type}</div>
-    <div class="search-result-title">${r.title}</div>
+    <div class="search-result-title">${esc(r.title)}</div>
     ${r.sub?`<div class="search-result-sub">${r.sub}</div>`:''}
   </div>`).join('');
   res._results=results;
@@ -2579,7 +2598,7 @@ function renderAgenda(){
   if(empty)empty.style.display='none';
   list.innerHTML=items.map((item,i)=>`<div class="agenda-item">
     <input type="checkbox" class="agenda-check" ${item.done?'checked':''} onchange="toggleAgendaItem(${i})">
-    <span class="agenda-text${item.done?' done':''}">${item.text}</span>
+    <span class="agenda-text${item.done?' done':''}">${esc(item.text)}</span>
     <span style="cursor:pointer;color:var(--hint);font-size:12px" onclick="deleteAgendaItem(${i})">✕</span>
   </div>`).join('');
 }
@@ -3148,9 +3167,13 @@ const $=id=>document.getElementById(id);
 function handleAvatarUpload(input){
   const file=input.files[0];
   if(!file)return;
+  if(!file.type.startsWith('image/')){toast('Please choose an image file','err');input.value='';return;}
+  if(file.size>10*1024*1024){toast('Image too large (max 10MB)','err');input.value='';return;}
   const reader=new FileReader();
+  reader.onerror=function(){toast('Could not read that file — try a different image','err');};
   reader.onload=function(e){
     const img=new Image();
+    img.onerror=function(){toast('That file isn\'t a valid image','err');};
     img.onload=function(){
       // compress to 80x80
       const canvas=document.createElement('canvas');
