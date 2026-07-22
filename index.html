@@ -717,7 +717,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
       <div class="typing-indicator" id="typing-indicator"></div>
     <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Message..." maxlength="300" autocomplete="off" data-lpignore="true" data-form-type="other" oninput="onChatInput()" onblur="stopTyping()" onfocus="onChatInput()">
+        <input type="text" id="chat-input" placeholder="Message..." maxlength="300" autocomplete="off" data-lpignore="true" data-form-type="other" readonly onfocus="this.removeAttribute('readonly');onChatInput()" oninput="onChatInput()" onblur="stopTyping()">
         <button class="btn primary" onclick="sendMsg()" style="padding:8px 16px;border-radius:20px;font-size:13px">Send</button>
       </div>
     </div>
