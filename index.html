@@ -961,12 +961,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <h2 id="pw-modal-title" style="margin-bottom:6px">Enter password</h2>
     <p id="pw-modal-hint" style="font-size:13px;color:var(--muted);margin-bottom:14px"></p>
     <div style="position:relative;margin-bottom:8px">
-      <input type="text" name="fakeusernameremembered" style="display:none" tabindex="-1" aria-hidden="true">
-      <input type="password" name="fakepasswordremembered" style="display:none" tabindex="-1" aria-hidden="true">
-      <input type="password" id="pw-modal-input" placeholder="Password" autocomplete="new-password"
-        style="width:100%;font-family:'DM Mono',monospace;font-size:14px;padding-right:44px"
+      <input type="text" id="pw-modal-input" placeholder="Password" autocomplete="off"
+        style="width:100%;font-family:'DM Mono',monospace;font-size:14px;padding-right:44px;-webkit-text-security:disc;text-security:disc"
         onkeydown="if(event.key==='Enter')pwModalConfirm()">
-      <button onclick="const i=document.getElementById('pw-modal-input');i.type=i.type==='password'?'text':'password'"
+      <button onclick="const i=document.getElementById('pw-modal-input');const m=i.style.webkitTextSecurity!=='none';i.style.webkitTextSecurity=m?'none':'disc';i.style.textSecurity=m?'none':'disc'"
         style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:var(--muted);padding:0">👁</button>
     </div>
     <div id="pw-modal-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:10px;font-family:'DM Mono',monospace"></div>
@@ -2565,7 +2563,8 @@ function showPwModal(title, hint, onConfirm, onCancel){
   document.getElementById('pw-modal-title').textContent=title;
   document.getElementById('pw-modal-hint').textContent=hint||'';
   document.getElementById('pw-modal-input').value='';
-  document.getElementById('pw-modal-input').type='password';
+  document.getElementById('pw-modal-input').style.webkitTextSecurity='disc';
+  document.getElementById('pw-modal-input').style.textSecurity='disc';
   document.getElementById('pw-modal-error').textContent='';
   pwModalCallback=onConfirm;
   pwModalCancelCb=onCancel||null;
