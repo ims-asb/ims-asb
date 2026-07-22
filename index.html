@@ -133,6 +133,7 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .event-countdown .num{font-size:20px;font-weight:600;line-height:1;color:var(--accent)}
 .event-countdown .unit{font-size:11px;font-family:'DM Mono',monospace;color:var(--hint);text-transform:uppercase}
 .event-countdown.past .num{color:var(--hint)}
+.event-countdown.ongoing .num{color:var(--green);font-size:15px}
 .event-info{flex:1;min-width:0}
 .event-title{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .event-sub{font-size:12px;color:var(--hint);font-family:'DM Mono',monospace;margin-top:2px}
@@ -607,6 +608,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <div class="fg"><label class="fl">Date</label><input type="date" id="ev-date"></div>
     </div>
     <div class="grid2">
+      <div class="fg"><label class="fl">End date (optional — for multi-day events)</label><input type="date" id="ev-end-date"></div>
+    </div>
+    <div class="grid2">
       <div class="fg"><label class="fl">Type</label><select id="ev-type" class="fsel"><option>Dance</option><option>Fundraiser</option><option>Spirit Week</option><option>Assembly</option><option>Meeting</option><option>Other</option></select></div>
       <div class="fg"><label class="fl">Est. cost ($)</label><input type="number" id="ev-cost" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
     </div>
@@ -633,7 +637,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     </div>
   </div>
   <div id="clear-events-wrap" style="display:none;margin-bottom:12px">
-    <button class="btn danger sm" onclick="clearAllEvents()">🗑 Clear all events (keeps ASB Work Day)</button>
+    <button class="btn danger sm" onclick="clearAllEvents()">🗑 Clear all events</button>
   </div>
   <div id="cal-view" class="card">
     <div style="display:flex;justify-content:center;margin-bottom:12px">
@@ -1360,6 +1364,10 @@ function go(t){
   if(t==='events'){renderCal();updateGroqHint();}
 }
 function daysUntil(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/(864e5));}
+// A multi-day event is still "current" until its END date has passed, not
+// its start date — otherwise a 5-day Spirit Week would vanish from the
+// upcoming list on day 2.
+function daysUntilEnd(e){return daysUntil(e.endDate||e.date);}
 let _renderAllTimer=null;
 function renderAll(){
   if(_renderAllTimer)clearTimeout(_renderAllTimer);
@@ -1374,12 +1382,12 @@ function _doRenderAll(){
 // ── HOME ──────────────────────────────────────────────────────────────
 function renderHome(){
 
-  const upcoming=data.events.filter(e=>daysUntil(e.date)>=0).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const upcoming=data.events.filter(e=>daysUntilEnd(e)>=0).sort((a,b)=>new Date(a.date)-new Date(b.date));
   const canSeeBalance=prefs.role==='Treasurer'||prefs.role==='Advisor';
     document.getElementById('h-events').textContent=upcoming.length;
   document.getElementById('h-ideas').textContent=data.ideas.filter(i=>i.status==='idea'||i.status==='progress').length;
   const nec=document.getElementById('next-event-content');
-  if(upcoming.length){const e=upcoming[0];const d=daysUntil(e.date);nec.innerHTML=`<div class="days">${d}</div><div class="days-lbl">day${d!==1?'s':''} away</div><div class="event-name">${esc(e.name)}</div><div class="event-date">${new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})}</div>`;}
+  if(upcoming.length){const e=upcoming[0];const d=daysUntil(e.date);const ongoing=d<0;const countHtml=ongoing?`<div class="days" style="font-size:22px">Now</div><div class="days-lbl">happening today</div>`:`<div class="days">${d}</div><div class="days-lbl">day${d!==1?'s':''} away</div>`;nec.innerHTML=`${countHtml}<div class="event-name">${esc(e.name)}</div><div class="event-date">${fmtEventDate(e)}</div>`;}
   else nec.innerHTML='<p style="font-size:13px;color:var(--muted)">No upcoming events.</p>';
 
   const hel=document.getElementById('home-events-list'),hee=document.getElementById('home-events-empty');
@@ -1438,6 +1446,22 @@ function calStep(dir){
   renderCal();
 }
 
+// Inclusive list of YYYY-MM-DD strings from start to end (or just [start]
+// if no end/invalid range). Capped so a typo'd far-future end date can't
+// hang the browser building a decade of date strings.
+function dateRange(start,end){
+  if(!end||end<=start)return [start];
+  const out=[];
+  let d=new Date(start+'T00:00:00');
+  const endD=new Date(end+'T00:00:00');
+  let guard=0;
+  while(d<=endD&&guard<366){
+    out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+    d.setDate(d.getDate()+1);
+    guard++;
+  }
+  return out;
+}
 function renderCal(){
   const grid=document.getElementById('cal-grid');
   const title=document.getElementById('cal-title');
@@ -1450,7 +1474,7 @@ function renderCal(){
   const todayStr=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
   // events by date for this month view
   const byDate={};
-  data.events.forEach(e=>{(byDate[e.date]=byDate[e.date]||[]).push(e);});
+  data.events.forEach(e=>{dateRange(e.date,e.endDate).forEach(ds=>{(byDate[ds]=byDate[ds]||[]).push(e);});});
   let html='';
   const totalCells=Math.ceil((startDow+daysInMonth)/7)*7;
   for(let cell=0;cell<totalCells;cell++){
@@ -1504,11 +1528,18 @@ async function suggestDate(){
 }
 
 const ECHIPS={Dance:'blue',Fundraiser:'green','Spirit Week':'yellow',Assembly:'yellow',Meeting:'',Other:''};
+function fmtEventDate(e){
+  const f=ds=>new Date(ds+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'});
+  return (e.endDate&&e.endDate>e.date)?f(e.date)+' – '+f(e.endDate):f(e.date);
+}
 function eventRowHTML(e,del){
-  const d=daysUntil(e.date),past=d<0;
-  const dateStr=new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'});
+  const d=daysUntil(e.date),endD=daysUntilEnd(e);
+  const ongoing=d<0&&endD>=0,past=endD<0;
+  const countNum=ongoing?'now':Math.abs(d);
+  const countUnit=ongoing?'today':(past?'ago':'days');
+  const dateStr=fmtEventDate(e);
   const cc=ECHIPS[e.type]||'';
-  return `<div class="event-item"><div class="event-countdown ${past?'past':''}"><div class="num">${Math.abs(d)}</div><div class="unit">${past?'ago':'days'}</div></div><div class="event-info"><div class="event-title">${esc(e.name)}</div><div class="event-sub">${dateStr}${e.estimatedCost?` · est. ${fmt(e.estimatedCost)}`:''}${e.notes?` · ${esc(e.notes)}`:''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><span class="chip ${cc}">${e.type}</span>${del?`<button class="del-btn evt-edit-btn" onclick="editEvent(${e.id})" style="color:var(--accent)">✎</button><button class="del-btn" onclick="delEvent(${e.id})">✕</button>`:''}</div></div>`;
+  return `<div class="event-item"><div class="event-countdown ${past?'past':''}${ongoing?' ongoing':''}"><div class="num">${countNum}</div><div class="unit">${countUnit}</div></div><div class="event-info"><div class="event-title">${esc(e.name)}</div><div class="event-sub">${dateStr}${e.estimatedCost?` · est. ${fmt(e.estimatedCost)}`:''}${e.notes?` · ${esc(e.notes)}`:''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><span class="chip ${cc}">${e.type}</span>${del?`<button class="del-btn evt-edit-btn" onclick="editEvent(${e.id})" style="color:var(--accent)">✎</button><button class="del-btn" onclick="delEvent(${e.id})">✕</button>`:''}</div></div>`;
 }
 function renderEvents(){
   renderCal();
@@ -1526,6 +1557,7 @@ function newEventForm(){
   document.getElementById('event-save-btn').textContent='Save event';
   document.getElementById('ev-name').value='';
   document.getElementById('ev-date').value='';
+  document.getElementById('ev-end-date').value='';
   document.getElementById('ev-type').value='Dance';
   document.getElementById('ev-cost').value='';
   document.getElementById('ev-notes').value='';
@@ -1539,6 +1571,7 @@ function editEvent(id){
   document.getElementById('event-save-btn').textContent='Save changes';
   document.getElementById('ev-name').value=e.name;
   document.getElementById('ev-date').value=e.date;
+  document.getElementById('ev-end-date').value=e.endDate||'';
   document.getElementById('ev-type').value=e.type;
   document.getElementById('ev-cost').value=e.estimatedCost||'';
   document.getElementById('ev-notes').value=e.notes||'';
@@ -1553,6 +1586,8 @@ function addEvent(){
   const name=document.getElementById('ev-name').value.trim(),date=document.getElementById('ev-date').value;
   if(!name||!date){toast('Name and date required','err');return;}
   if(name.length>80){toast('Event name too long (max 80 chars)','err');return;}
+  const endDate=document.getElementById('ev-end-date').value||'';
+  if(endDate&&endDate<date){toast('End date can\'t be before the start date','err');return;}
   // warn on past dates but allow (some events get added retroactively)
   const eventDate=new Date(date+'T00:00:00');
   const today=new Date();today.setHours(0,0,0,0);
@@ -1565,23 +1600,21 @@ function addEvent(){
   if(editingEventId){
     const e=data.events.find(x=>x.id===editingEventId);
     if(!e){toast('Event not found — it may have been deleted','err');editingEventId=null;hideForm('event-form');return;}
-    e.name=name;e.date=date;e.type=type;e.estimatedCost=estimatedCost;e.notes=notes;
+    e.name=name;e.date=date;e.endDate=endDate;e.type=type;e.estimatedCost=estimatedCost;e.notes=notes;
     editingEventId=null;
     save();if(document.activeElement)document.activeElement.blur();hideForm('event-form');toast('Event updated','ok');renderAll();
     return;
   }
-  data.events.push({id:Date.now(),name,date,type,estimatedCost,notes});
+  data.events.push({id:Date.now(),name,date,endDate,type,estimatedCost,notes});
   save();if(document.activeElement)document.activeElement.blur();hideForm('event-form');toast('Event added','ok');renderAll();
 }
 function delEvent(id){if(!confirm('Delete event?'))return;data.events=data.events.filter(e=>e.id!==id);save();renderAll();toast('Deleted','ok');}
 function clearAllEvents(){
   if(testMode){toast('Disabled in test mode');return;}
-  const keep=data.events.filter(e=>e.name==='ASB Work Day');
-  const removedCount=data.events.length-keep.length;
-  if(removedCount===0){toast('No events to remove — only ASB Work Day is here');return;}
-  if(!confirm('Remove all '+removedCount+' event(s) except "ASB Work Day"? This cannot be undone.'))return;
-  data.events=keep;
-  save();renderAll();toast(removedCount+' event(s) removed','ok');
+  if(!data.events.length){toast('No events to remove');return;}
+  if(!confirm('Remove all '+data.events.length+' event(s)? This cannot be undone.'))return;
+  data.events=[];
+  save();renderAll();toast('Events cleared','ok');
 }
 
 // ── NOTES ─────────────────────────────────────────────────────────────
