@@ -781,14 +781,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <li>Copy the key and paste it below</li>
     </ol>
     <div style="position:relative;margin-bottom:8px">
-      <!-- Decoy fields — Chrome ignores autocomplete="off" for login-heuristic
-           purposes, but it WILL respect a nearby fake username/password pair
-           as "the" login form, which stops it from misidentifying unrelated
-           fields elsewhere on the page (like the chat box) as a username. -->
-      <input type="text" name="fakeusernameremembered" style="display:none" tabindex="-1" aria-hidden="true">
-      <input type="password" name="fakepasswordremembered" style="display:none" tabindex="-1" aria-hidden="true">
-      <input type="password" id="groq-key" placeholder="gsk_..." autocomplete="new-password"
-        style="width:100%;font-family:'DM Mono',monospace;font-size:13px;padding-right:44px"
+      <input type="text" id="groq-key" placeholder="gsk_..." autocomplete="off"
+        style="width:100%;font-family:'DM Mono',monospace;font-size:13px;padding-right:44px;-webkit-text-security:disc;text-security:disc"
         oninput="document.getElementById('groq-save-btn').style.opacity=this.value?'1':'0.4'">
       <button onclick="toggleGroqVisible()" title="Show/hide key"
         style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:var(--muted);padding:0;line-height:1"
@@ -3622,7 +3616,10 @@ function clearGroqKey(){
 }
 function toggleGroqVisible(){
   const el=document.getElementById('groq-key');
-  if(el)el.type=el.type==='password'?'text':'password';
+  if(!el)return;
+  const masked=el.style.webkitTextSecurity!=='none';
+  el.style.webkitTextSecurity=masked?'none':'disc';
+  el.style.textSecurity=masked?'none':'disc';
 }
 
 // ── TEST MODE ─────────────────────────────────────────────────────────
