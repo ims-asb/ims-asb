@@ -22,7 +22,7 @@
 body.dark{--bg:#111110;--surface:#1c1c1a;--border:#2e2d2a;--border-strong:#3d3c38;--text:#f0ede8;--muted:#8a8880;--hint:#5a5855;--green:#2ecc87;--red:#e05555;--accent:#6b9ff0;--yellow:#e0b84a}
 body{transition:background-color .2s}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-text-size-adjust:100%;text-size-adjust:100%;padding:28px 20px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-text-size-adjust:100%;text-size-adjust:100%;padding:28px 20px;overflow-x:hidden}
 .container{max-width:780px;margin:0 auto}
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
 .hdr-left .label{font-family:'DM Mono',monospace;font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.12em;margin-bottom:3px}
@@ -91,6 +91,19 @@ body.dark .chip.yellow{background:#2a2500;border-color:#6b5c00}
 .chip.red{background:#fff0f0;border-color:#f5b8b8;color:var(--red)}
 body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .dashboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.widget-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.widget-grid>.widget{grid-column:span 2;min-width:0}
+.widget-grid>.widget[data-size="half"]{grid-column:span 1}
+.widget-grid>.widget[data-hidden="1"]{display:none}
+.widget-grid.editing>.widget[data-hidden="1"]{display:block;opacity:.45}
+.widget-grid.editing>.widget{position:relative;outline:1.5px dashed var(--border);outline-offset:3px;border-radius:var(--radius)}
+.widget-grid.editing>.widget.dragging{opacity:.5;outline-color:var(--accent)}
+.widget-toolbar{display:none}
+.widget-grid.editing .widget-toolbar{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-bottom:4px;padding:0 2px}
+.widget-drag-handle{cursor:grab;font-size:14px;color:var(--hint);padding:4px 6px;user-select:none;touch-action:none}
+.widget-tool-btn{cursor:pointer;font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 7px;line-height:1;user-select:none}
+.widget-tool-btn:hover{color:var(--text)}
+@media(max-width:540px){.widget-grid{grid-template-columns:1fr}.widget-grid>.widget[data-size="half"]{grid-column:span 1}}
 .next-event .days{font-size:36px;font-weight:600;color:var(--accent);line-height:1}
 .next-event .days-lbl{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:2px}
 .next-event .event-name{font-size:16px;font-weight:500;margin-top:8px}
@@ -106,6 +119,7 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .txn-amt.i{color:var(--green)}.txn-amt.e{color:var(--red)}
 .del-btn{background:none;border:none;cursor:pointer;color:var(--hint);font-size:15px;padding:2px 4px;border-radius:4px;transition:color .15s}
 .del-btn:hover{color:var(--red)}
+.evt-edit-btn:hover{color:var(--accent)!important}
 .bar-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--border)}
 .bar-row:last-child{border-bottom:none}
 .bar-lbl{font-size:13px;flex:1}
@@ -325,7 +339,11 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
 .cal-day.other{opacity:.35}
 .cal-day.today{outline:2px solid var(--accent);outline-offset:-2px}
 .cal-day .d-num{font-family:'DM Mono',monospace;font-size:11px}
-.cal-event{margin-top:3px;background:var(--accent);color:#fff;border-radius:4px;padding:2px 5px;font-size:11px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
+.cal-event{margin-top:3px;background:var(--accent);color:#fff;border-radius:4px;padding:2px 5px;font-size:11px;line-height:1.3;display:flex;align-items:center;gap:4px;cursor:default}
+.cal-event-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.cal-event-actions{display:flex;gap:3px;flex-shrink:0}
+.cal-event-actions span{cursor:pointer;opacity:.85;font-size:10px;padding:0 1px}
+.cal-event-actions span:hover{opacity:1}
 .cal-nav{display:flex;align-items:center;gap:10px}
 .cal-nav button{background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:13px;color:var(--text)}
 .cal-nav .cal-title{font-size:14px;font-weight:500;min-width:130px;text-align:center}
@@ -354,6 +372,7 @@ body.dark .role-btn{background:var(--surface);color:var(--text);border-color:var
   .idea-item{flex-direction:column;gap:8px}
   .idea-actions{align-self:flex-end}
   .event-item{flex-wrap:wrap;gap:8px}
+  .event-title{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
   .row-item{flex-wrap:wrap;gap:6px}
   .btn.full{padding:11px 14px;font-size:14px}
   input,select,textarea{font-size:16px!important}
@@ -520,49 +539,69 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div class="greeting-line" id="greeting-text"></div>
     <div class="greeting-sub" id="greeting-sub"></div>
   </div>
-  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-    <button class="customize-btn" onclick="startTour()" style="margin-right:6px">? Tour</button>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px;gap:6px">
+    <button class="customize-btn" onclick="startTour()">? Tour</button>
     <button class="customize-btn" onclick="openModal('customize-modal')">⚙ Customize home</button>
+    <button class="customize-btn" id="edit-layout-btn" onclick="toggleEditLayout()">✥ Edit layout</button>
   </div>
   <div class="search-bar">
     <span class="search-icon"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l3 3"/></svg></span>
     <input type="text" id="search-input" placeholder="Search events, ideas, notes..." oninput="renderSearch(this.value)">
   </div>
   <div id="search-results" class="card" style="display:none;padding:8px 16px;margin-bottom:14px"></div>
-  <div class="grid2" id="w-metrics">
-    <div class="metric"><div class="metric-lbl">Upcoming events</div><div class="metric-val neu" id="h-events">0</div></div>
-    <div class="metric"><div class="metric-lbl">Open ideas</div><div class="metric-val neu" id="h-ideas">0</div></div>
-  </div>
-  <div class="dashboard-grid" id="w-dash">
-    <div class="card next-event">
-      <div class="card-title">Next event</div>
-      <div id="next-event-content"><p style="font-size:13px;color:var(--muted)">No upcoming events.</p></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Quick add</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn full" onclick="go('events');showForm('event-form')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 6h12M4.5 1v2M9.5 1v2"/></svg> Add event</button>
-        <button class="btn full" id="qa-note" onclick="go('notes');showForm('note-form')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M4.5 5h4M4.5 7.5h4M4.5 10h2.5"/></svg> Meeting note</button>
-        <button class="btn full" onclick="go('ideas');showForm('idea-form')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 1.5a4 4 0 012.7 6.9V10H4.3V8.4A4 4 0 017 1.5z"/><path d="M4.5 11.5h5M5 13h4"/></svg> Add idea</button>
+
+  <div class="widget-grid" id="widget-grid">
+    <div class="widget" data-widget="metrics" data-size="full">
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('metrics')">👁</span></div>
+      <div class="grid2" id="w-metrics" style="margin-bottom:0">
+        <div class="metric"><div class="metric-lbl">Upcoming events</div><div class="metric-val neu" id="h-events">0</div></div>
+        <div class="metric"><div class="metric-lbl">Open ideas</div><div class="metric-val neu" id="h-ideas">0</div></div>
       </div>
     </div>
-  </div>
-  <div class="card" style="display:none" id="w-agenda">
-    <div class="card-title">Agenda</div>
-    <div id="agenda-list"></div>
-    <div id="agenda-empty" style="font-size:13px;color:var(--hint);padding:8px 0">No agenda items.</div>
-  </div>
-  <div class="card" id="w-upcoming">
-    <div class="card-title">Upcoming events</div>
-    <div id="home-events-list"></div>
-    <div id="home-events-empty" class="empty" style="padding:1rem 0;display:none"><p style="margin-bottom:0;font-size:13px">No upcoming events.</p></div>
+    <div class="widget" data-widget="nextevent" data-size="half">
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('nextevent')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('nextevent')">👁</span></div>
+      <div class="card next-event" style="margin-bottom:0">
+        <div class="card-title">Next event</div>
+        <div id="next-event-content"><p style="font-size:13px;color:var(--muted)">No upcoming events.</p></div>
+      </div>
+    </div>
+    <div class="widget" data-widget="quickadd" data-size="half">
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('quickadd')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('quickadd')">👁</span></div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title">Quick add</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn full" onclick="go('events');newEventForm()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 6h12M4.5 1v2M9.5 1v2"/></svg> Add event</button>
+          <button class="btn full" id="qa-note" onclick="go('notes');showForm('note-form')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M4.5 5h4M4.5 7.5h4M4.5 10h2.5"/></svg> Meeting note</button>
+          <button class="btn full" onclick="go('ideas');showForm('idea-form')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 1.5a4 4 0 012.7 6.9V10H4.3V8.4A4 4 0 017 1.5z"/><path d="M4.5 11.5h5M5 13h4"/></svg> Add idea</button>
+        </div>
+      </div>
+    </div>
+    <div class="widget" data-widget="agenda" data-size="full" data-hidden="1">
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('agenda')">👁</span></div>
+      <div class="card" style="margin-bottom:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="card-title" style="margin-bottom:0">Agenda</div>
+          <button class="btn sm" onclick="addAgendaItem()">+ Add</button>
+        </div>
+        <div id="agenda-list"></div>
+        <div id="agenda-empty" style="font-size:13px;color:var(--hint);padding:8px 0">No agenda items.</div>
+      </div>
+    </div>
+    <div class="widget" data-widget="upcoming" data-size="full">
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('upcoming')">👁</span></div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title">Upcoming events</div>
+        <div id="home-events-list"></div>
+        <div id="home-events-empty" class="empty" style="padding:1rem 0;display:none"><p style="margin-bottom:0;font-size:13px">No upcoming events.</p></div>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- EVENTS -->
 <div id="s-events" class="sec">
   <div id="event-form" class="card" style="display:none">
-    <div class="card-title">New event</div>
+    <div class="card-title" id="event-form-title">New event</div>
     <div class="grid2">
       <div class="fg"><label class="fl">Event name</label><input type="text" id="ev-name" placeholder="e.g. Winter Formal" maxlength="80"></div>
       <div class="fg"><label class="fl">Date</label><input type="date" id="ev-date"></div>
@@ -583,14 +622,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
       <div id="date-result" style="font-size:12px;color:var(--muted);margin-top:6px;min-height:16px"></div>
     </div>
-    <div style="display:flex;gap:8px"><button class="btn primary" onclick="addEvent()">Save event</button><button class="btn" onclick="hideForm('event-form')">Cancel</button></div>
+    <div style="display:flex;gap:8px"><button class="btn primary" id="event-save-btn" onclick="addEvent()">Save event</button><button class="btn" onclick="cancelEventForm()">Cancel</button></div>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <h2 style="font-size:16px;font-weight:500">Events</h2>
     <div style="display:flex;gap:6px;align-items:center">
       <button class="view-toggle-btn on" id="vt-cal" onclick="setEventView('cal')">📅 Calendar</button>
       <button class="view-toggle-btn" id="vt-list" onclick="setEventView('list')">☰ List</button>
-      <button class="btn sm primary" onclick="showForm('event-form')">+ Add event</button>
+      <button class="btn sm primary" onclick="newEventForm()">+ Add event</button>
     </div>
   </div>
   <div id="cal-view" class="card">
@@ -644,9 +683,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="s-chat" class="sec">
   <!-- Conversation list -->
   <div id="chat-list-view">
-    <div style="margin-bottom:12px">
-      <h2 style="font-size:16px;font-weight:500;margin-bottom:4px">Messages</h2>
-      <p style="font-size:12px;color:var(--muted)">Click anyone below to start a DM.</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:10px">
+      <div>
+        <h2 style="font-size:16px;font-weight:500;margin-bottom:4px">Messages</h2>
+        <p style="font-size:12px;color:var(--muted)">Click anyone below to start a DM.</p>
+      </div>
+      <button class="btn sm primary" style="white-space:nowrap" onclick="openNewGroupModal()">+ New Group</button>
     </div>
     <div class="card" id="convo-list" style="padding:8px 16px">
       <p style="font-size:14px;color:var(--muted);margin-bottom:6px">No conversations yet.</p><p style="font-size:12px;color:var(--hint)">Connect Firebase to chat with your team in real time. Click # General to start.</p>
@@ -805,8 +847,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
     <!-- Widgets -->
     <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Home widgets</p>
-      <div id="widget-toggles"></div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:6px">Home widgets</p>
+      <p style="font-size:12px;color:var(--hint);margin-bottom:8px">Drag, resize, and show/hide widgets right from the Home tab.</p>
+      <button class="btn sm" onclick="closeModal('customize-modal');toggleEditLayout()">✥ Edit layout</button>
     </div>
 
     <!-- Nuclear reset -->
@@ -850,6 +893,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button class="btn danger" onclick="resetProfile()">Reset profile</button>
       <button class="btn" onclick="saveProfilePrefs()">Save</button>
       <button class="btn primary" onclick="closeModal('customize-modal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW GROUP -->
+<div id="new-group-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('new-group-modal')">
+  <div class="modal" style="max-width:420px">
+    <h2>👥 New group chat</h2>
+    <div class="fg" style="margin-bottom:14px">
+      <label class="fl">Group name</label>
+      <input type="text" id="new-group-name" placeholder="e.g. Fall Dance Planning" maxlength="60">
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Pick 2 or more people to add (you're included automatically):</p>
+    <div id="new-group-members" style="display:flex;flex-direction:column;gap:2px;max-height:240px;overflow-y:auto;margin-bottom:16px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('new-group-modal')">Cancel</button>
+      <button class="btn primary" onclick="createGroup()">Create group</button>
     </div>
   </div>
 </div>
@@ -1121,6 +1181,8 @@ data.events=Object.values(remote.events||{});
         document.getElementById('groq-status').className='key-status ok';
         document.getElementById('groq-status').textContent='✓ Loaded from team Firebase';
       }
+      // groups (before users/renderConvoList below, so the list picks them up)
+      knownGroups=remote.groups?Object.values(remote.groups):[];
       // users / members
       if(remote.users){
         const users=Object.values(remote.users).sort((a,b)=>a.name.localeCompare(b.name));
@@ -1178,6 +1240,18 @@ data.events=Object.values(remote.events||{});
   // goal sync
   db.ref('ims-asb/goal').once('value').then(snap=>{
     if(snap.val())localStorage.setItem('ims-goal',snap.val());
+  });
+  // fundraising goal reached — fires confetti once per new goal-reached timestamp.
+  // Nothing currently writes this flag (see conversation) — wired up and ready
+  // for whichever side ends up setting it.
+  db.ref('ims-asb/goal-reached-at').on('value',snap=>{
+    if(testMode)return;
+    const at=snap.val();
+    if(!at)return;
+    const seen=localStorage.getItem('ims-goal-reached-seen');
+    if(String(seen)===String(at))return;
+    localStorage.setItem('ims-goal-reached-seen',at);
+    launchConfetti();
   });
   // listen for nuclear reset requests
   db.ref('ims-asb/reset-request').on('value',(snap)=>{
@@ -1385,7 +1459,10 @@ function renderCal(){
     const evs=byDate[dateStr]||[];
     html+='<div class="cal-day'+(other?' other':'')+(dateStr===todayStr?' today':'')+'">'
       +'<span class="d-num">'+dnum+'</span>'
-      +evs.map(e=>'<div class="cal-event" title="'+esc(e.name)+(e.notes?' — '+esc(e.notes):'')+'">'+esc(e.name)+'</div>').join('')
+      +evs.map(e=>'<div class="cal-event" title="'+esc(e.name)+(e.notes?' — '+esc(e.notes):'')+'">'
+        +'<span class="cal-event-name">'+esc(e.name)+'</span>'
+        +'<span class="cal-event-actions"><span class="evt-edit-btn" onclick="event.stopPropagation();editEvent('+e.id+')">✎</span><span class="cal-del-btn" onclick="event.stopPropagation();delEvent('+e.id+')">✕</span></span>'
+        +'</div>').join('')
       +'</div>';
   }
   grid.innerHTML=html;
@@ -1428,7 +1505,7 @@ function eventRowHTML(e,del){
   const d=daysUntil(e.date),past=d<0;
   const dateStr=new Date(e.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'});
   const cc=ECHIPS[e.type]||'';
-  return `<div class="event-item"><div class="event-countdown ${past?'past':''}"><div class="num">${Math.abs(d)}</div><div class="unit">${past?'ago':'days'}</div></div><div class="event-info"><div class="event-title">${esc(e.name)}</div><div class="event-sub">${dateStr}${e.estimatedCost?` · est. ${fmt(e.estimatedCost)}`:''}${e.notes?` · ${esc(e.notes)}`:''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><span class="chip ${cc}">${e.type}</span>${del?`<button class="del-btn" onclick="delEvent(${e.id})">✕</button>`:''}</div></div>`;
+  return `<div class="event-item"><div class="event-countdown ${past?'past':''}"><div class="num">${Math.abs(d)}</div><div class="unit">${past?'ago':'days'}</div></div><div class="event-info"><div class="event-title">${esc(e.name)}</div><div class="event-sub">${dateStr}${e.estimatedCost?` · est. ${fmt(e.estimatedCost)}`:''}${e.notes?` · ${esc(e.notes)}`:''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><span class="chip ${cc}">${e.type}</span>${del?`<button class="del-btn evt-edit-btn" onclick="editEvent(${e.id})" style="color:var(--accent)">✎</button><button class="del-btn" onclick="delEvent(${e.id})">✕</button>`:''}</div></div>`;
 }
 function renderEvents(){
   renderCal();
@@ -1438,6 +1515,36 @@ function renderEvents(){
   if(!sorted.length){el.style.display='none';ee.style.display='block';return;}
   ee.style.display='none';el.style.display='block';
   el.innerHTML=sorted.map(e=>eventRowHTML(e,true)).join('');
+}
+let editingEventId=null;
+function newEventForm(){
+  editingEventId=null;
+  document.getElementById('event-form-title').textContent='New event';
+  document.getElementById('event-save-btn').textContent='Save event';
+  document.getElementById('ev-name').value='';
+  document.getElementById('ev-date').value='';
+  document.getElementById('ev-type').value='Dance';
+  document.getElementById('ev-cost').value='';
+  document.getElementById('ev-notes').value='';
+  showForm('event-form');
+}
+function editEvent(id){
+  const e=data.events.find(x=>x.id===id);
+  if(!e){toast('Event not found','err');return;}
+  editingEventId=id;
+  document.getElementById('event-form-title').textContent='Edit event';
+  document.getElementById('event-save-btn').textContent='Save changes';
+  document.getElementById('ev-name').value=e.name;
+  document.getElementById('ev-date').value=e.date;
+  document.getElementById('ev-type').value=e.type;
+  document.getElementById('ev-cost').value=e.estimatedCost||'';
+  document.getElementById('ev-notes').value=e.notes||'';
+  showForm('event-form');
+  document.getElementById('event-form').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function cancelEventForm(){
+  editingEventId=null;
+  hideForm('event-form');
 }
 function addEvent(){
   const name=document.getElementById('ev-name').value.trim(),date=document.getElementById('ev-date').value;
@@ -1449,9 +1556,18 @@ function addEvent(){
   if(eventDate<today){
     if(!confirm('That date is in the past — add it anyway?'))return;
   }
-  data.events.push({id:Date.now(),name,date,type:document.getElementById('ev-type').value,
-    estimatedCost:parseFloat(document.getElementById('ev-cost').value)||0,
-    notes:document.getElementById('ev-notes').value.trim()});
+  const type=document.getElementById('ev-type').value;
+  const estimatedCost=parseFloat(document.getElementById('ev-cost').value)||0;
+  const notes=document.getElementById('ev-notes').value.trim();
+  if(editingEventId){
+    const e=data.events.find(x=>x.id===editingEventId);
+    if(!e){toast('Event not found — it may have been deleted','err');editingEventId=null;hideForm('event-form');return;}
+    e.name=name;e.date=date;e.type=type;e.estimatedCost=estimatedCost;e.notes=notes;
+    editingEventId=null;
+    save();if(document.activeElement)document.activeElement.blur();hideForm('event-form');toast('Event updated','ok');renderAll();
+    return;
+  }
+  data.events.push({id:Date.now(),name,date,type,estimatedCost,notes});
   save();if(document.activeElement)document.activeElement.blur();hideForm('event-form');toast('Event added','ok');renderAll();
 }
 function delEvent(id){if(!confirm('Delete event?'))return;data.events=data.events.filter(e=>e.id!==id);save();renderAll();toast('Deleted','ok');}
@@ -1516,13 +1632,21 @@ function addIdea(){
   save();if(document.activeElement)document.activeElement.blur();document.getElementById('id-title').value='';document.getElementById('id-desc').value='';
   hideForm('idea-form');toast('Idea saved','ok');renderIdeas();renderHome();
 }
-function updateIdeaStatus(id,s){const i=data.ideas.find(x=>x.id===id);if(i){i.status=s;save();renderIdeas();renderHome();}}
+function updateIdeaStatus(id,s){
+  const i=data.ideas.find(x=>x.id===id);
+  if(!i)return;
+  const wasDone=i.status==='done';
+  i.status=s;
+  save();renderIdeas();renderHome();
+  if(!wasDone&&s==='done')launchConfetti();
+}
 function delIdea(id){if(!confirm('Delete?'))return;data.ideas=data.ideas.filter(i=>i.id!==id);save();renderIdeas();renderHome();toast('Deleted','ok');}
 
 // ── CHAT ──────────────────────────────────────────────────────────────
 let activeConvo=null;
 let convoListeners={};
 let knownUsers=[];
+let knownGroups=[];
 let latestOnlineData=null;
 let lastMsg='';let lastMsgTime=0;
 
@@ -1555,6 +1679,12 @@ function renderConvoList(users){
     <div class="convo-info"><div class="convo-name"># General</div><div class="convo-preview">Team-wide chat</div></div>
   </div>`;
   if(!roleVerified){cl.innerHTML=chtml;return;}
+  knownGroups.filter(g=>(g.members||[]).includes(prefs.name)).forEach(g=>{
+    chtml+=`<div class="convo-item" onclick="openConvo('group:${g.id}')">
+      <div class="convo-avatar group">👥</div>
+      <div class="convo-info"><div class="convo-name">${esc(g.name)}</div><div class="convo-preview">${(g.members||[]).length} members</div></div>
+    </div>`;
+  });
   knownUsers.filter(u=>u.name!==prefs.name).forEach(u=>{
     const initials=u.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
     const duid=u.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
@@ -1575,7 +1705,7 @@ function openConvo(id){
   const membersEl=document.getElementById('chat-members');
   if(testMode){
     // never touch real chat data while previewing test mode
-    title.textContent=id==='general'?'# General':id.replace('dm:','');
+    title.textContent=id==='general'?'# General':id.startsWith('group:')?id.replace('group:',''):id.replace('dm:','');
     membersEl.textContent=id==='general'?knownUsers.length+' member'+(knownUsers.length!==1?'s':''):'';
     renderMsgs(id==='general'?[
       {id:Date.now()-3600000,name:'Jood Aljabi',role:'President',text:'Test mode — this is sample chat, not real messages.'},
@@ -1595,6 +1725,20 @@ function openConvo(id){
         renderMsgs(msgs);
       });
     }
+  } else if(id.startsWith('group:')){
+    const groupId=id.replace('group:','');
+    const grp=knownGroups.find(g=>g.id===groupId);
+    title.textContent=grp?grp.name:'Group';
+    membersEl.textContent=grp?(grp.members||[]).length+' member'+((grp.members||[]).length!==1?'s':''):'';
+    const path='ims-asb/chat/group/'+groupId;
+    if(convoListeners[id])try{db.ref(convoListeners[id]).off();}catch(e){}
+    convoListeners[id]=path;
+    listenTyping(id);
+    if(db)db.ref(path).on('value',snap=>{
+      if(activeConvo!==id)return;
+      const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
+      renderMsgs(msgs);
+    });
   } else {
     const partner=id.replace('dm:','');
     title.textContent=partner;
@@ -1623,6 +1767,42 @@ function backToList(){
       renderConvoList(users);
     });
   }
+}
+
+function openNewGroupModal(){
+  if(testMode){toast('Groups disabled in test mode');return;}
+  if(!db||!isConnected){toast('Connect Firebase to make a group','err');return;}
+  document.getElementById('new-group-name').value='';
+  const wrap=document.getElementById('new-group-members');
+  const others=knownUsers.filter(u=>u.name!==prefs.name);
+  if(!others.length){
+    wrap.innerHTML='<p style="font-size:13px;color:var(--muted)">No other team members found yet.</p>';
+  } else {
+    wrap.innerHTML=others.map(u=>{
+      const safeId=nameToUid(u.name);
+      return `<label class="widget-toggle" style="cursor:pointer">
+        <span>${esc(u.name)}<small>${esc(u.role||'Member')}</small></span>
+        <input type="checkbox" class="new-group-member-cb" value="${esc(u.name)}" id="ngm-${safeId}">
+      </label>`;
+    }).join('');
+  }
+  openModal('new-group-modal');
+}
+
+function createGroup(){
+  const name=document.getElementById('new-group-name').value.trim();
+  if(!name){toast('Give the group a name','err');return;}
+  const checked=Array.from(document.querySelectorAll('.new-group-member-cb:checked')).map(cb=>cb.value);
+  if(checked.length<2){toast('Pick at least 2 other people','err');return;}
+  if(!db||!isConnected){toast('Not connected','err');return;}
+  const groupId='g'+Date.now();
+  const group={id:groupId,name,members:[prefs.name,...checked],createdBy:prefs.name,createdAt:Date.now()};
+  db.ref('ims-asb/groups/'+groupId).set(group).then(()=>{
+    closeModal('new-group-modal');
+    toast('Group created!','ok');
+    logActivity('Created group','"'+name+'" with '+(checked.length+1)+' members');
+    openConvo('group:'+groupId);
+  }).catch(e=>toast('Error: '+e.message,'err'));
 }
 
 function renderMsgs(msgs){
@@ -1659,7 +1839,9 @@ function deleteMsg(convo,msgId){
   if(testMode){toast('Disabled in test mode');return;}
   if(!db||!isConnected){toast('Not connected','err');return;}
   if(Date.now()-msgId>60000){toast('Too late to delete','err');return;}
-  const path=convo==='general'?'ims-asb/chat/general/'+msgId:dmPath(convo.replace('dm:',''))+'/'+msgId;
+  const path=convo==='general'?'ims-asb/chat/general/'+msgId
+    :convo.startsWith('group:')?'ims-asb/chat/group/'+convo.replace('group:','')+'/'+msgId
+    :dmPath(convo.replace('dm:',''))+'/'+msgId;
   db.ref(path).remove().catch(e=>toast('Error: '+e.message,'err'));
 }
 
@@ -1699,6 +1881,7 @@ async function sendMsg(){
   const id=Date.now();
   const msg={id,name:prefs.name||'Anonymous',role:prefs.role||'',text};
   if(activeConvo==='general'){db.ref('ims-asb/chat/general/'+id).set(msg);}
+  else if(activeConvo.startsWith('group:')){db.ref('ims-asb/chat/group/'+activeConvo.replace('group:','')+'/'+id).set(msg);}
   else{db.ref(dmPath(activeConvo.replace('dm:',''))+'/'+id).set(msg);}
   lastMsg=text;lastMsgTime=now;
   inp.value='';
@@ -1893,11 +2076,9 @@ function applyPrefs(){
   const hdrName=document.getElementById('hdr-name');
   if(hdrName)hdrName.textContent=(role||'ASB')+': '+(prefs.name||'You')+' · 2026–2027';
   updateGreeting();
-  // widgets
-  const w=prefs.widgets||{};
 
   // SUPPORTER: hide delete buttons
-  if(isSupporter)applyReadOnly(['del-btn']);
+  if(isSupporter)applyReadOnly(['del-btn','evt-edit-btn']);
 
   // ADVISOR: full content access + activity log, no technical buttons
   if(isAdvisor){
@@ -1969,15 +2150,130 @@ function applyReadOnly(classes){
   // for advisor/supporter, hide edit-type buttons
   if(classes.includes('del-btn'))document.querySelectorAll('.del-btn').forEach(b=>b.style.display='none');
   if(classes.includes('status-sel'))document.querySelectorAll('.status-sel').forEach(s=>s.disabled=true);
+  if(classes.includes('evt-edit-btn'))document.querySelectorAll('.evt-edit-btn,.cal-del-btn,.cal-event-actions').forEach(b=>b.style.display='none');
 }
 
-function saveWidgetPrefs(){
-  ['metrics','dash','recent','upcoming'].forEach(id=>{
-    const cb=document.getElementById('wt-'+id);
-    if(cb)prefs.widgets[id]=cb.checked;
+// ── WIDGET LAYOUT (drag/resize home dashboard) ─────────────────────────
+const WIDGET_IDS=['metrics','nextevent','quickadd','agenda','upcoming'];
+const WIDGET_DEFAULTS={
+  metrics:{size:'full',hidden:false},
+  nextevent:{size:'half',hidden:false},
+  quickadd:{size:'half',hidden:false},
+  agenda:{size:'full',hidden:true},
+  upcoming:{size:'full',hidden:false},
+};
+let widgetLayout=null;
+let widgetEditing=false;
+let widgetDrag=null;
+
+function defaultWidgetLayout(){
+  return {
+    order:WIDGET_IDS.slice(),
+    sizes:Object.fromEntries(WIDGET_IDS.map(id=>[id,WIDGET_DEFAULTS[id].size])),
+    hidden:Object.fromEntries(WIDGET_IDS.map(id=>[id,WIDGET_DEFAULTS[id].hidden])),
+  };
+}
+
+function backfillWidgetLayout(){
+  // keeps old saved layouts working if widgets get added/removed later
+  WIDGET_IDS.forEach(id=>{
+    if(!widgetLayout.order.includes(id))widgetLayout.order.push(id);
+    if(!(id in widgetLayout.sizes))widgetLayout.sizes[id]=WIDGET_DEFAULTS[id].size;
+    if(!(id in widgetLayout.hidden))widgetLayout.hidden[id]=WIDGET_DEFAULTS[id].hidden;
   });
-  savePrefs();
-  applyPrefs();
+  widgetLayout.order=widgetLayout.order.filter(id=>WIDGET_IDS.includes(id));
+}
+
+function loadWidgetLayout(){
+  let stored=null;
+  try{stored=JSON.parse(localStorage.getItem('ims-widget-layout')||'null');}catch(e){}
+  widgetLayout=stored||defaultWidgetLayout();
+  backfillWidgetLayout();
+  applyWidgetLayout();
+  if(db&&isConnected&&prefs.name&&!testMode){
+    const uid=nameToUid(prefs.name);
+    db.ref('ims-asb/layouts/'+uid).once('value').then(snap=>{
+      const remote=snap.val();
+      if(remote){widgetLayout=remote;backfillWidgetLayout();applyWidgetLayout();}
+    });
+  }
+}
+
+function applyWidgetLayout(){
+  const grid=document.getElementById('widget-grid');
+  if(!grid||!widgetLayout)return;
+  widgetLayout.order.forEach(id=>{
+    const el=grid.querySelector('.widget[data-widget="'+id+'"]');
+    if(el)grid.appendChild(el);
+  });
+  grid.querySelectorAll('.widget').forEach(el=>{
+    const id=el.dataset.widget;
+    el.dataset.size=widgetLayout.sizes[id]||'full';
+    el.dataset.hidden=widgetLayout.hidden[id]?'1':'0';
+  });
+}
+
+function saveWidgetLayout(){
+  try{localStorage.setItem('ims-widget-layout',JSON.stringify(widgetLayout));}catch(e){}
+  if(db&&isConnected&&prefs.name&&!testMode){
+    const uid=nameToUid(prefs.name);
+    db.ref('ims-asb/layouts/'+uid).set(widgetLayout).catch(e=>toast('Layout save error: '+e.message,'err'));
+  }
+}
+
+function toggleWidgetSize(id){
+  widgetLayout.sizes[id]=widgetLayout.sizes[id]==='full'?'half':'full';
+  applyWidgetLayout();saveWidgetLayout();
+}
+
+function toggleWidgetHidden(id){
+  widgetLayout.hidden[id]=!widgetLayout.hidden[id];
+  applyWidgetLayout();saveWidgetLayout();
+}
+
+function toggleEditLayout(){
+  widgetEditing=!widgetEditing;
+  const grid=document.getElementById('widget-grid');
+  const btn=document.getElementById('edit-layout-btn');
+  if(grid)grid.classList.toggle('editing',widgetEditing);
+  if(btn)btn.textContent=widgetEditing?'✓ Done editing':'✥ Edit layout';
+}
+
+// Drag reordering via Pointer Events (works for touch and mouse alike,
+// unlike HTML5 drag-and-drop which doesn't fire reliably on touch).
+function initWidgetDrag(){
+  const grid=document.getElementById('widget-grid');
+  if(!grid)return;
+  grid.addEventListener('pointerdown',e=>{
+    if(!widgetEditing)return;
+    const handle=e.target.closest('.widget-drag-handle');
+    if(!handle)return;
+    const widget=handle.closest('.widget');
+    if(!widget)return;
+    e.preventDefault();
+    try{widget.setPointerCapture(e.pointerId);}catch(err){}
+    widget.classList.add('dragging');
+    widgetDrag={widget,pointerId:e.pointerId};
+  });
+  grid.addEventListener('pointermove',e=>{
+    if(!widgetDrag||widgetDrag.pointerId!==e.pointerId)return;
+    const {widget}=widgetDrag;
+    const target=document.elementFromPoint(e.clientX,e.clientY);
+    const over=target&&target.closest('.widget');
+    if(!over||over===widget||over.parentElement!==grid)return;
+    const rect=over.getBoundingClientRect();
+    const before=e.clientY<rect.top+rect.height/2;
+    grid.insertBefore(widget,before?over:over.nextSibling);
+  });
+  const endDrag=e=>{
+    if(!widgetDrag||widgetDrag.pointerId!==e.pointerId)return;
+    widgetDrag.widget.classList.remove('dragging');
+    widgetDrag=null;
+    widgetLayout.order=Array.from(grid.querySelectorAll('.widget')).map(w=>w.dataset.widget);
+    saveWidgetLayout();
+  };
+  grid.addEventListener('pointerup',endDrag);
+  grid.addEventListener('pointercancel',endDrag);
 }
 
 function resetProfile(){
@@ -3445,6 +3741,7 @@ window.onerror=function(msg,src,line){
 buildRoleGrid();
 setEventView(eventView);
 updateGroqHint();
+initWidgetDrag();
 
 // iOS hint replaced by PWA splash screen
 
@@ -3453,6 +3750,7 @@ if(typeof firebase==='undefined'){
 } else {
   loadTheme();
   loadPrefs();
+  loadWidgetLayout();
   autoConnectFirebase();
 }
 </script>
