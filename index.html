@@ -10,7 +10,9 @@
   <meta name="apple-mobile-web-app-title" content="ASB Hub">
   <meta name="theme-color" content="#2a5caa">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <!-- favicon.ico at the repo root is auto-detected by browsers — no link tag needed -->
+  <!-- Explicit + versioned so a future icon change can't get stuck behind
+       stale favicon caching the way the implicit /favicon.ico convention did -->
+  <link rel="icon" href="favicon.ico?v=2">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IMS ASB Hub</title>
@@ -779,7 +781,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <li>Copy the key and paste it below</li>
     </ol>
     <div style="position:relative;margin-bottom:8px">
-      <input type="password" id="groq-key" placeholder="gsk_..." autocomplete="off"
+      <!-- Decoy fields — Chrome ignores autocomplete="off" for login-heuristic
+           purposes, but it WILL respect a nearby fake username/password pair
+           as "the" login form, which stops it from misidentifying unrelated
+           fields elsewhere on the page (like the chat box) as a username. -->
+      <input type="text" name="fakeusernameremembered" style="display:none" tabindex="-1" aria-hidden="true">
+      <input type="password" name="fakepasswordremembered" style="display:none" tabindex="-1" aria-hidden="true">
+      <input type="password" id="groq-key" placeholder="gsk_..." autocomplete="new-password"
         style="width:100%;font-family:'DM Mono',monospace;font-size:13px;padding-right:44px"
         oninput="document.getElementById('groq-save-btn').style.opacity=this.value?'1':'0.4'">
       <button onclick="toggleGroqVisible()" title="Show/hide key"
@@ -959,7 +967,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <h2 id="pw-modal-title" style="margin-bottom:6px">Enter password</h2>
     <p id="pw-modal-hint" style="font-size:13px;color:var(--muted);margin-bottom:14px"></p>
     <div style="position:relative;margin-bottom:8px">
-      <input type="password" id="pw-modal-input" placeholder="Password"
+      <input type="text" name="fakeusernameremembered" style="display:none" tabindex="-1" aria-hidden="true">
+      <input type="password" name="fakepasswordremembered" style="display:none" tabindex="-1" aria-hidden="true">
+      <input type="password" id="pw-modal-input" placeholder="Password" autocomplete="new-password"
         style="width:100%;font-family:'DM Mono',monospace;font-size:14px;padding-right:44px"
         onkeydown="if(event.key==='Enter')pwModalConfirm()">
       <button onclick="const i=document.getElementById('pw-modal-input');i.type=i.type==='password'?'text':'password'"
