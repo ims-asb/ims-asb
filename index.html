@@ -632,6 +632,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button class="btn sm primary" onclick="newEventForm()">+ Add event</button>
     </div>
   </div>
+  <div id="clear-events-wrap" style="display:none;margin-bottom:12px">
+    <button class="btn danger sm" onclick="clearAllEvents()">🗑 Clear all events (keeps ASB Work Day)</button>
+  </div>
   <div id="cal-view" class="card">
     <div style="display:flex;justify-content:center;margin-bottom:12px">
       <div class="cal-nav">
@@ -710,7 +713,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
       <div class="typing-indicator" id="typing-indicator"></div>
     <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Message..." maxlength="300" oninput="onChatInput()" onblur="stopTyping()" onfocus="onChatInput()">
+        <input type="text" id="chat-input" placeholder="Message..." maxlength="300" autocomplete="off" data-lpignore="true" data-form-type="other" oninput="onChatInput()" onblur="stopTyping()" onfocus="onChatInput()">
         <button class="btn primary" onclick="sendMsg()" style="padding:8px 16px;border-radius:20px;font-size:13px">Send</button>
       </div>
     </div>
@@ -1571,6 +1574,15 @@ function addEvent(){
   save();if(document.activeElement)document.activeElement.blur();hideForm('event-form');toast('Event added','ok');renderAll();
 }
 function delEvent(id){if(!confirm('Delete event?'))return;data.events=data.events.filter(e=>e.id!==id);save();renderAll();toast('Deleted','ok');}
+function clearAllEvents(){
+  if(testMode){toast('Disabled in test mode');return;}
+  const keep=data.events.filter(e=>e.name==='ASB Work Day');
+  const removedCount=data.events.length-keep.length;
+  if(removedCount===0){toast('No events to remove — only ASB Work Day is here');return;}
+  if(!confirm('Remove all '+removedCount+' event(s) except "ASB Work Day"? This cannot be undone.'))return;
+  data.events=keep;
+  save();renderAll();toast(removedCount+' event(s) removed','ok');
+}
 
 // ── NOTES ─────────────────────────────────────────────────────────────
 function renderNotes(){
@@ -2098,6 +2110,8 @@ function applyPrefs(){
   if(nrw)nrw.style.display=(isTreasurer||isAdvisor)?'block':'none';
   const ccw=document.getElementById('clear-chat-wrap');
   if(ccw)ccw.style.display=(isTreasurer||isAdvisor)?'block':'none';
+  const cew=document.getElementById('clear-events-wrap');
+  if(cew)cew.style.display=(isTreasurer||isAdvisor)?'block':'none';
   const aw=document.getElementById('archive-wrap');
   if(aw)aw.style.display=(isTreasurer||isAdvisor)?'block':'none';
   const cpw=document.getElementById('cp-grant-wrap');
