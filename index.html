@@ -229,6 +229,7 @@ body.dark .chat-msg.them .chat-bubble{background:var(--border);color:var(--text)
 .chat-input-row input:focus{border-color:var(--accent)}
 .chat-input-row button{flex-shrink:0;padding:8px 16px;border-radius:20px;font-size:13px}
 .convo-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+.convo-unread-dot{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:var(--red);color:#fff;font-size:11px;font-family:'DM Mono',monospace;line-height:1}
 .convo-item:last-child{border-bottom:none}
 .convo-item:hover{opacity:.75}
 .convo-avatar{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex-shrink:0}
@@ -483,6 +484,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
         <button id="btn-groq" class="hdr-menu-item" onclick="closeHdrMenu();openModal('groq-modal')">⚙ Groq</button>
         <button id="btn-test" class="hdr-menu-item" onclick="closeHdrMenu();loadTest()">⚗ Test mode</button>
         <button id="btn-seed-events" class="hdr-menu-item" onclick="closeHdrMenu();seedRealEvents()">📅 Seed 2026–27 events</button>
+        <button id="btn-backup" class="hdr-menu-item" onclick="closeHdrMenu();exportBackup()" style="display:none">⬇ Backup data (JSON)</button>
         <div style="height:1px;background:var(--border);margin:4px 6px"></div>
         <button class="hdr-menu-item" id="btn-github" onclick="closeHdrMenu();window.open(SCHOOL_CONFIG.githubUrl||'https://github.com/ims-asb/ims-asb/blob/main/index.html','_blank')">🐙 View on GitHub</button>
       </div>
@@ -515,7 +517,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <button class="tab" id="tab-events" role="tab" aria-label="Events" onclick="go('events')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M1.5 6.5h13M5 1.5v2M11 1.5v2"/><circle cx="5" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="8" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="11" cy="10" r=".75" fill="currentColor" stroke="none"/></svg></span><span class="tab-label">Events</span></button>
     <button class="tab" id="tab-notes" role="tab" aria-label="Notes" onclick="go('notes')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="1.5" width="10" height="13" rx="1.5"/><path d="M5 5.5h5M5 8h5M5 10.5h3"/><path d="M12 10.5l2.5 2.5-1.5 1.5-2.5-2.5v-1.5h1.5z" stroke-width="1.3"/></svg></span><span class="tab-label">Notes</span></button>
     <button class="tab" id="tab-ideas" role="tab" aria-label="Ideas" onclick="go('ideas')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2a4.5 4.5 0 013 7.8V11H5v-1.2A4.5 4.5 0 018 2z"/><path d="M5.5 12.5h5M6 14h4"/></svg></span><span class="tab-label">Ideas</span></button>
-    <button class="tab" id="tab-chat" role="tab" aria-label="Chat" onclick="go('chat');clearChatBadge()"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2.5h9a1 1 0 011 1v5a1 1 0 01-1 1H6l-3 2.5V9.5H2.5a1 1 0 01-1-1v-5a1 1 0 011-1z"/><path d="M11.5 5.5h2a1 1 0 011 1v3a1 1 0 01-1 1H13v2l-2-2h-.5"/></svg></span><span class="tab-label">Chat</span><span id="chat-badge" class="badge" style="display:none">0</span></button>
+    <button class="tab" id="tab-chat" role="tab" aria-label="Chat" onclick="go('chat')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2.5h9a1 1 0 011 1v5a1 1 0 01-1 1H6l-3 2.5V9.5H2.5a1 1 0 01-1-1v-5a1 1 0 011-1z"/><path d="M11.5 5.5h2a1 1 0 011 1v3a1 1 0 01-1 1H13v2l-2-2h-.5"/></svg></span><span class="tab-label">Chat</span><span id="chat-badge" class="badge" style="display:none">0</span></button>
     <button class="tab" id="tab-people" role="tab" aria-label="People" onclick="go('people')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/><circle cx="12" cy="5.5" r="2"/><path d="M12 9.5c1.93 0 3.5 1.57 3.5 3.5"/></svg></span><span class="tab-label">People</span></button>
   </div>
 </div>
@@ -546,6 +548,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <button class="customize-btn" onclick="startTour()">? Tour</button>
     <button class="customize-btn" onclick="openModal('customize-modal')">⚙ Customize home</button>
     <button class="customize-btn" id="edit-layout-btn" onclick="toggleEditLayout()">✥ Edit layout</button>
+    <button class="customize-btn" id="reset-layout-btn" onclick="resetWidgetLayout()" style="display:none">↺ Reset layout</button>
   </div>
   <div class="search-bar">
     <span class="search-icon"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l3 3"/></svg></span>
@@ -1194,7 +1197,7 @@ data.events=Object.values(remote.events||{});
       knownGroups=remote.groups?Object.values(remote.groups):[];
       // users / members
       if(remote.users){
-        const users=Object.values(remote.users).sort((a,b)=>a.name.localeCompare(b.name));
+        const users=Object.values(remote.users).filter(u=>u.name).sort((a,b)=>a.name.localeCompare(b.name));
         // sync own avatar from Firebase
         const myUser=users.find(u=>u.name===prefs.name);
         if(myUser&&myUser.avatar&&!prefs.avatar){
@@ -1210,12 +1213,20 @@ data.events=Object.values(remote.events||{});
     }
     renderAll();
   },(e)=>{setSyncStatus(false);toast('Sync error: '+e.message,'err');});
-  // chat list updates (so convo list stays fresh)
+  // chat list updates (so convo list stays fresh) + unread tracking for #General
+  attachedUnreadListeners['general']=true;
   db.ref('ims-asb/chat/general').on('value',(snap)=>{
     if(testMode)return;
     const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
-    updateChatBadge(msgs);
     if(activeConvo==='general')renderMsgs(msgs);
+    if(!msgs.length)return;
+    const latest=msgs[msgs.length-1].id;
+    if(activeConvo==='general'){markConvoSeen('general',latest);return;}
+    const seen=convoLastSeen['general']||0;
+    convoUnread['general']=msgs.filter(m=>m.id>seen&&m.name!==prefs.name).length;
+    saveUnreadState();
+    updateConvoBadgeUI('general');
+    updateChatTabBadge();
   });
   // activity listener
   db.ref('ims-asb/activity').on('value',(snap)=>{
@@ -1362,7 +1373,7 @@ function go(t){
 
   if(t==='chat'){renderConvoList();}
   window.scrollTo({top:0,behavior:'smooth'});
-  if(t==='people'&&db&&isConnected&&!testMode){db.ref('ims-asb/users').once('value').then(snap=>{const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):[];renderPeople(users);knownUsers=users;});}
+  if(t==='people'&&db&&isConnected&&!testMode){db.ref('ims-asb/users').once('value').then(snap=>{const users=snap.val()?Object.values(snap.val()).filter(u=>u.name).sort((a,b)=>a.name.localeCompare(b.name)):[];renderPeople(users);knownUsers=users;});}
   if(t==='events'){renderCal();updateGroqHint();}
 }
 function daysUntil(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/(864e5));}
@@ -1509,13 +1520,13 @@ async function suggestDate(){
   const to=document.getElementById('ds-to').value;
   if(!from||!to){out.textContent='Pick a date range first.';return;}
   const evName=document.getElementById('ev-name').value.trim()||'an ASB event';
-  const existing=data.events.map(e=>e.name+' on '+e.date).join('; ')||'none';
+  const existing=data.events.map(e=>e.name+' on '+fmtEventDate(e)).join('; ')||'none';
   out.textContent='Thinking…';
   try{
     const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body:JSON.stringify({model:'llama-3.3-70b-versatile',max_tokens:60,temperature:0.3,
-        messages:[{role:'user',content:'Suggest the single best date for "'+evName+'" at a middle school. Must be a WEEKDAY between '+from+' and '+to+'. Avoid clashing with existing events: '+existing+'. Reply with ONLY the date in YYYY-MM-DD format followed by a 5-10 word reason.'}]})});
+        messages:[{role:'user',content:'Suggest the single best date for "'+evName+'" at a middle school. Must be a WEEKDAY between '+from+' and '+to+'. Avoid clashing with existing events, some of which span multiple days: '+existing+'. Reply with ONLY the date in YYYY-MM-DD format followed by a 5-10 word reason.'}]})});
     const d=await res.json();
     const text=(d.choices?.[0]?.message?.content||'').trim();
     const m=text.match(/\d{4}-\d{2}-\d{2}/);
@@ -1617,6 +1628,31 @@ function clearAllEvents(){
   if(!confirm('Remove all '+data.events.length+' event(s)? This cannot be undone.'))return;
   data.events=[];
   save();renderAll();toast('Events cleared','ok');
+}
+
+// ── BACKUP EXPORT ─────────────────────────────────────────────────────
+function downloadJSON(obj,filenameBase){
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filenameBase+'.json';
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+}
+function exportBackup(){
+  if(testMode){toast('Disabled in test mode');return;}
+  if(!db||!isConnected){
+    const payload={exportedAt:new Date().toISOString(),source:'local-only — not connected to Firebase, this is incomplete',events:data.events,notes:data.notes,ideas:data.ideas};
+    downloadJSON(payload,'asb-hub-backup-local-'+new Date().toISOString().slice(0,10));
+    toast('Exported local data only — connect Firebase for a full backup','ok');
+    return;
+  }
+  toast('Preparing backup…');
+  db.ref('ims-asb').once('value').then(snap=>{
+    const payload={exportedAt:new Date().toISOString(),source:'ims-asb (Firebase)',data:snap.val()||{}};
+    downloadJSON(payload,'asb-hub-backup-'+new Date().toISOString().slice(0,10));
+    toast('Backup downloaded','ok');
+  }).catch(e=>toast('Backup error: '+e.message,'err'));
 }
 
 // ── NOTES ─────────────────────────────────────────────────────────────
@@ -1721,27 +1757,35 @@ function renderConvoList(users){
   if(!testMode&&(!db||!isConnected)){cl.innerHTML='<p style="font-size:13px;color:var(--muted)">Connect to Firebase to start chatting.</p>';return;}
   const storedUser=knownUsers.find(u=>u.name===prefs.name);
   const roleVerified=!storedUser||(storedUser.role===prefs.role);
-  let chtml=`<div class="convo-item" onclick="openConvo('general')">
+  let chtml=`<div class="convo-item" onclick="openConvo('general')" data-convo-id="general">
     <div class="convo-avatar group">💬</div>
     <div class="convo-info"><div class="convo-name"># General</div><div class="convo-preview">Team-wide chat</div></div>
+    <span class="convo-unread-dot" style="display:none"></span>
   </div>`;
   if(!roleVerified){cl.innerHTML=chtml;return;}
   knownGroups.filter(g=>(g.members||[]).includes(prefs.name)).forEach(g=>{
-    chtml+=`<div class="convo-item" onclick="openConvo('group:${g.id}')">
+    const cid='group:'+g.id;
+    chtml+=`<div class="convo-item" onclick="openConvo('${cid}')" data-convo-id="${esc(cid)}">
       <div class="convo-avatar group">👥</div>
       <div class="convo-info"><div class="convo-name">${esc(g.name)}</div><div class="convo-preview">${(g.members||[]).length} members</div></div>
+      <span class="convo-unread-dot" style="display:none"></span>
     </div>`;
+    attachUnreadListener(cid,'ims-asb/chat/group/'+g.id);
   });
   knownUsers.filter(u=>u.name!==prefs.name).forEach(u=>{
     const initials=u.name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
     const duid=u.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
-    chtml+=`<div class="convo-item" onclick="openConvo('dm:${escJsAttr(u.name)}')" data-convo-uid="${duid}">
+    const cid='dm:'+u.name;
+    chtml+=`<div class="convo-item" onclick="openConvo('dm:${escJsAttr(u.name)}')" data-convo-uid="${duid}" data-convo-id="${esc(cid)}">
       <div class="convo-avatar" style="position:relative">${initials}<span class="online-dot" style="position:absolute;bottom:1px;right:1px;border:2px solid var(--surface)"></span></div>
       <div class="convo-info"><div class="convo-name">${esc(u.name)}<span class="role-badge">${u.role||'Member'}</span></div></div>
+      <span class="convo-unread-dot" style="display:none"></span>
     </div>`;
+    attachUnreadListener(cid,dmPath(u.name));
   });
   cl.innerHTML=chtml;
   if(latestOnlineData)setTimeout(()=>renderOnlineStatus(latestOnlineData),50);
+  refreshAllConvoBadges();
 }
 
 function openConvo(id){
@@ -1770,6 +1814,7 @@ function openConvo(id){
         if(activeConvo!=='general')return;
         const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
         renderMsgs(msgs);
+        markConvoSeen('general',msgs.length?msgs[msgs.length-1].id:Date.now());
       });
     }
   } else if(id.startsWith('group:')){
@@ -1785,6 +1830,7 @@ function openConvo(id){
       if(activeConvo!==id)return;
       const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
       renderMsgs(msgs);
+      markConvoSeen(id,msgs.length?msgs[msgs.length-1].id:Date.now());
     });
   } else {
     const partner=id.replace('dm:','');
@@ -1798,6 +1844,7 @@ function openConvo(id){
       if(activeConvo!==id)return;
       const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
       renderMsgs(msgs);
+      markConvoSeen(id,msgs.length?msgs[msgs.length-1].id:Date.now());
     });
   }
   document.getElementById('chat-input').focus();
@@ -1810,7 +1857,7 @@ function backToList(){
   document.getElementById('chat-list-view').style.display='block';
   if(db&&isConnected){
     db.ref('ims-asb/users').once('value').then(snap=>{
-      const users=snap.val()?Object.values(snap.val()).sort((a,b)=>a.name.localeCompare(b.name)):knownUsers;
+      const users=snap.val()?Object.values(snap.val()).filter(u=>u.name).sort((a,b)=>a.name.localeCompare(b.name)):knownUsers;
       renderConvoList(users);
     });
   }
@@ -2284,8 +2331,18 @@ function toggleEditLayout(){
   widgetEditing=!widgetEditing;
   const grid=document.getElementById('widget-grid');
   const btn=document.getElementById('edit-layout-btn');
+  const resetBtn=document.getElementById('reset-layout-btn');
   if(grid)grid.classList.toggle('editing',widgetEditing);
   if(btn)btn.textContent=widgetEditing?'✓ Done editing':'✥ Edit layout';
+  if(resetBtn)resetBtn.style.display=widgetEditing?'':'none';
+}
+
+function resetWidgetLayout(){
+  if(!confirm('Reset the home layout back to default order, sizes, and visibility?'))return;
+  widgetLayout=defaultWidgetLayout();
+  applyWidgetLayout();
+  saveWidgetLayout();
+  toast('Layout reset','ok');
 }
 
 // Drag reordering via Pointer Events (works for touch and mouse alike,
@@ -2815,7 +2872,7 @@ function loadTechAdminFlag(){
 function applyTechButtons(){
   // Also check advisor-granted control panel access
   const hasAccess = isTechAdmin || isControlPanelGranted;
-  ['btn-firebase','btn-test','btn-groq','btn-settings','btn-seed-events'].forEach(id=>{
+  ['btn-firebase','btn-test','btn-groq','btn-settings','btn-seed-events','btn-backup'].forEach(id=>{
     document.getElementById(id)?.style.setProperty('display',hasAccess?'':'none');
   });
   document.querySelector('.test-btn')?.style.setProperty('display',hasAccess?'':'none');
@@ -2977,26 +3034,69 @@ function deleteAgendaItem(i){
   renderAgenda();
 }
 
-// ── UNREAD BADGE ──────────────────────────────────────────────────────
-let lastSeenMsgId=parseInt(localStorage.getItem('ims-last-seen-msg')||'0');
-function updateChatBadge(msgs){
-  if(!msgs||!msgs.length)return;
-  const latest=msgs[msgs.length-1].id;
-  const unseen=msgs.filter(m=>m.id>lastSeenMsgId&&m.name!==prefs.name).length;
+// ── UNREAD BADGES (per-conversation: general, DMs, groups) ─────────────
+let convoUnread={};
+let convoLastSeen={};
+try{convoUnread=JSON.parse(localStorage.getItem('ims-convo-unread')||'{}');}catch(e){}
+try{convoLastSeen=JSON.parse(localStorage.getItem('ims-convo-last-seen')||'{}');}catch(e){}
+let attachedUnreadListeners={};
+
+function saveUnreadState(){
+  try{
+    localStorage.setItem('ims-convo-unread',JSON.stringify(convoUnread));
+    localStorage.setItem('ims-convo-last-seen',JSON.stringify(convoLastSeen));
+  }catch(e){}
+}
+function updateChatTabBadge(){
   const badge=document.getElementById('chat-badge');
   if(!badge)return;
   const onChat=document.getElementById('s-chat')&&document.getElementById('s-chat').classList.contains('on');
-  if(onChat){clearChatBadge();return;}
-  if(unseen>0){badge.style.display='inline-block';badge.textContent=unseen>9?'9+':unseen;}
-  else{badge.style.display='none';}
+  if(onChat&&!activeConvo){badge.style.display='none';return;}
+  const total=Object.keys(convoUnread).filter(id=>id!==activeConvo).reduce((sum,id)=>sum+(convoUnread[id]||0),0);
+  if(total>0){badge.style.display='inline-block';badge.textContent=total>9?'9+':total;}
+  else badge.style.display='none';
 }
-function clearChatBadge(){
-  const msgs=[];
-  lastSeenMsgId=Date.now();
-  localStorage.setItem('ims-last-seen-msg',lastSeenMsgId);
-  const badge=document.getElementById('chat-badge');
-  if(badge)badge.style.display='none';
+function updateConvoBadgeUI(convoId){
+  const row=document.querySelector('.convo-item[data-convo-id="'+CSS.escape(convoId)+'"] .convo-unread-dot');
+  if(!row)return;
+  const n=convoUnread[convoId]||0;
+  if(n>0){row.style.display='inline-flex';row.textContent=n>9?'9+':n;}
+  else row.style.display='none';
 }
+function refreshAllConvoBadges(){
+  Object.keys(convoUnread).forEach(updateConvoBadgeUI);
+  updateChatTabBadge();
+}
+function markConvoSeen(convoId,latestId){
+  if(!convoId)return;
+  convoLastSeen[convoId]=latestId||Date.now();
+  convoUnread[convoId]=0;
+  saveUnreadState();
+  updateConvoBadgeUI(convoId);
+  updateChatTabBadge();
+}
+// One live listener per conversation (general/each DM/each group) so unread
+// counts update even while you're not looking at that specific conversation.
+// Guarded so re-rendering the convo list (which happens on every Firebase
+// sync) doesn't attach duplicate listeners.
+function attachUnreadListener(convoId,path){
+  if(attachedUnreadListeners[convoId]||!db||testMode)return;
+  attachedUnreadListeners[convoId]=true;
+  db.ref(path).on('value',snap=>{
+    if(testMode)return;
+    const msgs=snap.val()?Object.values(snap.val()).sort((a,b)=>a.id-b.id):[];
+    if(!msgs.length)return;
+    const latest=msgs[msgs.length-1].id;
+    if(activeConvo===convoId){markConvoSeen(convoId,latest);return;}
+    const seen=convoLastSeen[convoId]||0;
+    convoUnread[convoId]=msgs.filter(m=>m.id>seen&&m.name!==prefs.name).length;
+    saveUnreadState();
+    updateConvoBadgeUI(convoId);
+    updateChatTabBadge();
+  });
+}
+
+
 
 // archive moved to year summary section
 
@@ -3650,7 +3750,7 @@ function clearTest(){
         data.events=Object.values(remote.events||{});
         data.notes=Object.values(remote.notes||{}).sort((a,b)=>b.id-a.id);
         data.ideas=Object.values(remote.ideas||{});
-        if(remote.users){const users=Object.values(remote.users).sort((a,b)=>a.name.localeCompare(b.name));renderPeople(users);renderConvoList(users);}
+        if(remote.users){const users=Object.values(remote.users).filter(u=>u.name).sort((a,b)=>a.name.localeCompare(b.name));renderPeople(users);renderConvoList(users);}
         if(remote.announcements)renderAnnouncements(Object.values(remote.announcements).sort((a,b)=>b.id-a.id));
       }
       renderAll();
