@@ -97,11 +97,19 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .widget-grid>.widget{grid-column:span 2;min-width:0}
 .widget-grid>.widget[data-size="half"]{grid-column:span 1}
 .widget-grid>.widget[data-hidden="1"]{display:none}
-.widget-grid.editing>.widget[data-hidden="1"]{display:block;opacity:.45}
 .widget-grid.editing>.widget{position:relative;outline:1.5px dashed var(--border);outline-offset:3px;border-radius:var(--radius)}
 .widget-grid.editing>.widget.dragging{opacity:.5;outline-color:var(--accent)}
 .widget-toolbar{display:none}
 .widget-grid.editing .widget-toolbar{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-bottom:4px;padding:0 2px}
+#add-widget-tile{display:none;grid-column:span 2;align-items:center;justify-content:center;gap:6px;min-height:64px;border:1.5px dashed var(--border);border-radius:var(--radius);cursor:pointer;color:var(--muted);font-size:13px;background:none}
+.widget-grid.editing #add-widget-tile{display:flex}
+#add-widget-tile:hover{border-color:var(--accent);color:var(--accent)}
+.picker-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.picker-item:last-child{border-bottom:none}
+.picker-item-icon{width:40px;height:40px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0}
+.picker-item-info{flex:1;min-width:0}
+.picker-item-info b{font-size:14px;display:block}
+.picker-item-info span{font-size:12px;color:var(--muted)}
 .widget-drag-handle{cursor:grab;font-size:14px;color:var(--hint);padding:4px 6px;user-select:none;touch-action:none}
 .widget-tool-btn{cursor:pointer;font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 7px;line-height:1;user-select:none}
 .widget-tool-btn:hover{color:var(--text)}
@@ -187,6 +195,16 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .tp-list li:last-child{border-bottom:none}
 .tp-list li::before{content:"—";color:var(--hint);flex-shrink:0}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center}
+#onboard-modal{background:var(--accent);align-items:center;justify-content:center}
+#onboard-modal .modal{background:transparent;box-shadow:none;max-width:420px;width:92%;padding:0;text-align:left}
+#onboard-modal h2{color:#fff;font-size:28px;font-weight:700;letter-spacing:-.5px;text-align:left!important}
+#onboard-modal p{color:rgba(255,255,255,.75);text-align:left!important}
+#onboard-modal input{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff}
+#onboard-modal input::placeholder{color:rgba(255,255,255,.45)}
+#onboard-modal .btn.primary{background:#fff;color:var(--accent);border-color:#fff}
+#onboard-modal .btn.primary:hover{background:rgba(255,255,255,.9)}
+.ob-mark{width:34px;height:3px;background:#fff;margin-bottom:24px}
+#ob-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .modal-overlay.on{display:flex}
 .modal{background:var(--surface);border-radius:var(--radius);padding:24px;max-width:480px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.12);max-height:90vh;overflow-y:auto}
 .modal h2{font-size:17px;font-weight:600;margin-bottom:6px}
@@ -474,19 +492,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <span id="sync-indicator" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">
       <span class="sync-dot" id="sync-dot"></span><span id="sync-label">Not connected to Firebase</span>
     </span>
-    <button id="theme-btn" class="test-btn" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+    <button id="theme-btn" class="test-btn" onclick="toggleTheme()" title="Toggle dark mode"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 9A5.5 5.5 0 117 3a4.3 4.3 0 006 6z"/></svg></button>
     <div class="hdr-menu-wrap">
-      <button id="hdr-menu-btn" class="icon-btn" onclick="toggleHdrMenu(event)">☰ Menu</button>
+      <button id="hdr-menu-btn" class="icon-btn" onclick="toggleHdrMenu(event)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:4px"><path d="M2 4.5h12M2 8h12M2 11.5h12"/></svg>Menu</button>
       <div id="hdr-menu" class="hdr-menu">
-        <button id="btn-finance" class="hdr-menu-item" onclick="window.open(SCHOOL_CONFIG.financeUrl||'https://ims-asb.github.io/ims-finance','_blank')" style="display:none">📊 Finances</button>
-        <button id="btn-settings" class="hdr-menu-item" onclick="closeHdrMenu();openModal('settings-modal')" style="display:none">🔑 Passwords</button>
-        <button id="btn-firebase" class="hdr-menu-item" onclick="closeHdrMenu();openModal('firebase-modal')">🔥 Firebase</button>
-        <button id="btn-groq" class="hdr-menu-item" onclick="closeHdrMenu();openModal('groq-modal')">⚙ Groq</button>
-        <button id="btn-test" class="hdr-menu-item" onclick="closeHdrMenu();loadTest()">⚗ Test mode</button>
-        <button id="btn-seed-events" class="hdr-menu-item" onclick="closeHdrMenu();seedRealEvents()">📅 Seed 2026–27 events</button>
-        <button id="btn-backup" class="hdr-menu-item" onclick="closeHdrMenu();exportBackup()" style="display:none">⬇ Backup data (JSON)</button>
+        <button id="btn-finance" class="hdr-menu-item" onclick="window.open(SCHOOL_CONFIG.financeUrl||'https://ims-asb.github.io/ims-finance','_blank')" style="display:none"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><rect x="2" y="2.5" width="12" height="11" rx="1.3"/><path d="M5 10.5v-3M8 10.5v-5M11 10.5v-1.5"/></svg>Finances</button>
+        <button id="btn-settings" class="hdr-menu-item" onclick="closeHdrMenu();openModal('settings-modal')" style="display:none"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><circle cx="5.5" cy="10.5" r="3"/><path d="M7.7 8.3L13 3M11 5l1.5 1.5M9 7l1.2 1.2"/></svg>Passwords</button>
+        <button id="btn-firebase" class="hdr-menu-item" onclick="closeHdrMenu();openModal('firebase-modal')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M8 14.5c-2.5 0-4.5-1.8-4.5-4.3 0-1.8 1-3 1.8-4.2.3.9 1 1.5 1.7 1.5-.2-2 .5-4 2-5.5.3 1.8 1.2 2.8 2.2 3.9 1.2 1.3 1.8 2.6 1.8 4.3 0 2.5-2 4.3-4.5 4.3z"/></svg>Firebase</button>
+        <button id="btn-groq" class="hdr-menu-item" onclick="closeHdrMenu();openModal('groq-modal')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:5px"><circle cx="8" cy="8" r="2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4l1.4-1.4M11 5l1.4-1.4"/></svg>Groq</button>
+        <button id="btn-test" class="hdr-menu-item" onclick="closeHdrMenu();loadTest()"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M6.5 2h3M7 2v4.2L4 12a1.5 1.5 0 001.3 2.2h5.4A1.5 1.5 0 0012 12L9 6.2V2"/><path d="M5.2 10.5h5.6"/></svg>Test mode</button>
+        <button id="btn-seed-events" class="hdr-menu-item" onclick="closeHdrMenu();seedRealEvents()"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M1.5 6.5h13M5 1.5v2M11 1.5v2"/><circle cx="5" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="8" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="11" cy="10" r=".75" fill="currentColor" stroke="none"/></svg>Seed 2026–27 events</button>
+        <button id="btn-backup" class="hdr-menu-item" onclick="closeHdrMenu();exportBackup()" style="display:none"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M8 2.5v8M4.5 7l3.5 3.5L11.5 7M3 13.5h10"/></svg>Backup data (JSON)</button>
         <div style="height:1px;background:var(--border);margin:4px 6px"></div>
-        <button class="hdr-menu-item" id="btn-github" onclick="closeHdrMenu();window.open(SCHOOL_CONFIG.githubUrl||'https://github.com/ims-asb/ims-asb/blob/main/index.html','_blank')">🐙 View on GitHub</button>
+        <button class="hdr-menu-item" id="btn-github" onclick="closeHdrMenu();window.open(SCHOOL_CONFIG.githubUrl||'https://github.com/ims-asb/ims-asb/blob/main/index.html','_blank')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5M9 3l-2 10"/></svg>View on GitHub</button>
       </div>
     </div>
   </div>
@@ -546,9 +564,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </div>
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px;gap:6px">
     <button class="customize-btn" onclick="startTour()">? Tour</button>
-    <button class="customize-btn" onclick="openModal('customize-modal')">⚙ Customize home</button>
-    <button class="customize-btn" id="edit-layout-btn" onclick="toggleEditLayout()">✥ Edit layout</button>
-    <button class="customize-btn" id="reset-layout-btn" onclick="resetWidgetLayout()" style="display:none">↺ Reset layout</button>
+    <button class="customize-btn" onclick="openModal('customize-modal')"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4l1.4-1.4M11 5l1.4-1.4"/></svg>Customize home</button>
+    <button class="customize-btn" id="edit-layout-btn" onclick="toggleEditLayout()"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M8 1.5v13M1.5 8h13M3.5 5.5L1.5 8l2 2.5M12.5 5.5l2 2.5-2 2.5M5.5 3.5L8 1.5l2.5 2M5.5 12.5L8 14.5l2.5-2"/></svg>Edit layout</button>
+    <button class="customize-btn" id="reset-layout-btn" onclick="resetWidgetLayout()" style="display:none"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M13 8A5 5 0 103.5 11.2M3.5 11.2V8M3.5 11.2H7"/></svg>Reset layout</button>
   </div>
   <div class="search-bar">
     <span class="search-icon"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l3 3"/></svg></span>
@@ -558,21 +576,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
   <div class="widget-grid" id="widget-grid">
     <div class="widget" data-widget="metrics" data-size="full">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('metrics')">👁</span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('metrics')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="grid2" id="w-metrics" style="margin-bottom:0">
         <div class="metric"><div class="metric-lbl">Upcoming events</div><div class="metric-val neu" id="h-events">0</div></div>
         <div class="metric"><div class="metric-lbl">Open ideas</div><div class="metric-val neu" id="h-ideas">0</div></div>
       </div>
     </div>
     <div class="widget" data-widget="nextevent" data-size="half">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('nextevent')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('nextevent')">👁</span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('nextevent')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('nextevent')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card next-event" style="margin-bottom:0">
         <div class="card-title">Next event</div>
         <div id="next-event-content"><p style="font-size:13px;color:var(--muted)">No upcoming events.</p></div>
       </div>
     </div>
     <div class="widget" data-widget="quickadd" data-size="half">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('quickadd')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('quickadd')">👁</span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('quickadd')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('quickadd')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card" style="margin-bottom:0">
         <div class="card-title">Quick add</div>
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -583,7 +601,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
     </div>
     <div class="widget" data-widget="agenda" data-size="full" data-hidden="1">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('agenda')">👁</span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('agenda')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card" style="margin-bottom:0">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div class="card-title" style="margin-bottom:0">Agenda</div>
@@ -594,13 +612,25 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
     </div>
     <div class="widget" data-widget="upcoming" data-size="full">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('upcoming')">👁</span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('upcoming')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card" style="margin-bottom:0">
         <div class="card-title">Upcoming events</div>
         <div id="home-events-list"></div>
         <div id="home-events-empty" class="empty" style="padding:1rem 0;display:none"><p style="margin-bottom:0;font-size:13px">No upcoming events.</p></div>
       </div>
     </div>
+    <button id="add-widget-tile" onclick="openWidgetPicker()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Add widget</button>
+  </div>
+</div>
+
+<!-- WIDGET PICKER -->
+<div id="widget-picker-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('widget-picker-modal')">
+  <div class="modal" style="max-width:420px">
+    <h2>Add a widget</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:6px">Choose what to add to your Home screen.</p>
+    <div id="widget-picker-list"></div>
+    <div id="widget-picker-empty" style="display:none;text-align:center;padding:24px 0;color:var(--muted);font-size:13px">All widgets are already on your Home screen.</div>
+    <button class="btn full" style="margin-top:12px" onclick="closeModal('widget-picker-modal')">Done</button>
   </div>
 </div>
 
@@ -743,13 +773,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <span id="people-count" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--muted)"></span>
   </div>
   <div id="people-list" class="card" style="display:none"></div>
-  <div id="people-empty" class="empty"><div class="ico">👥</div><p style="margin-bottom:6px">No one has joined yet.</p><p style="font-size:12px;color:var(--hint)">Once you connect Firebase and share the file, teammates will appear here after they sign in.</p></div>
+  <div id="people-empty" class="empty"><div class="ico"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/><circle cx="12" cy="5.5" r="2"/><path d="M12 9.5c1.93 0 3.5 1.57 3.5 3.5"/></svg></div><p style="margin-bottom:6px">No one has joined yet.</p><p style="font-size:12px;color:var(--hint)">Once you connect Firebase and share the file, teammates will appear here after they sign in.</p></div>
 </div>
 
 <!-- FIREBASE MODAL -->
 <div id="firebase-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('firebase-modal')">
   <div class="modal">
-    <h2>🔥 Firebase Setup</h2>
+    <h2><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M8 14.5c-2.5 0-4.5-1.8-4.5-4.3 0-1.8 1-3 1.8-4.2.3.9 1 1.5 1.7 1.5-.2-2 .5-4 2-5.5.3 1.8 1.2 2.8 2.2 3.9 1.2 1.3 1.8 2.6 1.8 4.3 0 2.5-2 4.3-4.5 4.3z"/></svg>Firebase Setup</h2>
     <p>This connects everyone on your ASB team to the same live database. Free forever, no credit card.</p>
     <ol>
       <li>Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> and sign in with your school Google account</li>
@@ -776,7 +806,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <!-- GROQ MODAL -->
 <div id="groq-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('groq-modal')">
   <div class="modal">
-    <h2>⚙ Groq API Key</h2>
+    <h2><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4l1.4-1.4M11 5l1.4-1.4"/></svg>Groq API Key</h2>
     <p>Powers the AI features — date suggester and talking points. Free forever at <a href="https://console.groq.com" target="_blank">console.groq.com</a> (no credit card). Once saved you never need to touch this again.</p>
     <ol style="font-size:13px;color:var(--muted);line-height:2;padding-left:18px;margin-bottom:14px">
       <li>Go to <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></li>
@@ -805,10 +835,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 <!-- ONBOARDING MODAL -->
 <div id="onboard-modal" class="modal-overlay on">
+  <canvas id="ob-canvas" aria-hidden="true"></canvas>
   <div class="modal">
+    <div class="ob-mark"></div>
     <div id="ob-step-1" class="onboard-step on">
-      <h2>👋 Welcome to IMS ASB Hub</h2>
-      <p>Enter your full name so teammates can find you.</p>
+      <h2 style="text-align:center;font-size:22px">Welcome to IMS ASB Hub</h2>
+      <p style="text-align:center">Enter your full name so teammates can find you.</p>
       <div class="fg" style="margin-bottom:6px">
         <input type="text" id="ob-name" placeholder="Enter your full name (e.g. Luke Li)" autofocus autocapitalize="words" onkeydown="if(event.key==='Enter')obNext1()">
         <p style="font-size:12px;color:var(--hint);margin-top:6px">Use your full name so teammates can find you.</p>
@@ -816,8 +848,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button class="btn primary full" onclick="obNext1()">Continue →</button>
     </div>
     <div id="ob-step-2" class="onboard-step">
-      <h2>What's your role?</h2>
-      <p>Select your role — you'll need the right password.</p>
+      <h2 style="text-align:center;font-size:22px">What's your role?</h2>
+      <p style="text-align:center">Select your role — you'll need the right password.</p>
       <div class="role-grid" id="role-btn-grid"></div>
       <button class="btn primary full" onclick="obFinish()">Let's go →</button>
     </div>
@@ -829,7 +861,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <!-- CUSTOMIZE HOME MODAL -->
 <div id="customize-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('customize-modal')">
   <div class="modal" style="max-width:520px">
-    <h2>⚙ Customize home</h2>
+    <h2><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4l1.4-1.4M11 5l1.4-1.4"/></svg>Customize home</h2>
 
     <!-- Avatar section -->
     <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
@@ -839,7 +871,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
         <div id="avatar-initials-preview" style="width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;flex-shrink:0"></div>
         <div>
           <label style="display:inline-block;position:relative;cursor:pointer">
-            <span class="btn sm">📷 Upload photo</span>
+            <span class="btn sm"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M2 5.5A1.5 1.5 0 013.5 4h1l.7-1.3A1 1 0 016.1 2h3.8a1 1 0 01.9.7L11.5 4h1A1.5 1.5 0 0114 5.5v6A1.5 1.5 0 0112.5 13h-9A1.5 1.5 0 012 11.5v-6z"/><circle cx="8" cy="8.2" r="2.3"/></svg>Upload photo</span>
             <input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handleAvatarUpload(this)">
           </label>
           <div style="font-size:11px;color:var(--hint);margin-top:4px">Auto-resized to 80×80</div>
@@ -886,7 +918,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
     <!-- Password Management (gated by PW_MGMT_ROLES) -->
     <div id="pw-mgmt-wrap" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
-      <p style="font-size:12px;font-weight:500;margin-bottom:4px">🔑 Role passwords</p>
+      <p style="font-size:12px;font-weight:500;margin-bottom:4px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><circle cx="5.5" cy="10.5" r="3"/><path d="M7.7 8.3L13 3M11 5l1.5 1.5M9 7l1.2 1.2"/></svg>Role passwords</p>
       <p style="font-size:12px;color:var(--muted);margin-bottom:10px">View or change the password for each role. Changes apply immediately for everyone.</p>
       <div id="pw-mgmt-list" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
@@ -912,7 +944,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <!-- NEW GROUP -->
 <div id="new-group-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('new-group-modal')">
   <div class="modal" style="max-width:420px">
-    <h2>👥 New group chat</h2>
+    <h2><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><circle cx="6" cy="5" r="2.3"/><path d="M1.5 13.5c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5"/><circle cx="11.5" cy="5.3" r="1.8"/><path d="M11.3 9c1.8 0 3.2 1.4 3.2 3.2"/></svg>New group chat</h2>
     <div class="fg" style="margin-bottom:14px">
       <label class="fl">Group name</label>
       <input type="text" id="new-group-name" placeholder="e.g. Fall Dance Planning" maxlength="60">
@@ -981,7 +1013,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <!-- SETTINGS / PASSWORDS MODAL -->
 <div id="settings-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('settings-modal')">
   <div class="modal">
-    <h2>🔑 Role Passwords</h2>
+    <h2><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><circle cx="5.5" cy="10.5" r="3"/><path d="M7.7 8.3L13 3M11 5l1.5 1.5M9 7l1.2 1.2"/></svg>Role Passwords</h2>
     <p>Keep these private. Share only with the relevant person.</p>
     <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px">
       <div style="display:grid;grid-template-columns:1fr 1fr;font-size:12px;font-family:DM Mono,monospace;background:var(--bg);padding:8px 12px;color:var(--muted);border-bottom:1px solid var(--border)">
@@ -1305,7 +1337,11 @@ function setSyncStatus(ok){
   document.getElementById('sync-dot').className='sync-dot'+(ok?' connected':'');
   document.getElementById('sync-label').textContent=ok?'live sync':'Not connected to Firebase';
   const fbBtn=document.getElementById('btn-firebase');
-  if(fbBtn)fbBtn.textContent=(ok?'🔥':'🪣')+' Firebase';
+  if(fbBtn){
+    const flameOn='<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M8 14.5c-2.5 0-4.5-1.8-4.5-4.3 0-1.8 1-3 1.8-4.2.3.9 1 1.5 1.7 1.5-.2-2 .5-4 2-5.5.3 1.8 1.2 2.8 2.2 3.9 1.2 1.3 1.8 2.6 1.8 4.3 0 2.5-2 4.3-4.5 4.3z"/></svg>';
+    const flameOff='<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;opacity:.5"><path d="M8 14.5c-2.5 0-4.5-1.8-4.5-4.3 0-1.8 1-3 1.8-4.2.3.9 1 1.5 1.7 1.5-.2-2 .5-4 2-5.5.3 1.8 1.2 2.8 2.2 3.9 1.2 1.3 1.8 2.6 1.8 4.3 0 2.5-2 4.3-4.5 4.3z"/></svg>';
+    fbBtn.innerHTML=(ok?flameOn:flameOff)+'Firebase';
+  }
 }
 function setFbStatus(t,m){const el=document.getElementById('fb-status');el.className='key-status'+(t?' '+t:'');el.textContent=m;}
 
@@ -1758,7 +1794,7 @@ function renderConvoList(users){
   const storedUser=knownUsers.find(u=>u.name===prefs.name);
   const roleVerified=!storedUser||(storedUser.role===prefs.role);
   let chtml=`<div class="convo-item" onclick="openConvo('general')" data-convo-id="general">
-    <div class="convo-avatar group">💬</div>
+    <div class="convo-avatar group"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2.5h9a1 1 0 011 1v5a1 1 0 01-1 1H6l-3 2.5V9.5H2.5a1 1 0 01-1-1v-5a1 1 0 011-1z"/><path d="M11.5 5.5h2a1 1 0 011 1v3a1 1 0 01-1 1H13v2l-2-2h-.5"/></svg></div>
     <div class="convo-info"><div class="convo-name"># General</div><div class="convo-preview">Team-wide chat</div></div>
     <span class="convo-unread-dot" style="display:none"></span>
   </div>`;
@@ -1766,7 +1802,7 @@ function renderConvoList(users){
   knownGroups.filter(g=>(g.members||[]).includes(prefs.name)).forEach(g=>{
     const cid='group:'+g.id;
     chtml+=`<div class="convo-item" onclick="openConvo('${cid}')" data-convo-id="${esc(cid)}">
-      <div class="convo-avatar group">👥</div>
+      <div class="convo-avatar group"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.3"/><path d="M1.5 13.5c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5"/><circle cx="11.5" cy="5.3" r="1.8"/><path d="M11.3 9c1.8 0 3.2 1.4 3.2 3.2"/></svg></div>
       <div class="convo-info"><div class="convo-name">${esc(g.name)}</div><div class="convo-preview">${(g.members||[]).length} members</div></div>
       <span class="convo-unread-dot" style="display:none"></span>
     </div>`;
@@ -2258,6 +2294,13 @@ const WIDGET_DEFAULTS={
   agenda:{size:'full',hidden:true},
   upcoming:{size:'full',hidden:false},
 };
+const WIDGET_META={
+  metrics:{label:'Quick stats',desc:'Upcoming events and open ideas at a glance.',icon:'<svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 13.5V9M6 13.5V5.5M10 13.5V7.5M14 13.5V3"/></svg>'},
+  nextevent:{label:'Next event',desc:'Countdown to whatever is coming up soonest.',icon:'<svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M1.5 6.5h13M5 1.5v2M11 1.5v2"/></svg>'},
+  quickadd:{label:'Quick add',desc:'One-tap buttons to add an event, note, or idea.',icon:'<svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>'},
+  agenda:{label:'Agenda',desc:'A running list of items for the next meeting.',icon:'<svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1.5" width="10" height="13" rx="1.2"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>'},
+  upcoming:{label:'Upcoming events',desc:'A scrollable list of everything coming up.',icon:'<svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M1.5 6.5h13"/><circle cx="5" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="8" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="11" cy="10" r=".6" fill="currentColor" stroke="none"/></svg>'},
+};
 let widgetLayout=null;
 let widgetEditing=false;
 let widgetDrag=null;
@@ -2307,6 +2350,8 @@ function applyWidgetLayout(){
     el.dataset.size=widgetLayout.sizes[id]||'full';
     el.dataset.hidden=widgetLayout.hidden[id]?'1':'0';
   });
+  const addTile=document.getElementById('add-widget-tile');
+  if(addTile)grid.appendChild(addTile);
 }
 
 function saveWidgetLayout(){
@@ -2327,13 +2372,43 @@ function toggleWidgetHidden(id){
   applyWidgetLayout();saveWidgetLayout();
 }
 
+function openWidgetPicker(){
+  const list=document.getElementById('widget-picker-list');
+  const empty=document.getElementById('widget-picker-empty');
+  const available=WIDGET_IDS.filter(id=>widgetLayout.hidden[id]);
+  if(!available.length){
+    list.innerHTML='';list.style.display='none';empty.style.display='block';
+  } else {
+    list.style.display='block';empty.style.display='none';
+    list.innerHTML=available.map(id=>{
+      const m=WIDGET_META[id];
+      return `<div class="picker-item">
+        <div class="picker-item-icon">${m.icon}</div>
+        <div class="picker-item-info"><b>${m.label}</b><span>${m.desc}</span></div>
+        <button class="btn sm primary" onclick="addWidgetFromPicker('${id}')">Add</button>
+      </div>`;
+    }).join('');
+  }
+  openModal('widget-picker-modal');
+}
+
+function addWidgetFromPicker(id){
+  widgetLayout.hidden[id]=false;
+  if(!widgetLayout.order.includes(id))widgetLayout.order.push(id);
+  applyWidgetLayout();saveWidgetLayout();
+  toast(WIDGET_META[id].label+' added','ok');
+  openWidgetPicker(); // refresh the list in place
+}
+
 function toggleEditLayout(){
   widgetEditing=!widgetEditing;
   const grid=document.getElementById('widget-grid');
   const btn=document.getElementById('edit-layout-btn');
   const resetBtn=document.getElementById('reset-layout-btn');
   if(grid)grid.classList.toggle('editing',widgetEditing);
-  if(btn)btn.textContent=widgetEditing?'✓ Done editing':'✥ Edit layout';
+  const editIcon='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M8 1.5v13M1.5 8h13M3.5 5.5L1.5 8l2 2.5M12.5 5.5l2 2.5-2 2.5M5.5 3.5L8 1.5l2.5 2M5.5 12.5L8 14.5l2.5-2"/></svg>';
+  const doneIcon='<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg>';
+  if(btn)btn.innerHTML=widgetEditing?doneIcon+'Done editing':editIcon+'Edit layout';
   if(resetBtn)resetBtn.style.display=widgetEditing?'':'none';
 }
 
@@ -2406,6 +2481,8 @@ function resetProfile(){
   closeModal('customize-modal');
   document.getElementById('ob-step-1').classList.add('on');
   document.getElementById('ob-step-2').classList.remove('on');
+  document.getElementById('ob-dot-1')?.classList.add('on');
+  document.getElementById('ob-dot-2')?.classList.remove('on');
   document.getElementById('ob-name').value='';
   document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('on'));
 
@@ -2445,6 +2522,8 @@ function obNext1(){
   prefs.name=n;
   document.getElementById('ob-step-1').classList.remove('on');
   document.getElementById('ob-step-2').classList.add('on');
+  document.getElementById('ob-dot-1')?.classList.remove('on');
+  document.getElementById('ob-dot-2')?.classList.add('on');
   // auto-detect role — go straight to password for known members
   const detected=detectRole(n);
   document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
@@ -2499,16 +2578,19 @@ function obFinish(){
     db.ref('ims-asb/users/'+uid).once('value').then(snap=>{
       if(snap.exists()){
         const stored=snap.val();
-        if(stored.role!==obRole){
+        if(stored.role&&stored.role!==obRole){
           // name is taken by a different role — block entirely
           toast('"'+prefs.name+'" is already registered as '+stored.role+'. Pick a different name, or select '+stored.role+' to log in as them.');
           document.getElementById('ob-step-2').classList.remove('on');
           document.getElementById('ob-step-1').classList.add('on');
+          document.getElementById('ob-dot-2')?.classList.remove('on');
+          document.getElementById('ob-dot-1')?.classList.add('on');
           document.getElementById('ob-name').value='';
           obRole='';
           return;
         }
         // same name + same role = returning user, allow
+        // no role stored at all = a stale/incomplete record (e.g. mid-reset) — not a real conflict, allow through
       }
       finishOnboard();
     });
@@ -2811,7 +2893,9 @@ function endTour(){
 function applyTheme(dark){
   document.body.classList.toggle('dark', dark);
   const btn=document.getElementById('theme-btn');
-  if(btn)btn.textContent=dark?'☀️':'🌙';
+  const sun='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4l1.4-1.4M11 5l1.4-1.4"/></svg>';
+  const moon='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 9A5.5 5.5 0 117 3a4.3 4.3 0 006 6z"/></svg>';
+  if(btn)btn.innerHTML=dark?sun:moon;
 }
 function toggleTheme(){
   const dark=!document.body.classList.contains('dark');
@@ -3138,7 +3222,6 @@ function renderPeople(users){
   if(pl)pl.style.display='block';
   if(pc)pc.textContent=users.length+' member'+(users.length!==1?'s':'');
   if(latestOnlineData)setTimeout(()=>renderOnlineStatus(latestOnlineData),50);
-  const ICONS={Treasurer:'💰',President:'🎖',Secretary:'📋','Vice President':'⭐',Member:'👤',Supporter:'🤝',Advisor:'🏫','7th Grade Rep':'🎒'};
   pl.innerHTML='';
   users.forEach(u=>{
     const uid=u.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
@@ -3761,20 +3844,110 @@ function clearTest(){
 
 
 // ── BUILD ROLE GRID ───────────────────────────────────────────────────
+// ── LOGIN SCREEN — interactive geometric background ─────────────────────
+// Mixed circles/squares/triangles drifting slowly, gently pushed away from
+// the cursor when it gets close, then settling back into idle drift.
+let obShapes=null, obMouseX=-9999, obMouseY=-9999, obCanvasEl=null, obCtx=null, obRafId=null;
+function initObCanvas(){
+  obCanvasEl=document.getElementById('ob-canvas');
+  if(!obCanvasEl)return;
+  obCtx=obCanvasEl.getContext('2d');
+  const resize=()=>{
+    obCanvasEl.width=window.innerWidth*devicePixelRatio;
+    obCanvasEl.height=window.innerHeight*devicePixelRatio;
+    obCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  };
+  resize();
+  window.addEventListener('resize',resize);
+
+  const TYPES=['circle','square','triangle'];
+  const n=16;
+  obShapes=Array.from({length:n},()=>{
+    const type=TYPES[Math.floor(Math.random()*TYPES.length)];
+    const base=type==='triangle'?(46+Math.random()*54):(14+Math.random()*22); // triangles much bigger
+    return {
+      type,
+      x:Math.random()*window.innerWidth,
+      y:Math.random()*window.innerHeight,
+      driftVx:(Math.random()-0.5)*0.3,   // constant idle motion, never decays
+      driftVy:(Math.random()-0.5)*0.3,
+      repelVx:0,repelVy:0,                // mouse-push impulse, decays back to 0
+      size:base,
+      rot:Math.random()*Math.PI*2,
+      rotSpeed:(Math.random()-0.5)*0.004,
+      opacity:0.06+Math.random()*0.12,
+    };
+  });
+
+  window.addEventListener('mousemove',e=>{obMouseX=e.clientX;obMouseY=e.clientY;});
+  window.addEventListener('mouseleave',()=>{obMouseX=-9999;obMouseY=-9999;});
+  window.addEventListener('touchmove',e=>{
+    if(e.touches&&e.touches[0]){obMouseX=e.touches[0].clientX;obMouseY=e.touches[0].clientY;}
+  },{passive:true});
+
+  const REPEL_RADIUS=170;
+  function tick(){
+    const gate=document.getElementById('onboard-modal');
+    const visible=gate&&getComputedStyle(gate).display!=='none';
+    if(visible){
+      const w=window.innerWidth,h=window.innerHeight;
+      obCtx.clearRect(0,0,w,h);
+      obShapes.forEach(s=>{
+        const dx=s.x-obMouseX, dy=s.y-obMouseY;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<REPEL_RADIUS&&dist>0.01){
+          const force=(1-dist/REPEL_RADIUS)*0.35;
+          s.repelVx+=(dx/dist)*force;
+          s.repelVy+=(dy/dist)*force;
+        }
+        s.repelVx*=0.85;s.repelVy*=0.85;
+        s.x+=s.driftVx+s.repelVx;
+        s.y+=s.driftVy+s.repelVy;
+        s.rot+=s.rotSpeed;
+        const pad=s.size+20;
+        if(s.x<-pad)s.x=w+pad;if(s.x>w+pad)s.x=-pad;
+        if(s.y<-pad)s.y=h+pad;if(s.y>h+pad)s.y=-pad;
+        obCtx.save();
+        obCtx.translate(s.x,s.y);
+        obCtx.rotate(s.rot);
+        obCtx.strokeStyle='rgba(255,255,255,'+s.opacity+')';
+        obCtx.lineWidth=1.5;
+        obCtx.beginPath();
+        if(s.type==='circle'){
+          obCtx.arc(0,0,s.size/2,0,Math.PI*2);
+        } else if(s.type==='square'){
+          obCtx.rect(-s.size/2,-s.size/2,s.size,s.size);
+        } else {
+          const r=s.size/2;
+          obCtx.moveTo(0,-r);
+          obCtx.lineTo(r*0.87,r*0.5);
+          obCtx.lineTo(-r*0.87,r*0.5);
+          obCtx.closePath();
+        }
+        obCtx.stroke();
+        obCtx.restore();
+      });
+    }
+    obRafId=requestAnimationFrame(tick);
+  }
+  tick();
+}
+
 function buildRoleGrid(){
   const grid=document.getElementById('role-btn-grid');
   if(!grid)return;
+  const svgWrap=path=>`<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px">${path}</svg>`;
   const roles=[
-    {role:'Treasurer',icon:'💰'},
-    {role:'President',icon:'🎖'},
-    {role:'Vice President',icon:'⭐'},
-    {role:'Secretary',icon:'📋'},
-    {role:'Advisor',icon:'🏫'},
-    {role:'7th Grade Rep',icon:'🎒'},
-    {role:'Member',icon:'👤'},
-    {role:'Supporter',icon:'🤝'},
+    {role:'Treasurer',icon:svgWrap('<circle cx="8" cy="8" r="6"/><path d="M8 4.5v7M10 6.2c0-.9-.9-1.4-2-1.4s-2 .5-2 1.3c0 .9.9 1.1 2 1.4c1.1.2 2 .5 2 1.4c0 .8-.9 1.3-2 1.3s-2-.5-2-1.4"/>')},
+    {role:'President',icon:svgWrap('<path d="M8 2.2l1.3 2.7 2.9.4-2.1 2.1.5 2.9L8 9l-2.6 1.3.5-2.9-2.1-2.1 2.9-.4z"/><path d="M6 10.5l-1 4 3-1.3 3 1.3-1-4"/>')},
+    {role:'Vice President',icon:svgWrap('<path d="M3 6.5l5-3 5 3M3 10l5-3 5 3M3 13.5l5-3 5 3"/>')},
+    {role:'Secretary',icon:svgWrap('<rect x="3.5" y="2.5" width="9" height="12" rx="1.2"/><rect x="6" y="1.3" width="4" height="2" rx=".5"/><path d="M6 6.5h4M6 9h4M6 11.5h2.5"/>')},
+    {role:'Advisor',icon:svgWrap('<path d="M8 3.2l6.5 2.8-6.5 2.8-6.5-2.8z"/><path d="M4.7 7.5v3c0 1.1 1.6 2 3.3 2s3.3-.9 3.3-2v-3"/><path d="M13.7 6.4v4.4"/>')},
+    {role:'7th Grade Rep',icon:svgWrap('<circle cx="8" cy="6" r="3.3"/><path d="M6 8.8l-1.4 4.7 3.4-1.5 3.4 1.5-1.4-4.7"/>')},
+    {role:'Member',icon:svgWrap('<circle cx="8" cy="5.3" r="2.8"/><path d="M2.3 14c0-3.1 2.5-5.7 5.7-5.7s5.7 2.6 5.7 5.7"/>')},
+    {role:'Supporter',icon:svgWrap('<path d="M8 13.3S2.7 9.9 2.7 6.3C2.7 4.2 4.3 2.7 6.1 2.7c.9 0 1.6.4 1.9 1 .3-.6 1-1 1.9-1 1.8 0 3.4 1.5 3.4 3.6 0 3.6-5.3 7-5.3 7z"/>')},
   ];
-  grid.innerHTML=roles.map(r=>`<button class="role-btn" onclick="obSelectRole(this,'${r.role}')">${r.icon} ${r.role}</button>`).join('');
+  grid.innerHTML=roles.map(r=>`<button class="role-btn" onclick="obSelectRole(this,'${r.role}')">${r.icon}${r.role}</button>`).join('');
 }
 
 
@@ -3892,6 +4065,7 @@ window.onerror=function(msg,src,line){
 };
 // check Firebase SDK loaded
 buildRoleGrid();
+initObCanvas();
 setEventView(eventView);
 updateGroqHint();
 initWidgetDrag();
