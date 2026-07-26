@@ -98,7 +98,8 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .widget-grid>.widget[data-size="half"]{grid-column:span 1}
 .widget-grid>.widget[data-hidden="1"]{display:none}
 .widget-grid.editing>.widget{position:relative;outline:1.5px dashed var(--border);outline-offset:3px;border-radius:var(--radius)}
-.widget-grid.editing>.widget.dragging{opacity:.5;outline-color:var(--accent)}
+.widget-grid.carrying{outline:2px dashed var(--accent);outline-offset:6px;border-radius:var(--radius)}
+.widget-drop-indicator{grid-column:span 2;height:64px;border:2px dashed var(--accent);border-radius:var(--radius);background:rgba(42,92,170,.06)}
 .widget-toolbar{display:none}
 .widget-grid.editing .widget-toolbar{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-bottom:4px;padding:0 2px}
 #add-widget-tile{display:none;grid-column:span 2;align-items:center;justify-content:center;gap:6px;min-height:64px;border:1.5px dashed var(--border);border-radius:var(--radius);cursor:pointer;color:var(--muted);font-size:13px;background:none}
@@ -110,7 +111,7 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .picker-item-info{flex:1;min-width:0}
 .picker-item-info b{font-size:14px;display:block}
 .picker-item-info span{font-size:12px;color:var(--muted)}
-.widget-drag-handle{cursor:grab;font-size:14px;color:var(--hint);padding:4px 6px;user-select:none;touch-action:none}
+.widget-drag-handle{cursor:pointer;font-size:14px;color:var(--hint);padding:4px 6px;user-select:none;touch-action:none}
 .widget-tool-btn{cursor:pointer;font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 7px;line-height:1;user-select:none}
 .widget-tool-btn:hover{color:var(--text)}
 @media(max-width:540px){.widget-grid{grid-template-columns:1fr}.widget-grid>.widget[data-size="half"]{grid-column:span 1}}
@@ -576,21 +577,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
   <div class="widget-grid" id="widget-grid">
     <div class="widget" data-widget="metrics" data-size="full">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('metrics')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('metrics',widgetLayout.sizes['metrics'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('metrics')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="grid2" id="w-metrics" style="margin-bottom:0">
         <div class="metric"><div class="metric-lbl">Upcoming events</div><div class="metric-val neu" id="h-events">0</div></div>
         <div class="metric"><div class="metric-lbl">Open ideas</div><div class="metric-val neu" id="h-ideas">0</div></div>
       </div>
     </div>
     <div class="widget" data-widget="nextevent" data-size="half">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('nextevent')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('nextevent')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('nextevent',widgetLayout.sizes['nextevent'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('nextevent')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('nextevent')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card next-event" style="margin-bottom:0">
         <div class="card-title">Next event</div>
         <div id="next-event-content"><p style="font-size:13px;color:var(--muted)">No upcoming events.</p></div>
       </div>
     </div>
     <div class="widget" data-widget="quickadd" data-size="half">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('quickadd')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('quickadd')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('quickadd',widgetLayout.sizes['quickadd'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('quickadd')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('quickadd')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card" style="margin-bottom:0">
         <div class="card-title">Quick add</div>
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -601,7 +602,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
     </div>
     <div class="widget" data-widget="agenda" data-size="full" data-hidden="1">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('agenda')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('agenda',widgetLayout.sizes['agenda'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('agenda')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card" style="margin-bottom:0">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div class="card-title" style="margin-bottom:0">Agenda</div>
@@ -612,7 +613,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
     </div>
     <div class="widget" data-widget="upcoming" data-size="full">
-      <div class="widget-toolbar"><span class="widget-drag-handle">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('upcoming')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('upcoming',widgetLayout.sizes['upcoming'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('upcoming')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card" style="margin-bottom:0">
         <div class="card-title">Upcoming events</div>
         <div id="home-events-list"></div>
@@ -2303,7 +2304,6 @@ const WIDGET_META={
 };
 let widgetLayout=null;
 let widgetEditing=false;
-let widgetDrag=null;
 
 function defaultWidgetLayout(){
   return {
@@ -2385,19 +2385,14 @@ function openWidgetPicker(){
       return `<div class="picker-item">
         <div class="picker-item-icon">${m.icon}</div>
         <div class="picker-item-info"><b>${m.label}</b><span>${m.desc}</span></div>
-        <button class="btn sm primary" onclick="addWidgetFromPicker('${id}')">Add</button>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          <button class="btn sm" onclick="closeModal('widget-picker-modal');startCarryWidget('${id}','half',true)">Small</button>
+          <button class="btn sm primary" onclick="closeModal('widget-picker-modal');startCarryWidget('${id}','full',true)">Large</button>
+        </div>
       </div>`;
     }).join('');
   }
   openModal('widget-picker-modal');
-}
-
-function addWidgetFromPicker(id){
-  widgetLayout.hidden[id]=false;
-  if(!widgetLayout.order.includes(id))widgetLayout.order.push(id);
-  applyWidgetLayout();saveWidgetLayout();
-  toast(WIDGET_META[id].label+' added','ok');
-  openWidgetPicker(); // refresh the list in place
 }
 
 function toggleEditLayout(){
@@ -2420,41 +2415,102 @@ function resetWidgetLayout(){
   toast('Layout reset','ok');
 }
 
-// Drag reordering via Pointer Events (works for touch and mouse alike,
-// unlike HTML5 drag-and-drop which doesn't fire reliably on touch).
-function initWidgetDrag(){
+// Pick-up-carry-drop widget placement — click a widget (new from the
+// picker, or an existing one's drag handle) to "pick it up," a ghost
+// follows the cursor, and a tap anywhere in the grid drops it there.
+// Chosen over hold-and-drag because it works identically with touch,
+// doesn't require a sustained gesture, and matches how the picker already
+// asks for a size up front rather than resizing after the fact.
+let heldWidget=null; // {id, size, isNew}
+
+function startCarryWidget(id,size,isNew){
+  cancelCarryWidget();
+  heldWidget={id,size,isNew};
+  if(!isNew){
+    const el=document.querySelector('.widget[data-widget="'+id+'"]');
+    if(el)el.style.display='none';
+  }
+  if(!widgetEditing)toggleEditLayout();
+  const ghost=document.createElement('div');
+  ghost.id='widget-ghost';
+  ghost.innerHTML=WIDGET_META[id].icon+'<span>'+WIDGET_META[id].label+'</span>';
+  ghost.style.cssText='position:fixed;z-index:999;pointer-events:none;display:flex;align-items:center;gap:8px;background:var(--surface);border:2px solid var(--accent);border-radius:10px;padding:8px 14px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:13px;font-weight:600;color:var(--text);transform:translate(-50%,-130%);left:-999px;top:-999px';
+  document.body.appendChild(ghost);
+  document.addEventListener('pointermove',moveWidgetGhost);
+  document.addEventListener('click',placeCarriedWidget,{capture:true});
+  document.addEventListener('keydown',cancelCarryOnEscape);
+  document.getElementById('widget-grid')?.classList.add('carrying');
+  toast('Tap where you want to place it on Home — Esc to cancel');
+}
+
+function moveWidgetGhost(e){
+  const ghost=document.getElementById('widget-ghost');
+  if(ghost){ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';}
+  previewWidgetDrop(e.clientX,e.clientY);
+}
+
+function previewWidgetDrop(x,y){
   const grid=document.getElementById('widget-grid');
-  if(!grid)return;
-  grid.addEventListener('pointerdown',e=>{
-    if(!widgetEditing)return;
-    const handle=e.target.closest('.widget-drag-handle');
-    if(!handle)return;
-    const widget=handle.closest('.widget');
-    if(!widget)return;
-    e.preventDefault();
-    try{widget.setPointerCapture(e.pointerId);}catch(err){}
-    widget.classList.add('dragging');
-    widgetDrag={widget,pointerId:e.pointerId};
-  });
-  grid.addEventListener('pointermove',e=>{
-    if(!widgetDrag||widgetDrag.pointerId!==e.pointerId)return;
-    const {widget}=widgetDrag;
-    const target=document.elementFromPoint(e.clientX,e.clientY);
-    const over=target&&target.closest('.widget');
-    if(!over||over===widget||over.parentElement!==grid)return;
-    const rect=over.getBoundingClientRect();
-    const before=e.clientY<rect.top+rect.height/2;
-    grid.insertBefore(widget,before?over:over.nextSibling);
-  });
-  const endDrag=e=>{
-    if(!widgetDrag||widgetDrag.pointerId!==e.pointerId)return;
-    widgetDrag.widget.classList.remove('dragging');
-    widgetDrag=null;
-    widgetLayout.order=Array.from(grid.querySelectorAll('.widget')).map(w=>w.dataset.widget);
-    saveWidgetLayout();
-  };
-  grid.addEventListener('pointerup',endDrag);
-  grid.addEventListener('pointercancel',endDrag);
+  if(!grid||!heldWidget)return;
+  const old=grid.querySelector('.widget-drop-indicator');
+  if(old)old.remove();
+  const target=document.elementFromPoint(x,y);
+  const over=target&&target.closest('.widget');
+  if(!over||over.parentElement!==grid)return;
+  const rect=over.getBoundingClientRect();
+  const before=y<rect.top+rect.height/2;
+  const indicator=document.createElement('div');
+  indicator.className='widget-drop-indicator';
+  grid.insertBefore(indicator,before?over:over.nextSibling);
+}
+
+function placeCarriedWidget(e){
+  if(!heldWidget)return;
+  e.preventDefault();e.stopPropagation();
+  const grid=document.getElementById('widget-grid');
+  const indicator=grid?.querySelector('.widget-drop-indicator');
+  let insertBeforeId=null;
+  if(indicator&&indicator.nextElementSibling&&indicator.nextElementSibling.classList.contains('widget')){
+    insertBeforeId=indicator.nextElementSibling.dataset.widget;
+  }
+  const {id,size}=heldWidget;
+  widgetLayout.hidden[id]=false;
+  widgetLayout.sizes[id]=size;
+  widgetLayout.order=widgetLayout.order.filter(x=>x!==id);
+  if(insertBeforeId&&insertBeforeId!==id){
+    const idx=widgetLayout.order.indexOf(insertBeforeId);
+    widgetLayout.order.splice(idx,0,id);
+  } else {
+    widgetLayout.order.push(id);
+  }
+  const el=document.querySelector('.widget[data-widget="'+id+'"]');
+  if(el)el.style.display='';
+  applyWidgetLayout();saveWidgetLayout();
+  toast(WIDGET_META[id].label+' placed','ok');
+  cleanupWidgetCarry();
+}
+
+function cancelCarryOnEscape(e){
+  if(e.key==='Escape')cancelCarryWidget();
+}
+
+function cancelCarryWidget(){
+  if(!heldWidget)return;
+  if(!heldWidget.isNew){
+    const el=document.querySelector('.widget[data-widget="'+heldWidget.id+'"]');
+    if(el)el.style.display='';
+  }
+  cleanupWidgetCarry();
+}
+
+function cleanupWidgetCarry(){
+  document.getElementById('widget-ghost')?.remove();
+  document.querySelectorAll('.widget-drop-indicator').forEach(el=>el.remove());
+  document.removeEventListener('pointermove',moveWidgetGhost);
+  document.removeEventListener('click',placeCarriedWidget,{capture:true});
+  document.removeEventListener('keydown',cancelCarryOnEscape);
+  document.getElementById('widget-grid')?.classList.remove('carrying');
+  heldWidget=null;
 }
 
 function resetProfile(){
@@ -4068,16 +4124,21 @@ buildRoleGrid();
 initObCanvas();
 setEventView(eventView);
 updateGroqHint();
-initWidgetDrag();
 
 // iOS hint replaced by PWA splash screen
+
+// These three work off localStorage and don't need Firebase at all, so
+// they run regardless — if the SDK fails to load (flaky network, an
+// ad-blocker, or a sandboxed preview environment blocking the gstatic.com
+// script), the app still ends up in a usable local-only state instead of
+// leaving core state like widgetLayout stuck at null forever.
+loadTheme();
+loadPrefs();
+loadWidgetLayout();
 
 if(typeof firebase==='undefined'){
   toast('Firebase SDK failed to load — check your internet connection');
 } else {
-  loadTheme();
-  loadPrefs();
-  loadWidgetLayout();
   autoConnectFirebase();
 }
 </script>
