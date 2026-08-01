@@ -19,6 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
 :root{--bg:#f7f6f2;--surface:#fff;--border:#e4e2da;--border-strong:#c8c5bb;--text:#1a1917;--muted:#706e67;--hint:#a09e97;--green:#1a6b4a;--red:#b83030;--accent:#2a5caa;--yellow:#92750a;--radius:10px;--radius-sm:6px}
 body.dark{--bg:#111110;--surface:#1c1c1a;--border:#2e2d2a;--border-strong:#3d3c38;--text:#f0ede8;--muted:#8a8880;--hint:#5a5855;--green:#2ecc87;--red:#e05555;--accent:#6b9ff0;--yellow:#e0b84a}
@@ -493,6 +494,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <span id="sync-indicator" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">
       <span class="sync-dot" id="sync-dot"></span><span id="sync-label">Not connected to Firebase</span>
     </span>
+    <button id="mode-toggle-btn" class="icon-btn" onclick="toggleAppMode()" title="Switch between ASB and Quah Production"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M11.5 2v3.5h-3.5M4.5 14v-3.5h3.5"/><path d="M2.5 8a5.5 5.5 0 019-4M13.5 8a5.5 5.5 0 01-9 4"/></svg><span id="mode-toggle-label">Quah mode</span></button>
     <button id="theme-btn" class="test-btn" onclick="toggleTheme()" title="Toggle dark mode"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 9A5.5 5.5 0 117 3a4.3 4.3 0 006 6z"/></svg></button>
     <div class="hdr-menu-wrap">
       <button id="hdr-menu-btn" class="icon-btn" onclick="toggleHdrMenu(event)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:4px"><path d="M2 4.5h12M2 8h12M2 11.5h12"/></svg>Menu</button>
@@ -511,13 +513,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </div>
 </div>
 
-<div id="reset-request-banner" style="display:none;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--red);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--red)">
-  <span id="reset-banner-text"></span>
-  <div style="margin-left:auto;display:flex;gap:8px">
-    <button id="reset-approve-btn" style="font-size:12px;padding:4px 12px;background:var(--red);color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="approveReset()">✓ Approve reset</button>
-    <button style="font-size:12px;padding:4px 10px;background:var(--surface);border:1px solid #f5b8b8;border-radius:4px;color:var(--red);cursor:pointer;font-family:'DM Sans',sans-serif" onclick="denyReset()">Deny</button>
-  </div>
-</div>
 <div id="test-banner" class="test-banner">
   <span>⚗ <strong>Test mode</strong> — sample data only, nothing saved to Firebase.</span>
   <button onclick="previewSplash()">📱 Preview install screen</button>
@@ -531,13 +526,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div>
 
 <div class="nav">
-  <div class="tabs">
+  <div class="tabs" id="tabs-asb">
     <button class="tab on" id="tab-home" role="tab" aria-label="Home" onclick="go('home')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5L8 2l6 4.5V14a.5.5 0 01-.5.5h-3.5v-3.5h-4V14.5H2.5A.5.5 0 012 14V6.5z"/></svg></span><span class="tab-label">Home</span></button>
     <button class="tab" id="tab-events" role="tab" aria-label="Events" onclick="go('events')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M1.5 6.5h13M5 1.5v2M11 1.5v2"/><circle cx="5" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="8" cy="10" r=".75" fill="currentColor" stroke="none"/><circle cx="11" cy="10" r=".75" fill="currentColor" stroke="none"/></svg></span><span class="tab-label">Events</span></button>
     <button class="tab" id="tab-notes" role="tab" aria-label="Notes" onclick="go('notes')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="1.5" width="10" height="13" rx="1.5"/><path d="M5 5.5h5M5 8h5M5 10.5h3"/><path d="M12 10.5l2.5 2.5-1.5 1.5-2.5-2.5v-1.5h1.5z" stroke-width="1.3"/></svg></span><span class="tab-label">Notes</span></button>
     <button class="tab" id="tab-ideas" role="tab" aria-label="Ideas" onclick="go('ideas')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2a4.5 4.5 0 013 7.8V11H5v-1.2A4.5 4.5 0 018 2z"/><path d="M5.5 12.5h5M6 14h4"/></svg></span><span class="tab-label">Ideas</span></button>
     <button class="tab" id="tab-chat" role="tab" aria-label="Chat" onclick="go('chat')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2.5h9a1 1 0 011 1v5a1 1 0 01-1 1H6l-3 2.5V9.5H2.5a1 1 0 01-1-1v-5a1 1 0 011-1z"/><path d="M11.5 5.5h2a1 1 0 011 1v3a1 1 0 01-1 1H13v2l-2-2h-.5"/></svg></span><span class="tab-label">Chat</span><span id="chat-badge" class="badge" style="display:none">0</span></button>
     <button class="tab" id="tab-people" role="tab" aria-label="People" onclick="go('people')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/><circle cx="12" cy="5.5" r="2"/><path d="M12 9.5c1.93 0 3.5 1.57 3.5 3.5"/></svg></span><span class="tab-label">People</span></button>
+  </div>
+  <div class="tabs" id="tabs-quah" style="display:none">
+    <button class="tab on" id="tab-tasks" role="tab" aria-label="Tasks" onclick="go('tasks')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 8l2 2 4-4"/></svg></span><span class="tab-label">Tasks</span></button>
+    <button class="tab" id="tab-script" role="tab" aria-label="Script" onclick="go('script')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="1.5" width="10" height="13" rx="1.5"/><path d="M5 5.5h5M5 8h5M5 10.5h3"/></svg></span><span class="tab-label">Script</span></button>
+    <button class="tab" id="tab-schedule" role="tab" aria-label="Schedule" onclick="go('schedule')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M1.5 6.5h13M5 1.5v2M11 1.5v2"/></svg></span><span class="tab-label">Schedule</span></button>
+    <button class="tab" id="tab-quahideas" role="tab" aria-label="Ideas" onclick="go('quahideas')"><span class="tab-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2a4.5 4.5 0 013 7.8V11H5v-1.2A4.5 4.5 0 018 2z"/><path d="M5.5 12.5h5M6 14h4"/></svg></span><span class="tab-label">Ideas</span></button>
   </div>
 </div>
 
@@ -577,21 +578,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
   <div class="widget-grid" id="widget-grid">
     <div class="widget" data-widget="metrics" data-size="full">
-      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('metrics',widgetLayout.sizes['metrics'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('metrics')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('metrics',widgetLayout?.sizes?.['metrics']||'full',false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('metrics')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="grid2" id="w-metrics" style="margin-bottom:0">
         <div class="metric"><div class="metric-lbl">Upcoming events</div><div class="metric-val neu" id="h-events">0</div></div>
         <div class="metric"><div class="metric-lbl">Open ideas</div><div class="metric-val neu" id="h-ideas">0</div></div>
       </div>
     </div>
     <div class="widget" data-widget="nextevent" data-size="half">
-      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('nextevent',widgetLayout.sizes['nextevent'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('nextevent')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('nextevent')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('nextevent',widgetLayout?.sizes?.['nextevent']||'full',false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('nextevent')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('nextevent')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card next-event" style="margin-bottom:0">
         <div class="card-title">Next event</div>
         <div id="next-event-content"><p style="font-size:13px;color:var(--muted)">No upcoming events.</p></div>
       </div>
     </div>
     <div class="widget" data-widget="quickadd" data-size="half">
-      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('quickadd',widgetLayout.sizes['quickadd'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('quickadd')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('quickadd')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('quickadd',widgetLayout?.sizes?.['quickadd']||'full',false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetSize('quickadd')">⤢</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('quickadd')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card" style="margin-bottom:0">
         <div class="card-title">Quick add</div>
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -602,7 +603,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
     </div>
     <div class="widget" data-widget="agenda" data-size="full" data-hidden="1">
-      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('agenda',widgetLayout.sizes['agenda'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('agenda')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('agenda',widgetLayout?.sizes?.['agenda']||'full',false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('agenda')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card" style="margin-bottom:0">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div class="card-title" style="margin-bottom:0">Agenda</div>
@@ -613,7 +614,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
     </div>
     <div class="widget" data-widget="upcoming" data-size="full">
-      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('upcoming',widgetLayout.sizes['upcoming'],false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('upcoming')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
+      <div class="widget-toolbar"><span class="widget-drag-handle" onclick="startCarryWidget('upcoming',widgetLayout?.sizes?.['upcoming']||'full',false)">⠿</span><span class="widget-tool-btn" onclick="toggleWidgetHidden('upcoming')" title="Remove"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div>
       <div class="card" style="margin-bottom:0">
         <div class="card-title">Upcoming events</div>
         <div id="home-events-list"></div>
@@ -671,9 +672,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button class="view-toggle-btn" id="vt-list" onclick="setEventView('list')">☰ List</button>
       <button class="btn sm primary" onclick="newEventForm()">+ Add event</button>
     </div>
-  </div>
-  <div id="clear-events-wrap" style="display:none;margin-bottom:12px">
-    <button class="btn danger sm" onclick="clearAllEvents()">🗑 Clear all events</button>
   </div>
   <div id="cal-view" class="card">
     <div style="display:flex;justify-content:center;margin-bottom:12px">
@@ -775,6 +773,76 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </div>
   <div id="people-list" class="card" style="display:none"></div>
   <div id="people-empty" class="empty"><div class="ico"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/><circle cx="12" cy="5.5" r="2"/><path d="M12 9.5c1.93 0 3.5 1.57 3.5 3.5"/></svg></div><p style="margin-bottom:6px">No one has joined yet.</p><p style="font-size:12px;color:var(--hint)">Once you connect Firebase and share the file, teammates will appear here after they sign in.</p></div>
+</div>
+
+<!-- QUAH: TASKS -->
+<div id="s-tasks" class="sec">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 style="font-size:16px;font-weight:500">Segment tasks</h2>
+    <button class="btn sm primary" onclick="showForm('task-form')">+ Add task</button>
+  </div>
+  <div id="task-form" class="card" style="display:none">
+    <div class="card-title">New task</div>
+    <div class="grid2">
+      <div class="fg"><label class="fl">Segment / clip name</label><input type="text" id="tk-segment" placeholder="e.g. Intro skit" maxlength="80"></div>
+      <div class="fg"><label class="fl">Assigned to</label><input type="text" id="tk-assignee" placeholder="e.g. Sam" maxlength="60"></div>
+    </div>
+    <div class="fg"><label class="fl">Notes</label><input type="text" id="tk-notes" placeholder="Optional" maxlength="200"></div>
+    <div style="display:flex;gap:8px"><button class="btn primary" onclick="addTask()">Add task</button><button class="btn" onclick="hideForm('task-form')">Cancel</button></div>
+  </div>
+  <div id="tasks-list" class="card" style="display:none"></div>
+  <div id="tasks-empty" class="empty"><p>No tasks yet — add one to start assigning segments.</p></div>
+</div>
+
+<!-- QUAH: SCRIPT -->
+<div id="s-script" class="sec">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 style="font-size:16px;font-weight:500">Scripts &amp; outlines</h2>
+    <button class="btn sm primary" onclick="showForm('script-form')">+ New script</button>
+  </div>
+  <div id="script-form" class="card" style="display:none">
+    <div class="card-title">New script / outline</div>
+    <div class="fg"><label class="fl">Episode / title</label><input type="text" id="sc-title" placeholder="e.g. Week 3 — Homecoming Hype" maxlength="120"></div>
+    <div class="fg"><label class="fl">Script / outline</label><textarea id="sc-content" rows="6" placeholder="Write it out here..."></textarea></div>
+    <div style="display:flex;gap:8px"><button class="btn primary" onclick="addScript()">Save script</button><button class="btn" onclick="hideForm('script-form')">Cancel</button></div>
+  </div>
+  <div id="script-list"></div>
+  <div id="script-empty" class="empty"><p>No scripts yet.</p></div>
+</div>
+
+<!-- QUAH: SCHEDULE -->
+<div id="s-schedule" class="sec">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 style="font-size:16px;font-weight:500">Publish schedule</h2>
+    <button class="btn sm primary" onclick="showForm('schedule-form')">+ Add deadline</button>
+  </div>
+  <div id="schedule-form" class="card" style="display:none">
+    <div class="card-title">New deadline</div>
+    <div class="grid2">
+      <div class="fg"><label class="fl">Episode</label><input type="text" id="sd-episode" placeholder="e.g. Week 4" maxlength="80"></div>
+      <div class="fg"><label class="fl">Publish date</label><input type="date" id="sd-date"></div>
+    </div>
+    <div class="fg"><label class="fl">Notes</label><input type="text" id="sd-notes" placeholder="Optional" maxlength="200"></div>
+    <div style="display:flex;gap:8px"><button class="btn primary" onclick="addScheduleItem()">Add</button><button class="btn" onclick="hideForm('schedule-form')">Cancel</button></div>
+  </div>
+  <div id="schedule-list" class="card" style="display:none"></div>
+  <div id="schedule-empty" class="empty"><p>No deadlines scheduled yet.</p></div>
+</div>
+
+<!-- QUAH: IDEAS FOR FUTURE QUAHS -->
+<div id="s-quahideas" class="sec">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 style="font-size:16px;font-weight:500">Ideas for future Quahs</h2>
+    <button class="btn sm primary" onclick="showForm('quahidea-form')">+ Add idea</button>
+  </div>
+  <div id="quahidea-form" class="card" style="display:none">
+    <div class="card-title">New idea</div>
+    <div class="fg"><label class="fl">Idea</label><input type="text" id="qi-title" placeholder="e.g. Teacher interview segment" maxlength="120"></div>
+    <div class="fg"><label class="fl">Details</label><input type="text" id="qi-desc" placeholder="Optional" maxlength="300"></div>
+    <div style="display:flex;gap:8px"><button class="btn primary" onclick="addQuahIdea()">Add idea</button><button class="btn" onclick="hideForm('quahidea-form')">Cancel</button></div>
+  </div>
+  <div id="quahideas-list" class="card" style="display:none"></div>
+  <div id="quahideas-empty" class="empty"><p>No ideas yet — pitch one for a future episode.</p></div>
 </div>
 
 <!-- FIREBASE MODAL -->
@@ -897,15 +965,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button class="btn sm" onclick="closeModal('customize-modal');toggleEditLayout()">✥ Edit layout</button>
     </div>
 
-    <!-- Nuclear reset -->
-    <div id="nuclear-reset-wrap" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
-      <p style="font-size:12px;font-weight:500;margin-bottom:6px">⚠️ Nuclear reset</p>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Wipes all data for everyone. Requires Treasurer + Advisors.</p>
-      <button class="btn danger sm" onclick="requestNuclearReset()">Request nuclear reset</button>
-      <div id="reset-request-status" style="display:none;margin-top:8px;font-size:12px;color:var(--red)"></div>
-    </div>
-
-
     <!-- Control Panel Access (Advisor only) -->
     <div id="cp-grant-wrap" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)">
       <p style="font-size:12px;font-weight:500;margin-bottom:4px">🔧 Control panel access</p>
@@ -1007,6 +1066,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="pwModalCancel()">Cancel</button>
       <button class="btn primary" onclick="pwModalConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- AGENDA ITEM MODAL -->
+<div id="agenda-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('agenda-modal')">
+  <div class="modal" style="max-width:360px">
+    <h2 style="margin-bottom:6px">New agenda item</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px">What should be on the agenda?</p>
+    <input type="text" id="agenda-modal-input" placeholder="e.g. Review Q3 budget" autocomplete="off"
+      style="width:100%;font-size:14px;margin-bottom:14px" onkeydown="if(event.key==='Enter')agendaModalConfirm()">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('agenda-modal')">Cancel</button>
+      <button class="btn primary" onclick="agendaModalConfirm()">Add</button>
     </div>
   </div>
 </div>
@@ -1116,9 +1189,24 @@ const SCHOOL_CONFIG = {
 const TCATS={expense:['Events & Dances','Supplies','Equipment','Marketing','Club Activities','Other Expense'],income:['Fundraiser','PTSA Funds','Donation','Grant','Other Income']};
 const STATUS_LABELS={idea:'💡 Idea',progress:'⚙️ In progress',done:'✅ Done',shelved:'📦 Shelved'};
 
-let data={events:[],notes:[],ideas:[]};
+let data={events:[],notes:[],ideas:[],quahTasks:[],quahScripts:[],quahSchedule:[],quahIdeas:[]};
 let testMode=false;
 let db=null;
+let hubAuth=null;
+// Firebase Auth needs an email — we don't collect real ones, so derive a
+// stable pseudo-email per role (matches the pattern used in the Financial
+// Manager). Internal account identifier only, never shown to anyone.
+function hubAuthEmailFor(role){
+  const slug=(role||'user').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  return slug+'@ims-asb.local';
+}
+function ensureHubFirebaseAppReady(){
+  if(typeof firebase==='undefined')return null;
+  const app=firebase.apps.length?firebase.app():null;
+  if(!app)return null;
+  if(!hubAuth)hubAuth=firebase.auth(app);
+  return app;
+}
 let prefs={name:'',role:'',widgets:{metrics:true,dash:true,recent:true,upcoming:true}};
 let obRole='';
 let isConnected=false;
@@ -1220,6 +1308,10 @@ function startListener(){
 data.events=Object.values(remote.events||{});
       data.notes=Object.values(remote.notes||{}).sort((a,b)=>b.id-a.id);
       data.ideas=Object.values(remote.ideas||{});
+      data.quahTasks=Object.values(remote.quahTasks||{});
+      data.quahScripts=Object.values(remote.quahScripts||{}).sort((a,b)=>b.id-a.id);
+      data.quahSchedule=Object.values(remote.quahSchedule||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+      data.quahIdeas=Object.values(remote.quahIdeas||{});
       if(remote['groq-key']){
         localStorage.setItem('ims-groq-key',remote['groq-key']);
         document.getElementById('groq-key').value=remote['groq-key'];
@@ -1306,11 +1398,6 @@ data.events=Object.values(remote.events||{});
     localStorage.setItem('ims-goal-reached-seen',at);
     launchConfetti();
   });
-  // listen for nuclear reset requests
-  db.ref('ims-asb/reset-request').on('value',(snap)=>{
-    if(testMode)return;
-    handleResetRequest(snap.val());
-  });
   // register this user in Firebase
   if(prefs.name){
     const uid=nameToUid(prefs.name);
@@ -1325,9 +1412,12 @@ function save(){
   if(testMode)return;
   if(db&&isConnected){
     const toObj=(arr)=>arr.reduce((o,i)=>{o[i.id]=i;return o;},{});
-    // update() only touches these three children — set() here would wipe chat/users/votes/announcements
-    db.ref('ims-asb').update({events:toObj(data.events),notes:toObj(data.notes),ideas:toObj(data.ideas)})
-      .catch(e=>toast('Save error: '+e.message,'err'));
+    // update() only touches these children — set() here would wipe chat/users/votes/announcements
+    db.ref('ims-asb').update({
+      events:toObj(data.events),notes:toObj(data.notes),ideas:toObj(data.ideas),
+      quahTasks:toObj(data.quahTasks),quahScripts:toObj(data.quahScripts),
+      quahSchedule:toObj(data.quahSchedule),quahIdeas:toObj(data.quahIdeas),
+    }).catch(e=>toast('Save error: '+e.message,'err'));
   } else {
     try{localStorage.setItem('ims-asb-local',JSON.stringify(data));}catch(e){}
   }
@@ -1392,6 +1482,22 @@ function openModal(id){document.getElementById(id).classList.add('on');if(id==='
 function closeModal(id){document.getElementById(id).classList.remove('on');}
 function showForm(id){document.getElementById(id).style.display='block';}
 function hideForm(id){document.getElementById(id).style.display='none';}
+let appMode='asb'; // 'asb' | 'quah'
+function toggleAppMode(){
+  appMode=appMode==='asb'?'quah':'asb';
+  try{localStorage.setItem('ims-app-mode',appMode);}catch(e){}
+  applyAppMode();
+}
+function applyAppMode(){
+  const asbTabs=document.getElementById('tabs-asb');
+  const quahTabs=document.getElementById('tabs-quah');
+  const label=document.getElementById('mode-toggle-label');
+  if(asbTabs)asbTabs.style.display=appMode==='asb'?'flex':'none';
+  if(quahTabs)quahTabs.style.display=appMode==='quah'?'flex':'none';
+  if(label)label.textContent=appMode==='asb'?'Quah mode':'ASB mode';
+  go(appMode==='asb'?'home':'tasks');
+}
+
 function go(t){
   if(t==='notes'){
     const canSeeNotes=(['Treasurer','President','Vice President','Secretary','Advisor'].includes(prefs.role));
@@ -1401,7 +1507,7 @@ function go(t){
     toast('That section isn\'t available for Bookkeeper access','err');t='home';
   }
   // smooth section switch
-  ['home','events','notes','ideas','chat','people'].forEach(n=>{
+  ['home','events','notes','ideas','chat','people','tasks','script','schedule','quahideas'].forEach(n=>{
     const tab=document.getElementById('tab-'+n);
     const sec=document.getElementById('s-'+n);
     if(tab)tab.classList.toggle('on',n===t);
@@ -1412,6 +1518,10 @@ function go(t){
   window.scrollTo({top:0,behavior:'smooth'});
   if(t==='people'&&db&&isConnected&&!testMode){db.ref('ims-asb/users').once('value').then(snap=>{const users=snap.val()?Object.values(snap.val()).filter(u=>u.name).sort((a,b)=>a.name.localeCompare(b.name)):[];renderPeople(users);knownUsers=users;});}
   if(t==='events'){renderCal();updateGroqHint();}
+  if(t==='tasks')renderTasks();
+  if(t==='script')renderScripts();
+  if(t==='schedule')renderSchedule();
+  if(t==='quahideas')renderQuahIdeas();
 }
 function daysUntil(ds){const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/(864e5));}
 // A multi-day event is still "current" until its END date has passed, not
@@ -1534,11 +1644,12 @@ function renderCal(){
     else if(offset>=daysInMonth){dnum=offset-daysInMonth+1;other=true;const m=calMonth===11?0:calMonth+1;const y=calMonth===11?calYear+1:calYear;dateStr=y+'-'+String(m+1).padStart(2,'0')+'-'+String(dnum).padStart(2,'0');}
     else{dnum=offset+1;dateStr=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(dnum).padStart(2,'0');}
     const evs=byDate[dateStr]||[];
+    const canManageCal=prefs.role==='Treasurer'||prefs.role==='Advisor';
     html+='<div class="cal-day'+(other?' other':'')+(dateStr===todayStr?' today':'')+'">'
       +'<span class="d-num">'+dnum+'</span>'
       +evs.map(e=>'<div class="cal-event" title="'+esc(e.name)+(e.notes?' — '+esc(e.notes):'')+'">'
         +'<span class="cal-event-name">'+esc(e.name)+'</span>'
-        +'<span class="cal-event-actions"><span class="evt-edit-btn" onclick="event.stopPropagation();editEvent('+e.id+')">✎</span><span class="cal-del-btn" onclick="event.stopPropagation();delEvent('+e.id+')">✕</span></span>'
+        +(canManageCal?'<span class="cal-event-actions"><span class="evt-edit-btn" onclick="event.stopPropagation();editEvent('+e.id+')">✎</span><span class="cal-del-btn" onclick="event.stopPropagation();delEvent('+e.id+')">✕</span></span>':'')
         +'</div>').join('')
       +'</div>';
   }
@@ -1598,7 +1709,7 @@ function renderEvents(){
   if(!el)return;
   if(!sorted.length){el.style.display='none';ee.style.display='block';return;}
   ee.style.display='none';el.style.display='block';
-  el.innerHTML=sorted.map(e=>eventRowHTML(e,true)).join('');
+  el.innerHTML=sorted.map(e=>eventRowHTML(e,prefs.role==='Treasurer'||prefs.role==='Advisor')).join('');
 }
 let editingEventId=null;
 function newEventForm(){
@@ -1647,6 +1758,7 @@ function addEvent(){
   const type=document.getElementById('ev-type').value;
   const estimatedCost=parseFloat(document.getElementById('ev-cost').value)||0;
   const notes=document.getElementById('ev-notes').value.trim();
+  if(hasProfanity(name)||hasProfanity(notes)){toast('Keep it school-appropriate 🙂','err');return;}
   if(editingEventId){
     const e=data.events.find(x=>x.id===editingEventId);
     if(!e){toast('Event not found — it may have been deleted','err');editingEventId=null;hideForm('event-form');return;}
@@ -1659,13 +1771,6 @@ function addEvent(){
   save();if(document.activeElement)document.activeElement.blur();hideForm('event-form');toast('Event added','ok');renderAll();
 }
 function delEvent(id){if(!confirm('Delete event?'))return;data.events=data.events.filter(e=>e.id!==id);save();renderAll();toast('Deleted','ok');}
-function clearAllEvents(){
-  if(testMode){toast('Disabled in test mode');return;}
-  if(!data.events.length){toast('No events to remove');return;}
-  if(!confirm('Remove all '+data.events.length+' event(s)? This cannot be undone.'))return;
-  data.events=[];
-  save();renderAll();toast('Events cleared','ok');
-}
 
 // ── BACKUP EXPORT ─────────────────────────────────────────────────────
 function downloadJSON(obj,filenameBase){
@@ -1698,10 +1803,11 @@ function renderNotes(){
   const nl=document.getElementById('notes-list'),ne=document.getElementById('notes-empty');
   if(!sorted.length){nl.style.display='none';ne.style.display='block';return;}
   ne.style.display='none';nl.style.display='block';
+  const canManageNotes=prefs.role==='Treasurer'||prefs.role==='Advisor';
   nl.innerHTML=sorted.map(n=>`<div class="note-item" onclick="this.classList.toggle('expanded')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div><div class="note-title">${esc(n.title)}</div><div class="note-date">${new Date(n.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'})}</div></div>
-      <button class="del-btn" onclick="event.stopPropagation();delNote(${n.id})">✕</button>
+      ${canManageNotes?`<button class="del-btn" onclick="event.stopPropagation();delNote(${n.id})">✕</button>`:''}
     </div>
     <div class="note-preview">${esc(n.content.slice(0,90))}${n.content.length>90?'…':''}</div>
     <div class="note-full">${esc(n.content)}</div>
@@ -1726,6 +1832,7 @@ function renderIdeas(){
   if(!data.ideas.length){il.style.display='none';ie.style.display='block';return;}
   ie.style.display='none';il.style.display='block';
   const order={idea:0,progress:1,done:2,shelved:3};
+  const canManage=prefs.role==='Treasurer'||prefs.role==='Advisor';
   il.innerHTML=[...data.ideas].sort((a,b)=>order[a.status]-order[b.status]).map(i=>`<div class="idea-item">
     <div class="idea-content">
       <div class="idea-title">${esc(i.title)}</div><span class="status-chip ${i.status}">${STATUS_LABELS[i.status]||i.status}</span>
@@ -1734,7 +1841,7 @@ function renderIdeas(){
     </div>
     <div class="idea-actions">
       <select class="status-sel" onchange="updateIdeaStatus(${i.id},this.value)">${Object.entries(STATUS_LABELS).map(([v,l])=>`<option value="${v}"${i.status===v?' selected':''}>${l}</option>`).join('')}</select>
-      <button class="del-btn" onclick="delIdea(${i.id})">✕</button>
+      ${canManage?`<button class="del-btn" onclick="delIdea(${i.id})">✕</button>`:''}
     </div>
   </div>`).join('');
   [...data.ideas].sort((a,b)=>order[a.status]-order[b.status]).forEach(i=>{
@@ -1761,6 +1868,147 @@ function updateIdeaStatus(id,s){
   if(!wasDone&&s==='done')launchConfetti();
 }
 function delIdea(id){if(!confirm('Delete?'))return;data.ideas=data.ideas.filter(i=>i.id!==id);save();renderIdeas();renderHome();toast('Deleted','ok');}
+
+// ── QUAH: TASKS ─────────────────────────────────────────────────────────
+function renderTasks(){
+  const list=document.getElementById('tasks-list');
+  const empty=document.getElementById('tasks-empty');
+  if(!data.quahTasks.length){list.style.display='none';empty.style.display='block';return;}
+  list.style.display='block';empty.style.display='none';
+  list.innerHTML=data.quahTasks.map(t=>`<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <div style="min-width:0">
+      <div style="font-weight:500;font-size:14px">${esc(t.segment)}</div>
+      <div style="font-size:12px;color:var(--muted)">${t.assignee?esc(t.assignee):'Unassigned'}${t.notes?' · '+esc(t.notes):''}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <select onchange="updateTaskStatus(${t.id},this.value)" style="font-size:12px">
+        <option value="not-started"${t.status==='not-started'?' selected':''}>Not started</option>
+        <option value="editing"${t.status==='editing'?' selected':''}>Editing</option>
+        <option value="review"${t.status==='review'?' selected':''}>In review</option>
+        <option value="done"${t.status==='done'?' selected':''}>Done</option>
+      </select>
+      <button class="del-btn" onclick="delTask(${t.id})">✕</button>
+    </div>
+  </div>`).join('');
+}
+function addTask(){
+  const segment=document.getElementById('tk-segment').value.trim();
+  const assignee=document.getElementById('tk-assignee').value.trim();
+  const notes=document.getElementById('tk-notes').value.trim();
+  if(!segment){toast('Enter a segment name','err');return;}
+  if(hasProfanity(segment)||hasProfanity(notes)){toast('Keep it school-appropriate 🙂','err');return;}
+  data.quahTasks.push({id:Date.now(),segment,assignee,notes,status:'not-started'});
+  save();renderTasks();hideForm('task-form');
+  ['tk-segment','tk-assignee','tk-notes'].forEach(id=>document.getElementById(id).value='');
+  toast('Task added','ok');
+}
+function updateTaskStatus(id,status){
+  const t=data.quahTasks.find(x=>x.id===id);
+  if(t){t.status=status;save();renderTasks();}
+}
+function delTask(id){
+  if(!confirm('Delete task?'))return;
+  data.quahTasks=data.quahTasks.filter(t=>t.id!==id);save();renderTasks();toast('Deleted','ok');
+}
+
+// ── QUAH: SCRIPTS ────────────────────────────────────────────────────────
+function renderScripts(){
+  const list=document.getElementById('script-list');
+  const empty=document.getElementById('script-empty');
+  if(!data.quahScripts.length){list.style.display='none';empty.style.display='block';return;}
+  list.style.display='block';empty.style.display='none';
+  list.innerHTML=data.quahScripts.map(s=>`<div class="note-item" onclick="this.classList.toggle('expanded')">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="note-title">${esc(s.title)}</div>
+      <button class="del-btn" onclick="event.stopPropagation();delScript(${s.id})">✕</button>
+    </div>
+    <div class="note-preview">${esc(s.content.slice(0,90))}${s.content.length>90?'…':''}</div>
+    <div class="note-full">${esc(s.content)}</div>
+  </div>`).join('');
+}
+function addScript(){
+  const title=document.getElementById('sc-title').value.trim();
+  const content=document.getElementById('sc-content').value.trim();
+  if(!title||!content){toast('Title and content required','err');return;}
+  if(hasProfanity(title)||hasProfanity(content)){toast('Keep it school-appropriate 🙂','err');return;}
+  data.quahScripts.push({id:Date.now(),title,content});
+  save();renderScripts();hideForm('script-form');
+  document.getElementById('sc-title').value='';document.getElementById('sc-content').value='';
+  toast('Script saved','ok');
+}
+function delScript(id){
+  if(!confirm('Delete this script?'))return;
+  data.quahScripts=data.quahScripts.filter(s=>s.id!==id);save();renderScripts();toast('Deleted','ok');
+}
+
+// ── QUAH: SCHEDULE ───────────────────────────────────────────────────────
+function renderSchedule(){
+  const list=document.getElementById('schedule-list');
+  const empty=document.getElementById('schedule-empty');
+  if(!data.quahSchedule.length){list.style.display='none';empty.style.display='block';return;}
+  list.style.display='block';empty.style.display='none';
+  list.innerHTML=[...data.quahSchedule].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>{
+    const d=s.date?daysUntil(s.date):null;
+    const dateStr=s.date?new Date(s.date+'T00:00:00').toLocaleDateString('default',{month:'short',day:'numeric',year:'numeric'}):'No date set';
+    return `<div class="event-item">
+      <div class="event-countdown ${d!==null&&d<0?'past':''}"><div class="num">${d!==null?Math.abs(d):'–'}</div><div class="unit">${d!==null?(d<0?'ago':'days'):''}</div></div>
+      <div class="event-info"><div class="event-title">${esc(s.episode)}</div><div class="event-sub">${dateStr}${s.notes?' · '+esc(s.notes):''}</div></div>
+      <button class="del-btn" onclick="delScheduleItem(${s.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+function addScheduleItem(){
+  const episode=document.getElementById('sd-episode').value.trim();
+  const date=document.getElementById('sd-date').value;
+  const notes=document.getElementById('sd-notes').value.trim();
+  if(!episode){toast('Enter an episode name','err');return;}
+  if(hasProfanity(episode)||hasProfanity(notes)){toast('Keep it school-appropriate 🙂','err');return;}
+  data.quahSchedule.push({id:Date.now(),episode,date,notes});
+  save();renderSchedule();hideForm('schedule-form');
+  ['sd-episode','sd-date','sd-notes'].forEach(id=>document.getElementById(id).value='');
+  toast('Deadline added','ok');
+}
+function delScheduleItem(id){
+  if(!confirm('Delete this deadline?'))return;
+  data.quahSchedule=data.quahSchedule.filter(s=>s.id!==id);save();renderSchedule();toast('Deleted','ok');
+}
+
+// ── QUAH: IDEAS FOR FUTURE QUAHS ─────────────────────────────────────────
+function renderQuahIdeas(){
+  const list=document.getElementById('quahideas-list');
+  const empty=document.getElementById('quahideas-empty');
+  if(!data.quahIdeas.length){list.style.display='none';empty.style.display='block';return;}
+  list.style.display='block';empty.style.display='none';
+  const order={idea:0,progress:1,done:2,shelved:3};
+  list.innerHTML=[...data.quahIdeas].sort((a,b)=>(order[a.status]||0)-(order[b.status]||0)).map(i=>`<div class="idea-item">
+    <div class="idea-content">
+      <div class="idea-title">${esc(i.title)}</div><span class="status-chip ${i.status}">${STATUS_LABELS[i.status]||i.status}</span>
+      ${i.description?`<div class="idea-desc">${esc(i.description)}</div>`:''}
+    </div>
+    <div class="idea-actions">
+      <select class="status-sel" onchange="updateQuahIdeaStatus(${i.id},this.value)">${Object.entries(STATUS_LABELS).map(([v,l])=>`<option value="${v}"${i.status===v?' selected':''}>${l}</option>`).join('')}</select>
+      <button class="del-btn" onclick="delQuahIdea(${i.id})">✕</button>
+    </div>
+  </div>`).join('');
+}
+function addQuahIdea(){
+  const title=document.getElementById('qi-title').value.trim();
+  const desc=document.getElementById('qi-desc').value.trim();
+  if(!title){toast('Enter an idea','err');return;}
+  if(hasProfanity(title)||hasProfanity(desc)){toast('Keep it school-appropriate 🙂','err');return;}
+  data.quahIdeas.push({id:Date.now(),title,description:desc,status:'idea'});
+  save();renderQuahIdeas();hideForm('quahidea-form');
+  document.getElementById('qi-title').value='';document.getElementById('qi-desc').value='';
+  toast('Idea added','ok');
+}
+function updateQuahIdeaStatus(id,status){
+  const i=data.quahIdeas.find(x=>x.id===id);
+  if(i){i.status=status;save();renderQuahIdeas();}
+}
+function delQuahIdea(id){
+  if(!confirm('Delete this idea?'))return;
+  data.quahIdeas=data.quahIdeas.filter(i=>i.id!==id);save();renderQuahIdeas();toast('Deleted','ok');
+}
 
 // ── CHAT ──────────────────────────────────────────────────────────────
 let activeConvo=null;
@@ -2036,74 +2284,6 @@ function renderActivity(acts){
   }).join('');
 }
 
-// ── NUCLEAR RESET ────────────────────────────────────────────────────
-function requestNuclearReset(){
-  if(testMode){toast('Disabled in test mode');return;}
-  if(!db||!isConnected){toast('Must be connected to Firebase','err');return;}
-  if(!confirm('This will erase ALL data — budget, events, notes, ideas, chat, and people. Request approval from both advisors to proceed?'))return;
-  const req={requestedBy:prefs.name,requestedAt:Date.now(),approvals:{}};
-  req.approvals[prefs.name]=true;
-  db.ref('ims-asb/reset-request').set(req).then(()=>toast('Reset requested — waiting for both advisors to approve'));
-}
-
-function handleResetRequest(req){
-  if(testMode)return; // never act on real reset-request data while demoing test mode
-  const banner=document.getElementById('reset-request-banner');
-  const txt=document.getElementById('reset-banner-text');
-  const approveBtn=document.getElementById('reset-approve-btn');
-  if(!req){banner.style.display='none';return;}
-  const approvals=req.approvals||{};
-  const approvedNames=Object.keys(approvals);
-  const alreadyApproved=approvals[prefs.name];
-  // check if we need all 3: requestedBy + both advisors
-  // get advisor names from knownUsers
-  const advisors=knownUsers.filter(u=>u.role==='Advisor').map(u=>u.name);
-  const required=[req.requestedBy,...advisors];
-  const uniqueRequired=[...new Set(required)];
-  const allApproved=uniqueRequired.every(n=>approvals[n]);
-  if(allApproved){
-    // execute the reset
-    executeNuclearReset();
-    return;
-  }
-  // show banner to people who haven't approved yet (treasurer + advisors only)
-  const canApprove=prefs.role==='Treasurer'||prefs.role==='Advisor';
-  if(!canApprove){banner.style.display='none';return;}
-  banner.style.display='flex';
-  const pending=uniqueRequired.filter(n=>!approvals[n]);
-  txt.textContent=`☢ ${req.requestedBy} requested a full reset. Approved: ${approvedNames.join(', ')} · Waiting: ${pending.join(', ')}`;
-  approveBtn.style.display=alreadyApproved?'none':'block';
-}
-
-function approveReset(){
-  if(testMode){toast('Disabled in test mode');return;}
-  if(!db||!isConnected)return;
-  db.ref('ims-asb/reset-request/approvals/'+prefs.name).set(true)
-    .then(()=>toast('You approved the reset'));
-}
-
-function denyReset(){
-  if(!confirm('Deny and cancel this reset request?'))return;
-  if(db&&isConnected)db.ref('ims-asb/reset-request').remove()
-    .then(()=>{toast('Reset request cancelled');document.getElementById('reset-request-banner').style.display='none';});
-}
-
-function executeNuclearReset(){
-  if(testMode)return; // second, independent guard — never wipe real data during a demo
-  if(!db||!isConnected)return;
-  // wipe everything except firebase config
-  db.ref('ims-asb').remove().then(()=>{
-    data={events:[],notes:[],ideas:[]};
-    document.getElementById('reset-request-banner').style.display='none';
-    renderAll();
-    renderConvoList([]);
-    renderPeople([]);
-    toast('Full reset complete');
-    logActivity('Nuclear reset','All data wiped');
-  });
-}
-
-
 // ── RATE LIMITING ─────────────────────────────────────────────────────
 const RL_MAX = 5;
 const RL_LOCKOUT = 10 * 60 * 1000; // 10 minutes
@@ -2209,7 +2389,11 @@ function applyPrefs(){
   updateGreeting();
 
   // SUPPORTER: hide delete buttons
-  if(isSupporter)applyReadOnly(['del-btn','evt-edit-btn']);
+  // Deleting/editing events, ideas, and notes is now Treasurer + Advisor
+  // only — every other role used to have full delete access, which was
+  // the actual risk (anyone on the team could wipe an event by accident
+  // or on purpose), not just Supporter's intentionally read-only view.
+  if(!isTreasurer&&!isAdvisor)applyReadOnly(['del-btn','evt-edit-btn']);
 
   // ADVISOR: full content access + activity log, no technical buttons
   if(isAdvisor){
@@ -2224,13 +2408,9 @@ function applyPrefs(){
   const finLink=document.getElementById('btn-finance');
   if(finLink)finLink.style.display=(isTreasurer||isAdvisor||isBookkeeper)?'':'none';
 
-  // NUCLEAR RESET + CLEAR CHAT + ARCHIVE: Treasurer + Advisor
-  const nrw=document.getElementById('nuclear-reset-wrap');
-  if(nrw)nrw.style.display=(isTreasurer||isAdvisor)?'block':'none';
+  // CLEAR CHAT + ARCHIVE: Treasurer + Advisor
   const ccw=document.getElementById('clear-chat-wrap');
   if(ccw)ccw.style.display=(isTreasurer||isAdvisor)?'block':'none';
-  const cew=document.getElementById('clear-events-wrap');
-  if(cew)cew.style.display=(isTreasurer||isAdvisor)?'block':'none';
   const aw=document.getElementById('archive-wrap');
   if(aw)aw.style.display=(isTreasurer||isAdvisor)?'block':'none';
   const cpw=document.getElementById('cp-grant-wrap');
@@ -2247,37 +2427,20 @@ function applyPrefs(){
 function renderPasswordMgmt(){
   const list=document.getElementById('pw-mgmt-list');
   if(!list)return;
-  loadPasswordsFromFirebase();
   list.innerHTML=Object.keys(ROLE_PWS).map(role=>{
     const safeId=role.replace(/[^a-zA-Z0-9]/g,'_');
-    return `<div style="display:flex;flex-direction:column;gap:6px;padding-bottom:8px;border-bottom:1px solid var(--border);font-size:13px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <span style="font-weight:500">${role}</span>
-        <span id="pw-reveal-${safeId}" style="font-family:monospace;color:var(--hint);cursor:pointer;word-break:break-all;text-align:right" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
-      </div>
-      <div style="display:flex;gap:8px">
-        <input type="text" id="pw-new-${safeId}" placeholder="New password" style="flex:1;font-size:12px;min-width:0">
-        <button class="btn sm" onclick="submitPasswordChange('${role}','${safeId}')">Set</button>
-      </div>
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="font-weight:500">${role}</span>
+      <span id="pw-reveal-${safeId}" style="font-family:monospace;color:var(--hint);cursor:pointer;word-break:break-all;text-align:right" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
     </div>`;
-  }).join('');
+  }).join('')
+  + `<p style="font-size:12px;color:var(--hint);margin-top:10px">To change a role's password, edit the <code>ROLE_PWS</code> value in the source and redeploy. Whoever's using that role will need their Firebase sign-in reset afterward (Authentication → Users, in the Firebase console) — they'll see "Access code changed recently" until then.</p>`;
 }
 
 function revealPassword(role,safeId){
   const el=document.getElementById('pw-reveal-'+safeId);
   if(!el)return;
   el.textContent=getPassword(role);
-}
-
-function submitPasswordChange(role,safeId){
-  const input=document.getElementById('pw-new-'+safeId);
-  const newPw=input?input.value.trim():'';
-  if(!newPw)return;
-  updatePassword(role,newPw,()=>{
-    input.value='';
-    const el=document.getElementById('pw-reveal-'+safeId);
-    if(el)el.textContent='••••••••';
-  });
 }
 function applyReadOnly(classes){
   // for advisor/supporter, hide edit-type buttons
@@ -2422,10 +2585,13 @@ function resetWidgetLayout(){
 // doesn't require a sustained gesture, and matches how the picker already
 // asks for a size up front rather than resizing after the fact.
 let heldWidget=null; // {id, size, isNew}
+let carryStartedEditing=false;
 
 function startCarryWidget(id,size,isNew){
+  if(!widgetLayout)return;
   cancelCarryWidget();
   heldWidget={id,size,isNew};
+  carryStartedEditing=!widgetEditing;
   if(!isNew){
     const el=document.querySelector('.widget[data-widget="'+id+'"]');
     if(el)el.style.display='none';
@@ -2511,10 +2677,13 @@ function cleanupWidgetCarry(){
   document.removeEventListener('keydown',cancelCarryOnEscape);
   document.getElementById('widget-grid')?.classList.remove('carrying');
   heldWidget=null;
+  if(carryStartedEditing&&widgetEditing)toggleEditLayout();
+  carryStartedEditing=false;
 }
 
 function resetProfile(){
   if(!confirm("Reset your profile? You'll go through onboarding again. Your data stays."))return;
+  if(hubAuth)hubAuth.signOut().catch(()=>{});
   // Clear the identity fields but keep techAdmin/joinedAt — the confirm
   // dialog above promises "your data stays," but a full .remove() here
   // used to wipe the whole record, silently revoking tech admin access
@@ -2567,7 +2736,7 @@ const KNOWN_MEMBERS=[
 function detectRole(name){
   const lower=name.toLowerCase().trim();
   for(const m of KNOWN_MEMBERS){
-    if(m.patterns.some(p=>lower===p||lower.includes(p)||p.includes(lower)))
+    if(m.patterns.some(p=>lower===p||lower.includes(p)))
       return m.role;
   }
   return null;
@@ -2618,8 +2787,31 @@ function obSelectRole(btn,role){
   showPwModal(
     role+' password',
     ROLE_HINTS[role]||'',
-    (pw)=>{
+    async (pw)=>{
       if(pw!==getPassword(role)){return false;}
+      const app=ensureHubFirebaseAppReady();
+      if(app&&hubAuth){
+        const email=hubAuthEmailFor(role);
+        try{
+          await hubAuth.signInWithEmailAndPassword(email,pw);
+        }catch(authErr){
+          if(authErr.code==='auth/user-not-found'){
+            try{await hubAuth.createUserWithEmailAndPassword(email,pw);}
+            catch(createErr){
+              document.getElementById('pw-modal-error').textContent='Sign-in error: '+createErr.message;
+              return false;
+            }
+          } else if(authErr.code==='auth/wrong-password'){
+            document.getElementById('pw-modal-error').textContent='Password changed recently — ask whoever manages Firebase to reset this role\'s sign-in.';
+            return false;
+          } else {
+            document.getElementById('pw-modal-error').textContent='Sign-in error: '+authErr.message;
+            return false;
+          }
+        }
+      }
+      // If Firebase isn't connected yet (offline/local-only use), skip Auth
+      // entirely rather than blocking someone from using the app locally.
       obRole=role;
       document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
       btn.classList.add('on');
@@ -2698,14 +2890,13 @@ function finishOnboard(){
 
 
 // ── FIREBASE PASSWORDS ────────────────────────────────────────────────
-// Passwords are stored in Firebase so they never appear in View Source.
-// ROLE_PWS below is the SEED (first-run only). After that Firebase is
-// the source of truth. Luke Li can update them via the hub UI.
-let ROLE_PWS_LIVE = null; // null = not yet loaded from Firebase
-
+// Role passwords are the ROLE_PWS constant below. This can't be synced
+// live through Firebase — config/passwords is intentionally unreadable
+// and unwritable by the security rules, even to signed-in users, so no
+// one's role password is ever exposed to teammates. To rotate a
+// password, edit ROLE_PWS and redeploy (see the Settings modal note).
 function getPassword(role){
-  // use Firebase-loaded passwords if available, fall back to seed
-  return (ROLE_PWS_LIVE && ROLE_PWS_LIVE[role]) || ROLE_PWS[role] || '';
+  return ROLE_PWS[role] || '';
 }
 
 // ── NAME → UID (canonical) ────────────────────────────────────────────
@@ -2723,31 +2914,6 @@ function nameToUid(name){
 // this fix shipped.
 function legacyNameToUid(name){
   return (name||'').toLowerCase().replace(/\s+/g,'-');
-}
-
-function loadPasswordsFromFirebase(){
-  if(!db || !isConnected) return;
-  db.ref('ims-asb/config/passwords').once('value').then(snap=>{
-    const stored = snap.val();
-    if(stored){
-      ROLE_PWS_LIVE = stored;
-    } else {
-      // First run — seed Firebase with the defaults
-      db.ref('ims-asb/config/passwords').set(ROLE_PWS);
-      ROLE_PWS_LIVE = {...ROLE_PWS};
-    }
-  }).catch(()=>{});
-}
-
-function updatePassword(role, newPw, callback){
-  if(!db || !isConnected){toast('Must be connected to Firebase','err');return;}
-  if(!newPw || newPw.length < 8){toast('Password must be at least 8 characters','err');return;}
-  db.ref('ims-asb/config/passwords/'+role).set(newPw).then(()=>{
-    if(!ROLE_PWS_LIVE) ROLE_PWS_LIVE = {};
-    ROLE_PWS_LIVE[role] = newPw;
-    if(callback) callback();
-    toast(role+' password updated','ok');
-  }).catch(e=>toast('Error: '+e.message,'err'));
 }
 
 // ── PASSWORD MODAL ───────────────────────────────────────────────────────
@@ -2770,7 +2936,7 @@ function showPwModal(title, hint, onConfirm, onCancel){
   setTimeout(()=>document.getElementById('pw-modal-input').focus(),100);
 }
 
-function pwModalConfirm(){
+async function pwModalConfirm(){
   const pw=document.getElementById('pw-modal-input').value;
   const errEl=document.getElementById('pw-modal-error');
   if(!pw){errEl.textContent='Please enter the password';return;}
@@ -2784,7 +2950,16 @@ function pwModalConfirm(){
   }
 
   if(pwModalCallback){
-    const result=pwModalCallback(pw);
+    document.getElementById('pw-modal-input').disabled=true;
+    let result;
+    try{
+      result=pwModalCallback(pw);
+      if(result&&typeof result.then==='function')result=await result;
+    }catch(e){
+      errEl.textContent='Sign-in error: '+e.message;
+      document.getElementById('pw-modal-input').disabled=false;
+      return;
+    }
     if(result===false){
       const fail = rlFail('pw');
       if(fail.locked){
@@ -2793,6 +2968,7 @@ function pwModalConfirm(){
       } else {
         errEl.textContent='Wrong password — '+fail.left+' attempt'+(fail.left===1?'':'s')+' left';
         document.getElementById('pw-modal-input').value='';
+        document.getElementById('pw-modal-input').disabled=false;
         document.getElementById('pw-modal-input').focus();
       }
       return;
@@ -2836,7 +3012,7 @@ function startTour(){
   const role=prefs.role||'';
   tourSteps=ALL_TOUR_STEPS.filter(s=>{
     if(s.roles==='all')return true;
-    if(s.roles==='finances')return role&&role!=='Treasurer'&&role!=='Advisor';
+    if(s.roles==='finances')return role==='Treasurer'||role==='Advisor';
     return s.roles===role;
   });
   tourIdx=0;
@@ -3146,20 +3322,18 @@ function renderAgenda(){
   </div>`).join('');
 }
 function addAgendaItem(){
-  showPwModal('New agenda item','What should be on the agenda?',(text)=>{
-    if(!text.trim())return;
-    const items=JSON.parse(localStorage.getItem('ims-agenda')||'[]');
-    items.push({text:text.trim(),done:false});
-    localStorage.setItem('ims-agenda',JSON.stringify(items));
-    renderAgenda();
-  });
-  // repurpose modal as text input
-  setTimeout(()=>{
-    document.getElementById('pw-modal-title').textContent='New agenda item';
-    document.getElementById('pw-modal-hint').textContent='Type the agenda item then click Confirm.';
-    const inp=document.getElementById('pw-modal-input');
-    inp.type='text';inp.placeholder='e.g. Review Q3 budget';inp.value='';inp.focus();
-  },50);
+  document.getElementById('agenda-modal-input').value='';
+  openModal('agenda-modal');
+  setTimeout(()=>document.getElementById('agenda-modal-input').focus(),100);
+}
+function agendaModalConfirm(){
+  const text=document.getElementById('agenda-modal-input').value.trim();
+  if(!text)return;
+  const items=JSON.parse(localStorage.getItem('ims-agenda')||'[]');
+  items.push({text,done:false});
+  localStorage.setItem('ims-agenda',JSON.stringify(items));
+  renderAgenda();
+  closeModal('agenda-modal');
 }
 function toggleAgendaItem(i){
   const items=JSON.parse(localStorage.getItem('ims-agenda')||'[]');
@@ -3373,7 +3547,7 @@ function voteIdea(id){
   if(!db||!isConnected){toast('Connect Firebase to vote','err');return;}
   const voter=prefs.name;
   if(!voter){toast('Set your name first');return;}
-  db.ref('ims-asb/votes/'+id+'/'+voter.replace(/\s+/g,'-')).transaction(val=>{
+  db.ref('ims-asb/votes/'+id+'/'+nameToUid(voter)).transaction(val=>{
     return val?null:voter; // toggle vote
   }).then(()=>renderIdeas());
 }
@@ -3878,7 +4052,7 @@ function loadTest(){
 }
 function clearTest(){
   testMode=false;
-  data={events:[],notes:[],ideas:[]};
+  data={events:[],notes:[],ideas:[],quahTasks:[],quahScripts:[],quahSchedule:[],quahIdeas:[]};
   renderAnnouncements([]);renderPeople([]);renderConvoList([]);
   const now=new Date();calMonth=now.getMonth();calYear=now.getFullYear();
   document.getElementById('test-banner').classList.remove('on');
@@ -3889,6 +4063,10 @@ function clearTest(){
         data.events=Object.values(remote.events||{});
         data.notes=Object.values(remote.notes||{}).sort((a,b)=>b.id-a.id);
         data.ideas=Object.values(remote.ideas||{});
+        data.quahTasks=Object.values(remote.quahTasks||{});
+        data.quahScripts=Object.values(remote.quahScripts||{}).sort((a,b)=>b.id-a.id);
+        data.quahSchedule=Object.values(remote.quahSchedule||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+        data.quahIdeas=Object.values(remote.quahIdeas||{});
         if(remote.users){const users=Object.values(remote.users).filter(u=>u.name).sort((a,b)=>a.name.localeCompare(b.name));renderPeople(users);renderConvoList(users);}
         if(remote.announcements)renderAnnouncements(Object.values(remote.announcements).sort((a,b)=>b.id-a.id));
       }
@@ -4135,6 +4313,8 @@ updateGroqHint();
 loadTheme();
 loadPrefs();
 loadWidgetLayout();
+try{appMode=localStorage.getItem('ims-app-mode')||'asb';}catch(e){}
+applyAppMode();
 
 if(typeof firebase==='undefined'){
   toast('Firebase SDK failed to load — check your internet connection');
