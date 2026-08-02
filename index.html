@@ -20,6 +20,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/profanity-cleaner@latest"></script>
 <style>
 :root{--bg:#f7f6f2;--surface:#fff;--border:#e4e2da;--border-strong:#c8c5bb;--text:#1a1917;--muted:#706e67;--hint:#a09e97;--green:#1a6b4a;--red:#b83030;--accent:#2a5caa;--yellow:#92750a;--radius:10px;--radius-sm:6px}
 body.dark{--bg:#111110;--surface:#1c1c1a;--border:#2e2d2a;--border-strong:#3d3c38;--text:#f0ede8;--muted:#8a8880;--hint:#5a5855;--green:#2ecc87;--red:#e05555;--accent:#6b9ff0;--yellow:#e0b84a}
@@ -500,7 +501,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button id="hdr-menu-btn" class="icon-btn" onclick="toggleHdrMenu(event)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:4px"><path d="M2 4.5h12M2 8h12M2 11.5h12"/></svg>Menu</button>
       <div id="hdr-menu" class="hdr-menu">
         <button id="btn-finance" class="hdr-menu-item" onclick="window.open(SCHOOL_CONFIG.financeUrl||'https://ims-asb.github.io/ims-finance','_blank')" style="display:none"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><rect x="2" y="2.5" width="12" height="11" rx="1.3"/><path d="M5 10.5v-3M8 10.5v-5M11 10.5v-1.5"/></svg>Finances</button>
-        <button id="btn-settings" class="hdr-menu-item" onclick="closeHdrMenu();openModal('settings-modal')" style="display:none"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><circle cx="5.5" cy="10.5" r="3"/><path d="M7.7 8.3L13 3M11 5l1.5 1.5M9 7l1.2 1.2"/></svg>Passwords</button>
+        <button id="btn-settings" class="hdr-menu-item" onclick="closeHdrMenu();openModal('customize-modal')" style="display:none"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><circle cx="5.5" cy="10.5" r="3"/><path d="M7.7 8.3L13 3M11 5l1.5 1.5M9 7l1.2 1.2"/></svg>Passwords</button>
         <button id="btn-firebase" class="hdr-menu-item" onclick="closeHdrMenu();openModal('firebase-modal')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M8 14.5c-2.5 0-4.5-1.8-4.5-4.3 0-1.8 1-3 1.8-4.2.3.9 1 1.5 1.7 1.5-.2-2 .5-4 2-5.5.3 1.8 1.2 2.8 2.2 3.9 1.2 1.3 1.8 2.6 1.8 4.3 0 2.5-2 4.3-4.5 4.3z"/></svg>Firebase</button>
         <button id="btn-groq" class="hdr-menu-item" onclick="closeHdrMenu();openModal('groq-modal')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:5px"><circle cx="8" cy="8" r="2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4l1.4-1.4M11 5l1.4-1.4"/></svg>Groq</button>
         <button id="btn-test" class="hdr-menu-item" onclick="closeHdrMenu();loadTest()"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M6.5 2h3M7 2v4.2L4 12a1.5 1.5 0 001.3 2.2h5.4A1.5 1.5 0 0012 12L9 6.2V2"/><path d="M5.2 10.5h5.6"/></svg>Test mode</button>
@@ -911,8 +912,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <h2 style="text-align:center;font-size:22px">Welcome to IMS ASB Hub</h2>
       <p style="text-align:center">Enter your full name so teammates can find you.</p>
       <div class="fg" style="margin-bottom:6px">
-        <input type="text" id="ob-name" placeholder="Enter your full name (e.g. Luke Li)" autofocus autocapitalize="words" onkeydown="if(event.key==='Enter')obNext1()">
-        <p style="font-size:12px;color:var(--hint);margin-top:6px">Use your full name so teammates can find you.</p>
+        <input type="text" id="ob-name" placeholder="e.g. Luke Li" autofocus autocapitalize="words" onkeydown="if(event.key==='Enter')obNext1()">
       </div>
       <button class="btn primary full" onclick="obNext1()">Continue →</button>
     </div>
@@ -1070,6 +1070,22 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </div>
 </div>
 
+<!-- NEW ACCOUNT (first time joining a role) -->
+<div id="new-account-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('new-account-modal')">
+  <div class="modal" style="max-width:380px">
+    <h2 style="margin-bottom:6px">Set up your account</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px">First time signing in as <strong id="na-role-label"></strong>. Enter the role's one-time invite code, then choose your own password to use every time after this.</p>
+    <div class="fg"><label class="fl">Invite code</label><input type="text" id="na-invite" autocomplete="off" style="width:100%"></div>
+    <div class="fg"><label class="fl">Choose your password</label><input type="text" id="na-password" autocomplete="off" style="width:100%;-webkit-text-security:disc;text-security:disc"></div>
+    <div class="fg"><label class="fl">Confirm password</label><input type="text" id="na-password2" autocomplete="off" style="width:100%;-webkit-text-security:disc;text-security:disc" onkeydown="if(event.key==='Enter')confirmNewAccount()"></div>
+    <div id="na-error" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px;font-family:'DM Mono',monospace"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('new-account-modal');document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('on'))">Cancel</button>
+      <button class="btn primary" onclick="confirmNewAccount()">Create account</button>
+    </div>
+  </div>
+</div>
+
 <!-- AGENDA ITEM MODAL -->
 <div id="agenda-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('agenda-modal')">
   <div class="modal" style="max-width:360px">
@@ -1081,44 +1097,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button class="btn" onclick="closeModal('agenda-modal')">Cancel</button>
       <button class="btn primary" onclick="agendaModalConfirm()">Add</button>
     </div>
-  </div>
-</div>
-
-<!-- SETTINGS / PASSWORDS MODAL -->
-<div id="settings-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('settings-modal')">
-  <div class="modal">
-    <h2><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><circle cx="5.5" cy="10.5" r="3"/><path d="M7.7 8.3L13 3M11 5l1.5 1.5M9 7l1.2 1.2"/></svg>Role Passwords</h2>
-    <p>Keep these private. Share only with the relevant person.</p>
-    <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:12px;font-family:DM Mono,monospace;background:var(--bg);padding:8px 12px;color:var(--muted);border-bottom:1px solid var(--border)">
-        <span>ROLE</span><span>PASSWORD</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
-        <span>💰 Treasurer</span><span style="font-family:DM Mono,monospace;font-size:12px">lukelitreasurer2026</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
-        <span>🎖 President</span><span style="font-family:DM Mono,monospace;font-size:12px">joodaljabipresident2026</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
-        <span>⭐ Vice President</span><span style="font-family:DM Mono,monospace;font-size:12px">nathangarthgreen2026</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
-        <span>📋 Secretary</span><span style="font-family:DM Mono,monospace;font-size:12px">jionnitolosasecretary2026</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
-        <span>👤 Member</span><span style="font-family:DM Mono,monospace;font-size:12px">goodjobonmakingithere</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
-        <span>🤝 Supporter</span><span style="font-family:DM Mono,monospace;font-size:12px">thankyouforhelpingus</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
-        <span>🏫 Advisor</span><span style="font-family:DM Mono,monospace;font-size:12px">mzweedandmsgalearecool</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center">
-        <span>📒 Bookkeeper</span><span style="font-family:DM Mono,monospace;font-size:12px">vasanthaimbookkeeper2026</span>
-      </div>
-    </div>
-    <div style="text-align:right"><button class="btn primary" onclick="closeModal('settings-modal')">Done</button></div>
   </div>
 </div>
 
@@ -1298,7 +1276,34 @@ function disconnectFirebase(){
   toast('Disconnected from Firebase','err');
 }
 
+// The security rules require auth != null for every read under ims-asb.
+// Attaching the real listeners immediately at page load (the old
+// behavior) meant every fresh visitor hit a permission-denied error
+// before onboarding's role-password step ever had a chance to sign them
+// in — and even a RETURNING already-signed-in user could lose the race,
+// since Firebase Auth restores a persisted session asynchronously, not
+// instantly. Waiting for onAuthStateChanged to confirm a real user object
+// closes both gaps. onAuthStateChanged can fire more than once, so a flag
+// guards against attaching the underlying listeners twice.
+let _mainListenerStarted=false;
 function startListener(){
+  if(!db||_mainListenerStarted)return;
+  const app=ensureHubFirebaseAppReady();
+  if(app&&hubAuth){
+    hubAuth.onAuthStateChanged(user=>{
+      if(user&&!_mainListenerStarted){
+        _mainListenerStarted=true;
+        _startListenerInner();
+      }
+    });
+  } else {
+    // Firebase Auth unavailable for some reason — fall back rather than
+    // silently never loading any data at all.
+    _mainListenerStarted=true;
+    _startListenerInner();
+  }
+}
+function _startListenerInner(){
   if(!db)return;
   // main data listener
   db.ref('ims-asb').on('value',(snap)=>{
@@ -2018,10 +2023,19 @@ let knownGroups=[];
 let latestOnlineData=null;
 let lastMsg='';let lastMsgTime=0;
 
-const BLOCKED=['nigger','nigga','n1gger','n1gga','faggot','fag','retard','chink','spic','kike','cunt','fuck','f*ck','sh1t','b1tch','whore','slut'];
+// Uses profanity-cleaner (CDN-loaded, see <head>) instead of a hardcoded
+// word list — a maintained library catches more than a short list this
+// app's own source would otherwise have to spell out in plain text.
+// Falls back to a small local check only if the CDN script failed to
+// load, so this never becomes a hard dependency for something this small.
 function hasProfanity(text){
-  const norm=text.toLowerCase().replace(/[0@]/g,'o').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/[4]/g,'a').replace(/[$5]/g,'s').replace(/\s/g,'');
-  return BLOCKED.some(w=>norm.includes(w.replace(/\s/g,'')));
+  const norm=text.toLowerCase().replace(/[0@]/g,'o').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/[4]/g,'a').replace(/[$5]/g,'s');
+  if(typeof profanityCleaner!=='undefined'){
+    return profanityCleaner.clean(norm)!==norm;
+  }
+  const FALLBACK=['fuck','shit','bitch','whore','slut','nigger','nigga','faggot','retard'];
+  const tight=norm.replace(/\s/g,'');
+  return FALLBACK.some(w=>tight.includes(w));
 }
 
 function dmId(a,b){
@@ -2434,7 +2448,7 @@ function renderPasswordMgmt(){
       <span id="pw-reveal-${safeId}" style="font-family:monospace;color:var(--hint);cursor:pointer;word-break:break-all;text-align:right" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
     </div>`;
   }).join('')
-  + `<p style="font-size:12px;color:var(--hint);margin-top:10px">To change a role's password, edit the <code>ROLE_PWS</code> value in the source and redeploy. Whoever's using that role will need their Firebase sign-in reset afterward (Authentication → Users, in the Firebase console) — they'll see "Access code changed recently" until then.</p>`;
+  + `<p style="font-size:12px;color:var(--hint);margin-top:10px">These are one-time <strong>invite codes</strong>, not shared passwords — each person uses their role's code once, the first time they join, then picks their own personal password. Rotating a code here only affects people who haven't joined yet; it never changes anyone's existing password. Edit <code>ROLE_PWS</code> in the source and redeploy to rotate one.</p>`;
 }
 
 function revealPassword(role,safeId){
@@ -2773,50 +2787,78 @@ const ROLE_HINTS={
   'Advisor':'Full access + edit history log.'
 };
 const ROLE_PWS={
-  'Treasurer':'lukelitreasurer2026',
-  'President':'joodaljabipresident2026',
-  'Vice President':'nathangarthgreen2026',
-  'Secretary':'jionnitolosasecretary2026',
-  'Member':'goodjobonmakingithere',
-  'Supporter':'thankyouforhelpingus',
-  '7th Grade Rep':'sammy&sara7thgradereps2026',
-  'Advisor':'mzweedandmsgalearecool',
-  'Bookkeeper':'vasanthaimbookkeeper2026'
+  'Treasurer':'quartz#anchor419',
+  'President':'thistle%maple864',
+  'Vice President':'cobalt%quartz992',
+  'Secretary':'ripple&pepper191',
+  'Member':'copper*cinder302',
+  'Supporter':'copper&ripple565',
+  '7th Grade Rep':'ripple#anchor703',
+  'Advisor':'granite!ember847',
+  'Bookkeeper':'harbor!granite110'
 };
+let pendingNewRole=null;
 function obSelectRole(btn,role){
-  showPwModal(
-    role+' password',
-    ROLE_HINTS[role]||'',
-    async (pw)=>{
-      if(pw!==getPassword(role)){return false;}
-      const app=ensureHubFirebaseAppReady();
-      if(app&&hubAuth){
-        const email=hubAuthEmailFor(role);
+  document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
+  btn.classList.add('on');
+  const app=ensureHubFirebaseAppReady();
+  if(!app||!hubAuth){
+    // Firebase unavailable (offline/local-only) — fall back to the old
+    // shared-password check so the app still works without a connection.
+    showPwModal(role+' password',ROLE_HINTS[role]||'',(pw)=>{
+      if(pw!==getPassword(role))return false;
+      obRole=role;
+    });
+    return;
+  }
+  const email=hubAuthEmailFor(prefs.name);
+  hubAuth.fetchSignInMethodsForEmail(email).then(methods=>{
+    if(methods.length>0){
+      // Returning user — this name already has its own account. Ask for
+      // THEIR password, not a shared role code.
+      showPwModal('Welcome back, '+prefs.name,'Enter your password',async (pw)=>{
         try{
           await hubAuth.signInWithEmailAndPassword(email,pw);
         }catch(authErr){
-          if(authErr.code==='auth/user-not-found'){
-            try{await hubAuth.createUserWithEmailAndPassword(email,pw);}
-            catch(createErr){
-              document.getElementById('pw-modal-error').textContent='Sign-in error: '+createErr.message;
-              return false;
-            }
-          } else if(authErr.code==='auth/wrong-password'){
-            document.getElementById('pw-modal-error').textContent='Password changed recently — ask whoever manages Firebase to reset this role\'s sign-in.';
-            return false;
-          } else {
-            document.getElementById('pw-modal-error').textContent='Sign-in error: '+authErr.message;
-            return false;
-          }
+          document.getElementById('pw-modal-error').textContent=
+            authErr.code==='auth/wrong-password'?'Wrong password.':('Sign-in error: '+authErr.message);
+          return false;
         }
-      }
-      // If Firebase isn't connected yet (offline/local-only use), skip Auth
-      // entirely rather than blocking someone from using the app locally.
-      obRole=role;
-      document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
-      btn.classList.add('on');
+        obRole=role;
+      });
+    } else {
+      // New person — needs the role's one-time invite code, then chooses
+      // their own password for every login after this.
+      pendingNewRole=role;
+      document.getElementById('na-role-label').textContent=role;
+      document.getElementById('na-invite').value='';
+      document.getElementById('na-password').value='';
+      document.getElementById('na-password2').value='';
+      document.getElementById('na-error').textContent='';
+      openModal('new-account-modal');
     }
-  );
+  }).catch(e=>toast('Error checking account: '+e.message,'err'));
+}
+async function confirmNewAccount(){
+  const role=pendingNewRole;
+  const invite=document.getElementById('na-invite').value.trim();
+  const pw=document.getElementById('na-password').value;
+  const pw2=document.getElementById('na-password2').value;
+  const errEl=document.getElementById('na-error');
+  if(invite!==getPassword(role)){errEl.textContent='Wrong invite code for '+role+'.';return;}
+  if(pw.length<8){errEl.textContent='Choose a password at least 8 characters long.';return;}
+  if(pw!==pw2){errEl.textContent="Passwords don't match.";return;}
+  ensureHubFirebaseAppReady();
+  const email=hubAuthEmailFor(prefs.name);
+  try{
+    await hubAuth.createUserWithEmailAndPassword(email,pw);
+  }catch(e){
+    errEl.textContent='Error: '+e.message;return;
+  }
+  closeModal('new-account-modal');
+  obRole=role;
+  toast('Account created — remember your own password for next time!','ok');
+  obFinish();
 }
 function obFinish(){
   if(!obRole){toast('Pick a role');return;}
@@ -2889,12 +2931,13 @@ function finishOnboard(){
 }
 
 
-// ── FIREBASE PASSWORDS ────────────────────────────────────────────────
-// Role passwords are the ROLE_PWS constant below. This can't be synced
-// live through Firebase — config/passwords is intentionally unreadable
-// and unwritable by the security rules, even to signed-in users, so no
-// one's role password is ever exposed to teammates. To rotate a
-// password, edit ROLE_PWS and redeploy (see the Settings modal note).
+// ── INVITE CODES ──────────────────────────────────────────────────────
+// ROLE_PWS are now one-time invite codes, not ongoing shared passwords.
+// Each person uses their role's code exactly once, the first time they
+// join — after that, THEY choose their own personal password, and the
+// invite code is never needed again for that person. Rotating a code
+// here only affects people who haven't joined yet; it doesn't change
+// anyone's existing personal password.
 function getPassword(role){
   return ROLE_PWS[role] || '';
 }
@@ -3927,7 +3970,7 @@ function handleAvatarUpload(input){
   const file=input.files[0];
   if(!file)return;
   if(!file.type.startsWith('image/')){toast('Please choose an image file','err');input.value='';return;}
-  if(file.size>10*1024*1024){toast('Image too large (max 10MB)','err');input.value='';return;}
+  if(file.size>1.4*1024*1024){toast('Image too large (max ~1.4MB)','err');input.value='';return;}
   const reader=new FileReader();
   reader.onerror=function(){toast('Could not read that file — try a different image','err');};
   reader.onload=function(e){
