@@ -1019,7 +1019,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div>
 
 <div id="install-banner" style="display:none;position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:400;align-items:center;gap:12px;max-width:340px;width:calc(100vw - 32px)">
-  <img src="icon-192.png" width="36" height="36" style="border-radius:8px;flex-shrink:0" alt="ASB Hub icon">
   <div style="flex:1;min-width:0">
     <div style="font-size:13px;font-weight:500">Add to Home Screen</div>
     <div style="font-size:11px;color:var(--muted)">Opens fullscreen, works offline</div>
@@ -2198,6 +2197,11 @@ function createGroup(){
   }).catch(e=>toast('Error: '+e.message,'err'));
 }
 
+// How long you can un-send your own message. Matches the same window
+// enforced server-side in the Firebase rules — this client-side copy is
+// just for the UI countdown, not the actual security boundary.
+const MSG_DELETE_WINDOW_MS=20000;
+
 function renderMsgs(msgs){
   const el=document.getElementById('chat-msgs');
   if(!msgs||!msgs.length){el.innerHTML='<div style="text-align:center;font-size:13px;color:var(--hint);margin:auto">No messages yet.</div>';return;}
@@ -2209,7 +2213,7 @@ function renderMsgs(msgs){
     const t=new Date(m.id);
     const time=t.toLocaleTimeString('default',{hour:'numeric',minute:'2-digit'});
     const day=t.toLocaleDateString('default',{month:'short',day:'numeric'});
-    const canDelete=isMe&&(now-m.id)<60000;
+    const canDelete=isMe&&(now-m.id)<MSG_DELETE_WINDOW_MS;
     const div=document.createElement('div');
     div.className='chat-msg '+(isMe?'me':'them');
     div.id='cmsg-'+m.id;
@@ -2217,10 +2221,10 @@ function renderMsgs(msgs){
     const bubble=document.createElement('div');bubble.className='chat-bubble';bubble.textContent=m.text;div.appendChild(bubble);
     const foot=document.createElement('div');foot.className='chat-meta';foot.style.cssText='display:flex;align-items:center;gap:6px';foot.textContent=day+' '+time;
     if(canDelete){
-      const btn=document.createElement('span');btn.className='del-msg-btn';btn.title='Delete ('+(Math.ceil((60000-(now-m.id))/1000))+'s left)';btn.textContent='✕';
+      const btn=document.createElement('span');btn.className='del-msg-btn';btn.title='Delete ('+(Math.ceil((MSG_DELETE_WINDOW_MS-(now-m.id))/1000))+'s left)';btn.textContent='✕';
       btn.onclick=()=>deleteMsg(activeConvo,m.id);
       foot.appendChild(btn);
-      setTimeout(()=>{if(btn.parentNode)btn.parentNode.removeChild(btn);},60000-(now-m.id)+100);
+      setTimeout(()=>{if(btn.parentNode)btn.parentNode.removeChild(btn);},MSG_DELETE_WINDOW_MS-(now-m.id)+100);
     }
     div.appendChild(foot);el.appendChild(div);
   });
@@ -2231,11 +2235,20 @@ function renderMsgs(msgs){
 function deleteMsg(convo,msgId){
   if(testMode){toast('Disabled in test mode');return;}
   if(!db||!isConnected){toast('Not connected','err');return;}
-  if(Date.now()-msgId>60000){toast('Too late to delete','err');return;}
+  if(Date.now()-msgId>MSG_DELETE_WINDOW_MS){toast('Too late to delete','err');return;}
   const path=convo==='general'?'ims-asb/chat/general/'+msgId
     :convo.startsWith('group:')?'ims-asb/chat/group/'+convo.replace('group:','')+'/'+msgId
     :dmPath(convo.replace('dm:',''))+'/'+msgId;
-  db.ref(path).remove().catch(e=>toast('Error: '+e.message,'err'));
+  // Confirm this is actually your own message before attempting the
+  // delete — this used to be enforced only by the delete button's own
+  // visibility, meaning the function itself would happily delete anyone
+  // else's message if called directly (e.g. from the console).
+  db.ref(path).once('value').then(snap=>{
+    const msg=snap.val();
+    if(!msg){return;}
+    if(msg.name!==prefs.name){toast('You can only delete your own messages','err');return;}
+    db.ref(path).remove().catch(e=>toast('Error: '+e.message,'err'));
+  });
 }
 
 function clearGeneralChat(){
