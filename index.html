@@ -208,6 +208,14 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 #onboard-modal .btn.primary:hover{background:rgba(255,255,255,.9)}
 .ob-mark{width:34px;height:3px;background:#fff;margin-bottom:24px}
 #ob-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#invite-modal{background:var(--accent);align-items:center;justify-content:center}
+#invite-modal .modal{background:transparent;box-shadow:none;max-width:420px;width:92%;padding:0;text-align:left}
+#invite-modal h2{color:#fff;font-size:22px;font-weight:700;letter-spacing:-.5px;text-align:left!important}
+#invite-modal p{color:rgba(255,255,255,.75);text-align:left!important}
+#invite-modal input{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff}
+#invite-modal .btn.primary{background:#fff;color:var(--accent);border-color:#fff}
+#invite-modal .btn.primary:hover{background:rgba(255,255,255,.9)}
+#invite-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .modal-overlay.on{display:flex}
 .modal{background:var(--surface);border-radius:var(--radius);padding:24px;max-width:480px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.12);max-height:90vh;overflow-y:auto}
 .modal h2{font-size:17px;font-weight:600;margin-bottom:6px}
@@ -909,8 +917,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   <div class="modal">
     <div class="ob-mark"></div>
     <div id="ob-step-1" class="onboard-step on">
-      <h2 style="text-align:center;font-size:22px">Welcome to IMS ASB Hub</h2>
-      <p style="text-align:center">Enter your full name so teammates can find you.</p>
+      <h2 id="ob-step1-title" style="text-align:center;font-size:22px">Welcome to IMS ASB Hub</h2>
+      <p id="ob-step1-sub" style="text-align:center">Enter your full name so teammates can find you.</p>
       <div class="fg" style="margin-bottom:6px">
         <input type="text" id="ob-name" placeholder="e.g. Luke Li" autofocus autocapitalize="words" onkeydown="if(event.key==='Enter')obNext1()">
       </div>
@@ -921,6 +929,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <p style="text-align:center">Select your role — you'll need the right password.</p>
       <div class="role-grid" id="role-btn-grid"></div>
       <button class="btn primary full" onclick="obFinish()">Let's go →</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVITE LINK LANDING (senate roles only — replaces name+role entry) -->
+<div id="invite-modal" class="modal-overlay" onclick="if(event.target===this&&inviteState==='error')closeModal('invite-modal')">
+  <canvas id="invite-canvas" aria-hidden="true"></canvas>
+  <div class="modal">
+    <div class="ob-mark"></div>
+    <div id="invite-loading">
+      <h2 style="text-align:center;font-size:20px">Checking your invite…</h2>
+    </div>
+    <div id="invite-valid" style="display:none">
+      <h2 style="text-align:center;font-size:22px">Welcome, <span id="invite-name"></span></h2>
+      <p style="text-align:center">You're joining as <strong id="invite-role"></strong>. Choose a password — you'll use it every time after this.</p>
+      <div class="fg"><label class="fl">Password</label><input type="text" id="invite-pw" autocomplete="off" style="width:100%;-webkit-text-security:disc;text-security:disc"></div>
+      <div class="fg"><label class="fl">Confirm password</label><input type="text" id="invite-pw2" autocomplete="off" style="width:100%;-webkit-text-security:disc;text-security:disc" onkeydown="if(event.key==='Enter')confirmInviteAccount()"></div>
+      <div id="invite-error" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px;font-family:'DM Mono',monospace"></div>
+      <button class="btn primary full" onclick="confirmInviteAccount()">Set password and join →</button>
+    </div>
+    <div id="invite-error-state" style="display:none">
+      <h2 style="text-align:center;font-size:20px">This link isn't valid</h2>
+      <p style="text-align:center" id="invite-error-msg">It may have already been used, or the link is incomplete. Ask whoever manages the Hub for a new one.</p>
     </div>
   </div>
 </div>
@@ -1285,14 +1316,33 @@ function disconnectFirebase(){
 // closes both gaps. onAuthStateChanged can fire more than once, so a flag
 // guards against attaching the underlying listeners twice.
 let _mainListenerStarted=false;
+// The security rules identify people by their Firebase Auth uid, but the
+// app keys its own user records by a slug of the person's name. Those are
+// two completely different strings, so the rules need this bridge record
+// at ims-asb/identity/<auth.uid> to resolve who someone is. Written once
+// per account and then locked by the rules (only an Advisor can change
+// someone's identity record afterwards), so it can't be self-promoted.
+function writeIdentityRecord(){
+  if(!db||!hubAuth||!hubAuth.currentUser||testMode)return;
+  if(!prefs.name||!prefs.role)return;
+  const ref=db.ref('ims-asb/identity/'+hubAuth.currentUser.uid);
+  ref.once('value').then(snap=>{
+    if(snap.exists())return; // write-once; rules reject changes anyway
+    ref.set({name:prefs.name,role:prefs.role}).catch(()=>{});
+  }).catch(()=>{});
+}
+
 function startListener(){
   if(!db||_mainListenerStarted)return;
   const app=ensureHubFirebaseAppReady();
   if(app&&hubAuth){
     hubAuth.onAuthStateChanged(user=>{
-      if(user&&!_mainListenerStarted){
-        _mainListenerStarted=true;
-        _startListenerInner();
+      if(user){
+        writeIdentityRecord();
+        if(!_mainListenerStarted){
+          _mainListenerStarted=true;
+          _startListenerInner();
+        }
       }
     });
   } else {
@@ -1417,11 +1467,21 @@ function save(){
   if(db&&isConnected){
     const toObj=(arr)=>arr.reduce((o,i)=>{o[i.id]=i;return o;},{});
     // update() only touches these children — set() here would wipe chat/users/votes/announcements
-    db.ref('ims-asb').update({
-      events:toObj(data.events),notes:toObj(data.notes),ideas:toObj(data.ideas),
-      quahTasks:toObj(data.quahTasks),quahScripts:toObj(data.quahScripts),
-      quahSchedule:toObj(data.quahSchedule),quahIdeas:toObj(data.quahIdeas),
-    }).catch(e=>toast('Save error: '+e.message,'err'));
+    // Each collection is written to its own path rather than as one bulk
+    // update() on the ims-asb parent. The security rules grant write per
+    // collection (there is deliberately no blanket write at the parent, so
+    // the stricter per-message chat rules can't be overridden by cascade),
+    // and writing each path explicitly means every write lands on a path
+    // that has its own matching rule.
+    const collections={
+      events:data.events,notes:data.notes,ideas:data.ideas,
+      quahTasks:data.quahTasks,quahScripts:data.quahScripts,
+      quahSchedule:data.quahSchedule,quahIdeas:data.quahIdeas,
+    };
+    Object.entries(collections).forEach(([key,arr])=>{
+      db.ref('ims-asb/'+key).set(toObj(arr))
+        .catch(e=>toast('Save error ('+key+'): '+e.message,'err'));
+    });
   } else {
     try{localStorage.setItem('ims-asb-local',JSON.stringify(data));}catch(e){}
   }
@@ -2365,7 +2425,19 @@ function clearPrefs(){
   deleteCookie('ims-prefs');
 }
 
+// A join link (?join=member) skips the role-grid for a brand new
+// visitor — Member already works as "shared code once, then your own
+// password forever," this just removes having to find the right button.
+// Unlike invite links, this only applies if there's no existing session;
+// it's a convenience shortcut, not a forced flow.
+const JOIN_LINK_ROLES={'member':'Member'};
+const presetJoinRole=JOIN_LINK_ROLES[(new URLSearchParams(window.location.search).get('join')||'').toLowerCase()]||null;
+
 function loadPrefs(){
+  // An invite link takes priority over any existing local prefs — opening
+  // one is an explicit action, separate from normal returning-user flow.
+  const inviteToken=new URLSearchParams(window.location.search).get('invite');
+  if(inviteToken){handleInviteLink(inviteToken);return;}
   // 1. Try localStorage
   try{const s=localStorage.getItem('ims-prefs');if(s)prefs=Object.assign({widgets:{metrics:true,dash:true,recent:true,upcoming:true}},JSON.parse(s));}catch(e){}
   // 2. If empty (iOS PWA context switch), try cookie fallback
@@ -2377,6 +2449,83 @@ function loadPrefs(){
     savePrefs();
     closeModal('onboard-modal');applyPrefs();
   }
+}
+
+// ── INVITE LINKS (senate roles) ──────────────────────────────────────
+let inviteState='loading';
+let currentInviteToken=null;
+let pendingInvite=null;
+function handleInviteLink(token){
+  currentInviteToken=token;
+  inviteState='loading';
+  openModal('invite-modal');
+  document.getElementById('invite-loading').style.display='block';
+  document.getElementById('invite-valid').style.display='none';
+  document.getElementById('invite-error-state').style.display='none';
+  ensureHubFirebaseAppReady();
+  if(!db){
+    // autoConnectFirebase() may not have finished setting up db yet —
+    // give it a moment and retry once before giving up.
+    setTimeout(()=>{
+      if(db)handleInviteLink(token);
+      else showInviteError('Could not connect — check your internet connection and reload.');
+    },800);
+    return;
+  }
+  db.ref('ims-asb/invites/'+token).once('value').then(snap=>{
+    const invite=snap.val();
+    if(!invite||invite.used){showInviteError();return;}
+    // Hold the authoritative values here rather than reading them back out
+    // of the DOM at confirm time — the on-screen name/role are display
+    // only, and anyone could edit those elements in dev tools to hand
+    // themselves a different role.
+    pendingInvite={name:invite.name,role:invite.role};
+    inviteState='valid';
+    document.getElementById('invite-loading').style.display='none';
+    document.getElementById('invite-valid').style.display='block';
+    document.getElementById('invite-name').textContent=invite.name;
+    document.getElementById('invite-role').textContent=invite.role;
+    document.getElementById('invite-pw').value='';
+    document.getElementById('invite-pw2').value='';
+    document.getElementById('invite-error').textContent='';
+    setTimeout(()=>document.getElementById('invite-pw').focus(),100);
+  }).catch(()=>showInviteError('Something went wrong checking this link.'));
+}
+function showInviteError(msg){
+  inviteState='error';
+  document.getElementById('invite-loading').style.display='none';
+  document.getElementById('invite-valid').style.display='none';
+  document.getElementById('invite-error-state').style.display='block';
+  if(msg)document.getElementById('invite-error-msg').textContent=msg;
+}
+async function confirmInviteAccount(){
+  const token=currentInviteToken;
+  const pw=document.getElementById('invite-pw').value;
+  const pw2=document.getElementById('invite-pw2').value;
+  const errEl=document.getElementById('invite-error');
+  if(pw.length<8){errEl.textContent='Choose a password at least 8 characters long.';return;}
+  if(pw!==pw2){errEl.textContent="Passwords don't match.";return;}
+  if(!pendingInvite){errEl.textContent='Invite expired — reopen your link.';return;}
+  const name=pendingInvite.name;
+  const role=pendingInvite.role;
+  ensureHubFirebaseAppReady();
+  const email=hubAuthEmailFor(name);
+  try{
+    await hubAuth.createUserWithEmailAndPassword(email,pw);
+  }catch(e){
+    errEl.textContent='Error: '+e.message;return;
+  }
+  // Mark the invite used so the link can never be opened again. If this
+  // specific write fails after the account already succeeded, we don't
+  // block the person over it — worst case the link stays technically
+  // live, which the rules still only allow for this same name/role.
+  try{await db.ref('ims-asb/invites/'+token).update({used:true});}catch(e){}
+  prefs.name=name;
+  obRole=role;
+  closeModal('invite-modal');
+  // Strip ?invite=... from the URL so refreshing doesn't re-trigger this.
+  window.history.replaceState({},'',window.location.pathname+window.location.hash);
+  finishOnboard();
 }
 
 const FULL_ROLES=['Treasurer','President','Secretary','Vice President','Member','7th Grade Rep'];
@@ -2451,17 +2600,71 @@ function applyPrefs(){
   if(canManagePws)renderPasswordMgmt();
 }
 
+const SENATE_ROLES=['Treasurer','President','Vice President','Secretary','Advisor','7th Grade Rep'];
 function renderPasswordMgmt(){
   const list=document.getElementById('pw-mgmt-list');
   if(!list)return;
-  list.innerHTML=Object.keys(ROLE_PWS).map(role=>{
-    const safeId=role.replace(/[^a-zA-Z0-9]/g,'_');
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);font-size:13px">
-      <span style="font-weight:500">${role}</span>
-      <span id="pw-reveal-${safeId}" style="font-family:monospace;color:var(--hint);cursor:pointer;word-break:break-all;text-align:right" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
-    </div>`;
-  }).join('')
-  + `<p style="font-size:12px;color:var(--hint);margin-top:10px">These are one-time <strong>invite codes</strong>, not shared passwords — each person uses their role's code once, the first time they join, then picks their own personal password. Rotating a code here only affects people who haven't joined yet; it never changes anyone's existing password. Edit <code>ROLE_PWS</code> in the source and redeploy to rotate one.</p>`;
+  const openRoles=Object.keys(ROLE_PWS).filter(r=>!SENATE_ROLES.includes(r));
+  list.innerHTML=`
+    <p style="font-size:12px;font-weight:600;margin-bottom:6px">Senate roles — invite links</p>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <input type="text" id="gen-invite-name" placeholder="Full name" style="flex:1;font-size:13px">
+      <select id="gen-invite-role" style="font-size:13px">${SENATE_ROLES.map(r=>`<option value="${r}">${r}</option>`).join('')}</select>
+      <button class="btn sm primary" onclick="generateInviteLink()">Generate</button>
+    </div>
+    <div id="invite-link-list" style="margin-bottom:14px"></div>
+    <p style="font-size:12px;font-weight:600;margin-bottom:6px;padding-top:6px;border-top:1px solid var(--border)">Member / Supporter — shared invite codes</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;font-size:12px;border-bottom:1px solid var(--border);margin-bottom:6px">
+      <div style="min-width:0">
+        <div style="font-weight:500">Member join link</div>
+        <div style="font-family:monospace;color:var(--hint);word-break:break-all">${window.location.origin+window.location.pathname}?join=member</div>
+      </div>
+      <button class="btn sm" onclick="navigator.clipboard.writeText('${window.location.origin+window.location.pathname}?join=member');toast('Copied','ok')">Copy</button>
+    </div>
+    ${openRoles.map(role=>{
+      const safeId=role.replace(/[^a-zA-Z0-9]/g,'_');
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);font-size:13px">
+        <span style="font-weight:500">${role}</span>
+        <span id="pw-reveal-${safeId}" style="font-family:monospace;color:var(--hint);cursor:pointer;word-break:break-all;text-align:right" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
+      </div>`;
+    }).join('')}
+    <p style="font-size:12px;color:var(--hint);margin-top:10px">Senate roles now join via a one-time link generated above — each link is tied to one specific person and stops working the moment they set their password. Member and Supporter still use a shared one-time code (edit <code>ROLE_PWS</code> in the source to rotate one — only affects people who haven't joined yet).</p>`;
+  loadInviteLinks();
+}
+
+function generateInviteLink(){
+  const nameInp=document.getElementById('gen-invite-name');
+  const name=nameInp.value.trim();
+  const role=document.getElementById('gen-invite-role').value;
+  if(!name){toast('Enter a name first','err');return;}
+  if(!db||!isConnected){toast('Must be connected to Firebase','err');return;}
+  const token=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(36)).join('').slice(0,20);
+  db.ref('ims-asb/invites/'+token).set({name,role,used:false,createdAt:Date.now()}).then(()=>{
+    nameInp.value='';
+    toast('Link generated for '+name,'ok');
+    loadInviteLinks();
+  }).catch(e=>toast('Error: '+e.message,'err'));
+}
+
+function loadInviteLinks(){
+  const list=document.getElementById('invite-link-list');
+  if(!list||!db||!isConnected)return;
+  db.ref('ims-asb/invites').once('value').then(snap=>{
+    const invites=snap.val()||{};
+    const entries=Object.entries(invites).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+    if(!entries.length){list.innerHTML='<p style="font-size:12px;color:var(--hint)">No links generated yet.</p>';return;}
+    const baseUrl=window.location.origin+window.location.pathname;
+    list.innerHTML=entries.map(([token,inv])=>{
+      const url=baseUrl+'?invite='+token;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;font-size:12px;border-bottom:1px solid var(--border)">
+        <div style="min-width:0">
+          <div style="font-weight:500">${esc(inv.name)} <span style="color:var(--hint);font-weight:400">— ${esc(inv.role)}</span></div>
+          ${inv.used?`<div style="color:var(--green)">✓ Used</div>`:`<div style="font-family:monospace;color:var(--hint);word-break:break-all">${url}</div>`}
+        </div>
+        ${inv.used?'':`<button class="btn sm" onclick="navigator.clipboard.writeText('${url}');toast('Copied','ok')">Copy</button>`}
+      </div>`;
+    }).join('');
+  });
 }
 
 function revealPassword(role,safeId){
@@ -2772,6 +2975,13 @@ function obNext1(){
   const n=document.getElementById('ob-name').value.trim();
   if(!n){toast('Enter your name first');return;}
   prefs.name=n;
+  if(presetJoinRole){
+    // Came in via a join link — skip the role picker entirely and go
+    // straight to the invite-code prompt for that one role.
+    window.history.replaceState({},'',window.location.pathname+window.location.hash);
+    obSelectRole(null,presetJoinRole);
+    return;
+  }
   document.getElementById('ob-step-1').classList.remove('on');
   document.getElementById('ob-step-2').classList.add('on');
   document.getElementById('ob-dot-1')?.classList.remove('on');
@@ -2813,7 +3023,7 @@ const ROLE_PWS={
 let pendingNewRole=null;
 function obSelectRole(btn,role){
   document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
-  btn.classList.add('on');
+  if(btn)btn.classList.add('on');
   const app=ensureHubFirebaseAppReady();
   if(!app||!hubAuth){
     // Firebase unavailable (offline/local-only) — fall back to the old
@@ -2904,6 +3114,7 @@ function obFinish(){
 function finishOnboard(){
   prefs.role=obRole;
   savePrefs();
+  writeIdentityRecord();
   // Tech admin grant is now handled by loadTechAdminFlag() on every
   // connection (not just here at onboarding) — see that function.
   closeModal('onboard-modal');
@@ -4137,22 +4348,22 @@ function clearTest(){
 // ── LOGIN SCREEN — interactive geometric background ─────────────────────
 // Mixed circles/squares/triangles drifting slowly, gently pushed away from
 // the cursor when it gets close, then settling back into idle drift.
-let obShapes=null, obMouseX=-9999, obMouseY=-9999, obCanvasEl=null, obCtx=null, obRafId=null;
-function initObCanvas(){
-  obCanvasEl=document.getElementById('ob-canvas');
-  if(!obCanvasEl)return;
-  obCtx=obCanvasEl.getContext('2d');
+function initObCanvas(canvasId,gateId){
+  canvasId=canvasId||'ob-canvas';gateId=gateId||'onboard-modal';
+  const canvasEl=document.getElementById(canvasId);
+  if(!canvasEl)return;
+  const ctx=canvasEl.getContext('2d');
   const resize=()=>{
-    obCanvasEl.width=window.innerWidth*devicePixelRatio;
-    obCanvasEl.height=window.innerHeight*devicePixelRatio;
-    obCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    canvasEl.width=window.innerWidth*devicePixelRatio;
+    canvasEl.height=window.innerHeight*devicePixelRatio;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
   };
   resize();
   window.addEventListener('resize',resize);
 
   const TYPES=['circle','square','triangle'];
   const n=16;
-  obShapes=Array.from({length:n},()=>{
+  const shapes=Array.from({length:n},()=>{
     const type=TYPES[Math.floor(Math.random()*TYPES.length)];
     const base=type==='triangle'?(46+Math.random()*54):(14+Math.random()*22); // triangles much bigger
     return {
@@ -4169,21 +4380,22 @@ function initObCanvas(){
     };
   });
 
-  window.addEventListener('mousemove',e=>{obMouseX=e.clientX;obMouseY=e.clientY;});
-  window.addEventListener('mouseleave',()=>{obMouseX=-9999;obMouseY=-9999;});
+  let mouseX=-9999,mouseY=-9999;
+  window.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY;});
+  window.addEventListener('mouseleave',()=>{mouseX=-9999;mouseY=-9999;});
   window.addEventListener('touchmove',e=>{
-    if(e.touches&&e.touches[0]){obMouseX=e.touches[0].clientX;obMouseY=e.touches[0].clientY;}
+    if(e.touches&&e.touches[0]){mouseX=e.touches[0].clientX;mouseY=e.touches[0].clientY;}
   },{passive:true});
 
   const REPEL_RADIUS=170;
   function tick(){
-    const gate=document.getElementById('onboard-modal');
+    const gate=document.getElementById(gateId);
     const visible=gate&&getComputedStyle(gate).display!=='none';
     if(visible){
       const w=window.innerWidth,h=window.innerHeight;
-      obCtx.clearRect(0,0,w,h);
-      obShapes.forEach(s=>{
-        const dx=s.x-obMouseX, dy=s.y-obMouseY;
+      ctx.clearRect(0,0,w,h);
+      shapes.forEach(s=>{
+        const dx=s.x-mouseX, dy=s.y-mouseY;
         const dist=Math.sqrt(dx*dx+dy*dy);
         if(dist<REPEL_RADIUS&&dist>0.01){
           const force=(1-dist/REPEL_RADIUS)*0.35;
@@ -4197,28 +4409,28 @@ function initObCanvas(){
         const pad=s.size+20;
         if(s.x<-pad)s.x=w+pad;if(s.x>w+pad)s.x=-pad;
         if(s.y<-pad)s.y=h+pad;if(s.y>h+pad)s.y=-pad;
-        obCtx.save();
-        obCtx.translate(s.x,s.y);
-        obCtx.rotate(s.rot);
-        obCtx.strokeStyle='rgba(255,255,255,'+s.opacity+')';
-        obCtx.lineWidth=1.5;
-        obCtx.beginPath();
+        ctx.save();
+        ctx.translate(s.x,s.y);
+        ctx.rotate(s.rot);
+        ctx.strokeStyle='rgba(255,255,255,'+s.opacity+')';
+        ctx.lineWidth=1.5;
+        ctx.beginPath();
         if(s.type==='circle'){
-          obCtx.arc(0,0,s.size/2,0,Math.PI*2);
+          ctx.arc(0,0,s.size/2,0,Math.PI*2);
         } else if(s.type==='square'){
-          obCtx.rect(-s.size/2,-s.size/2,s.size,s.size);
+          ctx.rect(-s.size/2,-s.size/2,s.size,s.size);
         } else {
           const r=s.size/2;
-          obCtx.moveTo(0,-r);
-          obCtx.lineTo(r*0.87,r*0.5);
-          obCtx.lineTo(-r*0.87,r*0.5);
-          obCtx.closePath();
+          ctx.moveTo(0,-r);
+          ctx.lineTo(r*0.87,r*0.5);
+          ctx.lineTo(-r*0.87,r*0.5);
+          ctx.closePath();
         }
-        obCtx.stroke();
-        obCtx.restore();
+        ctx.stroke();
+        ctx.restore();
       });
     }
-    obRafId=requestAnimationFrame(tick);
+    requestAnimationFrame(tick);
   }
   tick();
 }
@@ -4354,8 +4566,14 @@ window.onerror=function(msg,src,line){
   return false;
 };
 // check Firebase SDK loaded
+if(presetJoinRole){
+  const t=document.getElementById('ob-step1-title'), s=document.getElementById('ob-step1-sub');
+  if(t)t.textContent='Join as '+presetJoinRole;
+  if(s)s.textContent='Enter your full name to get started.';
+}
 buildRoleGrid();
-initObCanvas();
+initObCanvas('ob-canvas','onboard-modal');
+initObCanvas('invite-canvas','invite-modal');
 setEventView(eventView);
 updateGroqHint();
 
