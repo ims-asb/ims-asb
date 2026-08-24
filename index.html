@@ -1290,6 +1290,7 @@ function connectFirebase(){
     const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
     db=firebase.database(app);
     localStorage.setItem('ims-fb-config',JSON.stringify(cfg));
+    loadLiveCodes();
     startListener();
     setFbStatus('ok','✓ Connected!');
     setSyncStatus(true);
@@ -1520,6 +1521,7 @@ function autoConnectFirebase(){
   try{
     const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
     db=firebase.database(app);
+    loadLiveCodes();
     startListener();
     const sb=document.getElementById('setup-banner');if(sb)sb.style.display='none';
     setSyncStatus(true); // explicitly mark connected
@@ -2430,7 +2432,7 @@ function clearPrefs(){
 // password forever," this just removes having to find the right button.
 // Unlike invite links, this only applies if there's no existing session;
 // it's a convenience shortcut, not a forced flow.
-const JOIN_LINK_ROLES={'member':'Member'};
+const JOIN_LINK_ROLES={'member':'Member','supporter':'Supporter'};
 const presetJoinRole=JOIN_LINK_ROLES[(new URLSearchParams(window.location.search).get('join')||'').toLowerCase()]||null;
 
 function loadPrefs(){
@@ -2614,22 +2616,41 @@ function renderPasswordMgmt(){
     </div>
     <div id="invite-link-list" style="margin-bottom:14px"></div>
     <p style="font-size:12px;font-weight:600;margin-bottom:6px;padding-top:6px;border-top:1px solid var(--border)">Member / Supporter — shared invite codes</p>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;font-size:12px;border-bottom:1px solid var(--border);margin-bottom:6px">
+    ${Object.entries(JOIN_LINK_ROLES).map(([slug,role])=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;font-size:12px;border-bottom:1px solid var(--border);margin-bottom:6px">
       <div style="min-width:0">
-        <div style="font-weight:500">Member join link</div>
-        <div style="font-family:monospace;color:var(--hint);word-break:break-all">${window.location.origin+window.location.pathname}?join=member</div>
+        <div style="font-weight:500">${role} join link</div>
+        <div style="font-family:monospace;color:var(--hint);word-break:break-all">${window.location.origin+window.location.pathname}?join=${slug}</div>
       </div>
-      <button class="btn sm" onclick="navigator.clipboard.writeText('${window.location.origin+window.location.pathname}?join=member');toast('Copied','ok')">Copy</button>
-    </div>
+      <button class="btn sm" onclick="navigator.clipboard.writeText('${window.location.origin+window.location.pathname}?join=${slug}');toast('Copied','ok')">Copy</button>
+    </div>`).join('')}
     ${openRoles.map(role=>{
       const safeId=role.replace(/[^a-zA-Z0-9]/g,'_');
-      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);font-size:13px">
-        <span style="font-weight:500">${role}</span>
-        <span id="pw-reveal-${safeId}" style="font-family:monospace;color:var(--hint);cursor:pointer;word-break:break-all;text-align:right" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
+      return `<div style="padding-bottom:8px;border-bottom:1px solid var(--border);font-size:13px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span style="font-weight:500">${role}</span>
+          <span id="pw-reveal-${safeId}" style="font-family:monospace;color:var(--hint);cursor:pointer;word-break:break-all;text-align:right" onclick="revealPassword('${role}','${safeId}')">••••••••</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input type="text" id="new-code-${safeId}" placeholder="New code" style="flex:1;font-size:12px">
+          <button class="btn sm" onclick="changeInviteCode('${role}','${safeId}')">Set</button>
+        </div>
       </div>`;
     }).join('')}
-    <p style="font-size:12px;color:var(--hint);margin-top:10px">Senate roles now join via a one-time link generated above — each link is tied to one specific person and stops working the moment they set their password. Member and Supporter still use a shared one-time code (edit <code>ROLE_PWS</code> in the source to rotate one — only affects people who haven't joined yet).</p>`;
+    <p style="font-size:12px;color:var(--hint);margin-top:10px">Senate roles now join via a one-time link generated above — each link is tied to one specific person and stops working the moment they set their password. Member and Supporter still use a shared one-time code — change one anytime above; it only affects people who haven't joined yet, current members keep their own already-set password.</p>`;
   loadInviteLinks();
+}
+
+function changeInviteCode(role,safeId){
+  const inp=document.getElementById('new-code-'+safeId);
+  const newCode=inp.value.trim();
+  if(!newCode||newCode.length<8){toast('Code must be at least 8 characters','err');return;}
+  if(!db||!isConnected){toast('Must be connected to Firebase','err');return;}
+  db.ref('ims-asb/config/openCodes/'+role).set(newCode).then(()=>{
+    LIVE_CODES[role]=newCode;
+    inp.value='';
+    document.getElementById('pw-reveal-'+safeId).textContent='••••••••';
+    toast(role+' code updated','ok');
+  }).catch(e=>toast('Error: '+e.message,'err'));
 }
 
 function generateInviteLink(){
@@ -3162,8 +3183,19 @@ function finishOnboard(){
 // invite code is never needed again for that person. Rotating a code
 // here only affects people who haven't joined yet; it doesn't change
 // anyone's existing personal password.
+// Codes can now be changed live from the app (Treasurer/Advisor only) —
+// see changeInviteCode() below. ROLE_PWS above is just the fallback used
+// until the first live code is ever set for a role, and for offline/
+// local-only use where Firebase isn't reachable at all.
+let LIVE_CODES={};
+function loadLiveCodes(){
+  if(!db)return;
+  db.ref('ims-asb/config/openCodes').once('value').then(snap=>{
+    LIVE_CODES=snap.val()||{};
+  }).catch(()=>{});
+}
 function getPassword(role){
-  return ROLE_PWS[role] || '';
+  return LIVE_CODES[role] || ROLE_PWS[role] || '';
 }
 
 // ── NAME → UID (canonical) ────────────────────────────────────────────
