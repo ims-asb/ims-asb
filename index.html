@@ -1025,7 +1025,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     </div>
 
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn danger" onclick="resetProfile()">Reset profile</button>
+      <button class="btn danger" onclick="resetProfile()">Log out</button>
       <button class="btn" onclick="saveProfilePrefs()">Save</button>
       <button class="btn primary" onclick="closeModal('customize-modal')">Done</button>
     </div>
@@ -2933,25 +2933,17 @@ function cleanupWidgetCarry(){
 }
 
 function resetProfile(){
-  if(!confirm("Reset your profile? You'll go through onboarding again. Your data stays."))return;
+  // This used to null out name/role/avatar in Firebase and delete this
+  // person's general-chat messages, meant as a "start over" option. That
+  // was the actual hole letting one Firebase account (email is name-based,
+  // not role-based) re-register under a different role once its stored
+  // role was cleared — which is how the same name ended up signed in as
+  // both Treasurer and Supporter. Your identity (name+role) is meant to be
+  // fixed once set. This is now just a real log out: it signs you out of
+  // this device only. Your account, role, and chat history are untouched
+  // — sign back in with your password to pick up right where you left off.
+  if(!confirm("Log out on this device? You'll need your password to sign back in."))return;
   if(hubAuth)hubAuth.signOut().catch(()=>{});
-  // Clear the identity fields but keep techAdmin/joinedAt — the confirm
-  // dialog above promises "your data stays," but a full .remove() here
-  // used to wipe the whole record, silently revoking tech admin access
-  // (and losing the "returning user" signal) on every reset.
-  if(db&&isConnected&&prefs.name){
-    const uid=prefs.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
-    db.ref('ims-asb/users/'+uid).update({name:null,role:null,avatar:null});
-    // delete all general chat messages from this user
-    db.ref('ims-asb/chat/general').once('value').then(snap=>{
-      if(!snap.val())return;
-      const updates={};
-      Object.entries(snap.val()).forEach(([k,v])=>{
-        if(v.name===prefs.name)updates['ims-asb/chat/general/'+k]=null;
-      });
-      if(Object.keys(updates).length)db.ref().update(updates);
-    });
-  }
   clearPrefs();
   prefs={name:'',role:'',widgets:{metrics:true,dash:true,recent:true,upcoming:true}};
   closeModal('customize-modal');
@@ -3055,6 +3047,26 @@ function obSelectRole(btn,role){
     });
     return;
   }
+  // One Firebase account per NAME, not per role (email is derived from
+  // name only) — so without this check, the right password for "Luke Li"
+  // would sign in successfully no matter which role button was clicked.
+  // Block a role mismatch here, before a password is ever asked for.
+  if(db&&isConnected){
+    const uid=nameToUid(prefs.name);
+    db.ref('ims-asb/users/'+uid).once('value').then(snap=>{
+      const stored=snap.val();
+      if(stored&&stored.role&&stored.role!==role){
+        toast('"'+prefs.name+'" is already registered as '+stored.role+'. Select '+stored.role+' to log in as them.');
+        document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('on'));
+        return;
+      }
+      promptRolePassword(role);
+    }).catch(()=>promptRolePassword(role));
+  } else {
+    promptRolePassword(role);
+  }
+}
+function promptRolePassword(role){
   const email=hubAuthEmailFor(prefs.name);
   // We used to call hubAuth.fetchSignInMethodsForEmail(email) here to decide
   // "returning user" vs "new person" before picking which modal to show.
