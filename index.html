@@ -3056,32 +3056,35 @@ function obSelectRole(btn,role){
     return;
   }
   const email=hubAuthEmailFor(prefs.name);
-  hubAuth.fetchSignInMethodsForEmail(email).then(methods=>{
-    if(methods.length>0){
-      // Returning user — this name already has its own account. Ask for
-      // THEIR password, not a shared role code.
-      showPwModal('Welcome back, '+prefs.name,'Enter your password',async (pw)=>{
-        try{
-          await hubAuth.signInWithEmailAndPassword(email,pw);
-        }catch(authErr){
-          document.getElementById('pw-modal-error').textContent=
-            authErr.code==='auth/wrong-password'?'Wrong password.':('Sign-in error: '+authErr.message);
-          return false;
+  // We used to call hubAuth.fetchSignInMethodsForEmail(email) here to decide
+  // "returning user" vs "new person" before picking which modal to show.
+  // That silently breaks on any Firebase project with Email Enumeration
+  // Protection on (the default since ~2023) — it always returns an empty
+  // list regardless of whether the account exists, so every returning user
+  // got routed to the invite-code screen and then failed at account
+  // creation with auth/email-already-in-use. Fix: try signing in with
+  // whatever they type first, and only treat it as the role's invite code
+  // if Firebase says the account genuinely doesn't exist yet. Mirrors the
+  // pattern already working in the Financial Manager's gate.
+  showPwModal(prefs.name,"Enter your password. First time as "+role+"? Enter the invite code instead.",async (pw)=>{
+    try{
+      await hubAuth.signInWithEmailAndPassword(email,pw);
+      obRole=role;
+      return true;
+    }catch(authErr){
+      if(authErr.code==='auth/user-not-found'){
+        if(pw!==getPassword(role)){
+          throw new Error('Wrong password, or wrong invite code for '+role+'.');
         }
+        await hubAuth.createUserWithEmailAndPassword(email,pw);
         obRole=role;
-      });
-    } else {
-      // New person — needs the role's one-time invite code, then chooses
-      // their own password for every login after this.
-      pendingNewRole=role;
-      document.getElementById('na-role-label').textContent=role;
-      document.getElementById('na-invite').value='';
-      document.getElementById('na-password').value='';
-      document.getElementById('na-password2').value='';
-      document.getElementById('na-error').textContent='';
-      openModal('new-account-modal');
+        toast('Account created — remember your own password for next time!','ok');
+        return true;
+      }
+      if(authErr.code==='auth/wrong-password')return false;
+      throw new Error('Sign-in error: '+authErr.message);
     }
-  }).catch(e=>toast('Error checking account: '+e.message,'err'));
+  });
 }
 async function confirmNewAccount(){
   const role=pendingNewRole;
