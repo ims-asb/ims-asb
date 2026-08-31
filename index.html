@@ -1029,6 +1029,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button class="btn" onclick="saveProfilePrefs()">Save</button>
       <button class="btn primary" onclick="closeModal('customize-modal')">Done</button>
     </div>
+    <div style="text-align:right;margin-top:10px">
+      <span style="font-size:12px;color:var(--red);cursor:pointer;text-decoration:underline" onclick="deleteProfile()">Delete profile permanently</span>
+    </div>
   </div>
 </div>
 
@@ -2957,6 +2960,51 @@ function resetProfile(){
   obRole='';
   openModal('onboard-modal');
 }
+// Full, permanent wipe — different from resetProfile()/"Log out" above,
+// which only signs out and leaves everything intact. This actually
+// deletes the Firebase Auth account and the ims-asb/users/<uid> record,
+// so the name is completely free to re-onboard from scratch afterward.
+// Requires re-entering the password right before deleting (rather than
+// trusting the existing session) so this can't fire from a stale tab and
+// so it doesn't hit Firebase's "requires-recent-login" error.
+//
+// NOTE: this can NOT remove ims-asb/identity/<auth-uid> — that record is
+// locked by the security rules on purpose (write-once, Advisor-only
+// changes afterward), so even the account owner can't self-service clear
+// it. If that record was ever written with the wrong role attached, an
+// Advisor (or direct Firebase console access) still has to clear that
+// one specific node manually — same as before this function existed.
+function deleteProfile(){
+  if(testMode){toast('Disabled in test mode');return;}
+  if(!hubAuth||!hubAuth.currentUser||!prefs.name){toast('Not signed in','err');return;}
+  if(!confirm('Delete your profile permanently? This deletes your account and saved role. Your chat messages and other data are not touched. This cannot be undone.'))return;
+  const email=hubAuthEmailFor(prefs.name);
+  const uid=nameToUid(prefs.name);
+  const authUid=hubAuth.currentUser.uid;
+  showPwModal(prefs.name,'Enter your password to confirm deletion',async(pw)=>{
+    const cred=firebase.auth.EmailAuthProvider.credential(email,pw);
+    try{
+      await hubAuth.currentUser.reauthenticateWithCredential(cred);
+    }catch(authErr){
+      return false; // wrong password — normal "Wrong password" flow
+    }
+    try{
+      if(db&&isConnected){
+        await db.ref('ims-asb/users/'+uid).remove();
+        // Best-effort only — rules are expected to reject this one.
+        await db.ref('ims-asb/identity/'+authUid).remove().catch(()=>{});
+      }
+      await hubAuth.currentUser.delete();
+    }catch(delErr){
+      throw new Error('Delete failed: '+delErr.message);
+    }
+    clearPrefs();
+    prefs={name:'',role:'',widgets:{metrics:true,dash:true,recent:true,upcoming:true}};
+    toast('Profile deleted','ok');
+    setTimeout(()=>location.reload(),500);
+    return true;
+  });
+}
 function saveProfilePrefs(){
   const n=document.getElementById('pref-name').value.trim();
   const r=document.getElementById('pref-role').value.trim();
@@ -3546,6 +3594,12 @@ function loadControlPanelGrant(){
 }
 
 // ── ANNOUNCEMENTS ──────────────────────────────────────────────────────
+// Auto-expiry: announcements older than this just stop showing, no need
+// to remember to delete them manually. Change the number if you want a
+// longer or shorter window. This only hides old ones from the list — it
+// doesn't delete them from Firebase, so nothing is lost if you change
+// your mind on the window later.
+const ANNOUNCE_MAX_AGE_DAYS=7;
 function showAnnounceForm(){
   document.getElementById('announce-form').style.display='block';
   document.getElementById('announce-input').focus();
@@ -3570,6 +3624,11 @@ function renderAnnouncements(items){
   const wrap=document.getElementById('w-announce');
   const list=document.getElementById('announce-list');
   const addBtn=document.getElementById('announce-add-btn');
+  const cutoff=Date.now()-ANNOUNCE_MAX_AGE_DAYS*24*60*60*1000;
+  // a.id is a Date.now() timestamp from when it was posted (see
+  // postAnnouncement below) — no missing/malformed id gets hidden by
+  // this, only ones we can actually confirm are past the window.
+  items=(items||[]).filter(a=>!a.id||a.id>=cutoff);
   if(!items||!items.length){if(wrap)wrap.style.display='none';return;}
   if(wrap)wrap.style.display='block';
   const canEdit=prefs.role==='Treasurer'||prefs.role==='Advisor';
