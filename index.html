@@ -3155,6 +3155,20 @@ function promptRolePassword(role){
     obRole=role;
     return true;
   });
+  // The hint text alone (small, easy to miss) wasn't clear enough that
+  // this one field does double duty — make "invite code instead" an
+  // actual clickable toggle that swaps the placeholder, so it's obvious
+  // at a glance which one you're typing.
+  const hintEl=document.getElementById('pw-modal-hint');
+  const inputEl=document.getElementById('pw-modal-input');
+  inputEl.placeholder='Password';
+  hintEl.innerHTML='Enter your password. First time as '+role+'? '
+    +'<span id="pw-mode-toggle" style="text-decoration:underline;cursor:pointer">Enter the invite code instead</span>.';
+  document.getElementById('pw-mode-toggle').onclick=function(){
+    const inviteMode=inputEl.placeholder==='Invite code';
+    inputEl.placeholder=inviteMode?'Password':'Invite code';
+    this.textContent=inviteMode?'Enter the invite code instead':'Already have a password? Sign in instead';
+  };
 }
 // The actual security backstop for role-per-name. A blank role field
 // used to mean "anyone who knows the password can claim any role" —
