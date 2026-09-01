@@ -3127,24 +3127,52 @@ function promptRolePassword(role){
   // if Firebase says the account genuinely doesn't exist yet. Mirrors the
   // pattern already working in the Financial Manager's gate.
   showPwModal(prefs.name,"Enter your password. First time as "+role+"? Enter the invite code instead.",async (pw)=>{
+    let isNewAccount=false;
     try{
       await hubAuth.signInWithEmailAndPassword(email,pw);
-      obRole=role;
-      return true;
     }catch(authErr){
       if(authErr.code==='auth/user-not-found'){
         if(pw!==getPassword(role)){
           throw new Error('Wrong password, or wrong invite code for '+role+'.');
         }
         await hubAuth.createUserWithEmailAndPassword(email,pw);
-        obRole=role;
-        toast('Account created — remember your own password for next time!','ok');
-        return true;
+        isNewAccount=true;
+      } else if(authErr.code==='auth/wrong-password'){
+        return false;
+      } else {
+        throw new Error('Sign-in error: '+authErr.message);
       }
-      if(authErr.code==='auth/wrong-password')return false;
-      throw new Error('Sign-in error: '+authErr.message);
     }
+    // Reaching here means Firebase Auth accepted the password — but since
+    // one account covers every role for this name, that alone doesn't
+    // prove THIS role is really theirs. This is the actual lock: if the
+    // stored role is blank (old data, or a fresh account), claim it for
+    // this role right now — a one-time-only window. If it's already set
+    // to something else, reject and sign back out, even though the
+    // password was correct.
+    await lockRoleOrReject(nameToUid(prefs.name),role);
+    if(isNewAccount)toast('Account created — remember your own password for next time!','ok');
+    obRole=role;
+    return true;
   });
+}
+// The actual security backstop for role-per-name. A blank role field
+// used to mean "anyone who knows the password can claim any role" —
+// this closes that permanently on first use instead of leaving it open
+// forever. Runs after every successful sign-in/account-creation.
+async function lockRoleOrReject(uid,role){
+  if(!db||!isConnected)return; // best effort only if offline
+  const ref=db.ref('ims-asb/users/'+uid+'/role');
+  const snap=await ref.once('value');
+  const stored=snap.val();
+  if(stored){
+    if(stored!==role){
+      await hubAuth.signOut().catch(()=>{});
+      throw new Error('"'+prefs.name+'" is already registered as '+stored+'. Sign in as '+stored+' instead.');
+    }
+    return;
+  }
+  await ref.set(role);
 }
 async function confirmNewAccount(){
   const role=pendingNewRole;
