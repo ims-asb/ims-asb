@@ -3116,31 +3116,38 @@ function obSelectRole(btn,role){
 }
 function promptRolePassword(role){
   const email=hubAuthEmailFor(prefs.name);
-  // We used to call hubAuth.fetchSignInMethodsForEmail(email) here to decide
-  // "returning user" vs "new person" before picking which modal to show.
-  // That silently breaks on any Firebase project with Email Enumeration
-  // Protection on (the default since ~2023) — it always returns an empty
-  // list regardless of whether the account exists, so every returning user
-  // got routed to the invite-code screen and then failed at account
-  // creation with auth/email-already-in-use. Fix: try signing in with
-  // whatever they type first, and only treat it as the role's invite code
-  // if Firebase says the account genuinely doesn't exist yet. Mirrors the
-  // pattern already working in the Financial Manager's gate.
+  // We used to branch on authErr.code (auth/user-not-found vs
+  // auth/wrong-password) to decide whether this was a returning user with
+  // a wrong password, or a new person who should try their invite code
+  // instead. Firebase has since consolidated both of those into a single
+  // generic auth/invalid-credential error — a security change on its end
+  // (don't leak whether an account exists), the same underlying idea as
+  // the fetchSignInMethodsForEmail issue, just showing up in a different
+  // call. That meant EVERY failed sign-in — including a brand new
+  // person's very first invite-code attempt — was falling into the
+  // generic "else" branch and throwing, instead of ever trying account
+  // creation. Fixed: branch on whether what they typed matches the
+  // role's known invite code, and let account creation's own
+  // success/failure be the real signal for new vs. existing — if
+  // creation fails because the email's already in use, we now know for
+  // sure it was just a wrong password on a real account.
   showPwModal(prefs.name,"Enter your password. First time as "+role+"? Enter the invite code instead.",async (pw)=>{
     let isNewAccount=false;
     try{
       await hubAuth.signInWithEmailAndPassword(email,pw);
     }catch(authErr){
-      if(authErr.code==='auth/user-not-found'){
-        if(pw!==getPassword(role)){
-          throw new Error('Wrong password, or wrong invite code for '+role+'.');
+      if(pw===getPassword(role)){
+        try{
+          await hubAuth.createUserWithEmailAndPassword(email,pw);
+          isNewAccount=true;
+        }catch(createErr){
+          if(createErr.code==='auth/email-already-in-use'){
+            return false; // real account exists — this was just a wrong password
+          }
+          throw new Error(createErr.message);
         }
-        await hubAuth.createUserWithEmailAndPassword(email,pw);
-        isNewAccount=true;
-      } else if(authErr.code==='auth/wrong-password'){
-        return false;
       } else {
-        throw new Error('Sign-in error: '+authErr.message);
+        return false; // wrong password, and not a valid invite code either
       }
     }
     // Reaching here means Firebase Auth accepted the password — but since
