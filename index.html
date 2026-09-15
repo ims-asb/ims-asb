@@ -3132,23 +3132,22 @@ function promptRolePassword(role){
   // creation fails because the email's already in use, we now know for
   // sure it was just a wrong password on a real account.
   showPwModal(prefs.name,"Enter your password. First time as "+role+"? Enter the invite code instead.",async (pw)=>{
-    let isNewAccount=false;
     try{
       await hubAuth.signInWithEmailAndPassword(email,pw);
     }catch(authErr){
-      if(pw===getPassword(role)){
-        try{
-          await hubAuth.createUserWithEmailAndPassword(email,pw);
-          isNewAccount=true;
-        }catch(createErr){
-          if(createErr.code==='auth/email-already-in-use'){
-            return false; // real account exists — this was just a wrong password
-          }
-          throw new Error(createErr.message);
-        }
-      } else {
-        return false; // wrong password, and not a valid invite code either
-      }
+      if(pw!==getPassword(role))return false; // wrong password, not a valid invite code either
+      // Valid invite code — don't make that code itself the permanent
+      // password. Hand off to a dedicated step to pick and confirm a
+      // real one instead.
+      document.getElementById('pw-modal').classList.remove('on');
+      pendingNewRole=role;
+      document.getElementById('na-role-label').textContent=role;
+      document.getElementById('na-invite').value=pw;
+      document.getElementById('na-password').value='';
+      document.getElementById('na-password2').value='';
+      document.getElementById('na-error').textContent='';
+      openModal('new-account-modal');
+      return true;
     }
     // Reaching here means Firebase Auth accepted the password — but since
     // one account covers every role for this name, that alone doesn't
@@ -3158,7 +3157,6 @@ function promptRolePassword(role){
     // to something else, reject and sign back out, even though the
     // password was correct.
     await lockRoleOrReject(nameToUid(prefs.name),role);
-    if(isNewAccount)toast('Account created — remember your own password for next time!','ok');
     obRole=role;
     return true;
   });
@@ -3210,6 +3208,11 @@ async function confirmNewAccount(){
     await hubAuth.createUserWithEmailAndPassword(email,pw);
   }catch(e){
     errEl.textContent='Error: '+e.message;return;
+  }
+  try{
+    await lockRoleOrReject(nameToUid(prefs.name),role);
+  }catch(lockErr){
+    errEl.textContent=lockErr.message;return;
   }
   closeModal('new-account-modal');
   obRole=role;
