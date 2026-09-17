@@ -1348,7 +1348,7 @@ function writeIdentityRecord(){
   const ref=db.ref('ims-asb/identity/'+hubAuth.currentUser.uid);
   ref.once('value').then(snap=>{
     if(snap.exists())return; // write-once; rules reject changes anyway
-    ref.set({name:prefs.name,role:prefs.role}).catch(()=>{});
+    ref.set({name:prefs.name,nameLower:prefs.name.trim().toLowerCase(),role:prefs.role}).catch(()=>{});
   }).catch(()=>{});
 }
 
@@ -2546,7 +2546,7 @@ async function confirmInviteAccount(){
   finishOnboard();
 }
 
-const FULL_ROLES=['Treasurer','President','Secretary','Vice President','Member','7th Grade Rep'];
+const FULL_ROLES=['Treasurer','President','Secretary','Vice President','Member','6th Grade Rep','7th Grade Rep'];
 function applyPrefs(){
   const role=prefs.role||'';
   const isTreasurer=role==='Treasurer';
@@ -2609,7 +2609,7 @@ function applyPrefs(){
   if(canManagePws)renderPasswordMgmt();
 }
 
-const SENATE_ROLES=['Treasurer','President','Vice President','Secretary','Advisor','7th Grade Rep'];
+const SENATE_ROLES=['Treasurer','President','Vice President','Secretary','Advisor','6th Grade Rep','7th Grade Rep'];
 function renderPasswordMgmt(){
   const list=document.getElementById('pw-mgmt-list');
   if(!list)return;
@@ -3071,6 +3071,7 @@ const ROLE_HINTS={
   'Vice President':'Full access.',
   'Member':'Full access.',
   'Supporter':'Can view events and ideas, and add new ones. No access to budget or meeting notes.',
+  '6th Grade Rep':'Full access.',
   '7th Grade Rep':'Full access.',
   'Advisor':'Full access + edit history log.'
 };
@@ -3081,6 +3082,7 @@ const ROLE_PWS={
   'Secretary':'ripple&pepper191',
   'Member':'copper*cinder302',
   'Supporter':'copper&ripple565',
+  '6th Grade Rep':'willow!basalt284',
   '7th Grade Rep':'ripple#anchor703',
   'Advisor':'granite!ember847'
 };
@@ -3175,13 +3177,12 @@ function promptRolePassword(role){
       await hubAuth.signInWithEmailAndPassword(email,pw);
     }catch(authErr){
       if(pw.trim().toLowerCase()!==getPassword(role).toLowerCase())return false; // wrong password, not a valid invite code either
-      const claimedBy=await roleAlreadyClaimedBy(role);
-      if(claimedBy){
-        throw new Error(role+' is already registered to '+claimedBy+'. If that\'s wrong, an advisor needs to clear it.');
-      }
       // Valid invite code — don't make that code itself the permanent
       // password. Hand off to a dedicated step to pick and confirm a
-      // real one instead.
+      // real one instead. (The "is this role already taken?" check can't
+      // run here — nobody's authenticated yet at this point, and reading
+      // ims-asb/users requires auth. That check now happens right after
+      // account creation instead, in confirmNewAccount.)
       document.getElementById('pw-modal').classList.remove('on');
       pendingNewRole=role;
       document.getElementById('na-role-label').textContent=role;
@@ -3255,8 +3256,6 @@ async function confirmNewAccount(){
   if(invite.trim().toLowerCase()!==getPassword(role).toLowerCase()){errEl.textContent='Wrong invite code for '+role+'.';return;}
   if(pw.length<8){errEl.textContent='Choose a password at least 8 characters long.';return;}
   if(pw!==pw2){errEl.textContent="Passwords don't match.";return;}
-  const claimedBy=await roleAlreadyClaimedBy(role);
-  if(claimedBy){errEl.textContent=role+' is already registered to '+claimedBy+'.';return;}
   ensureHubFirebaseAppReady();
   const email=hubAuthEmailFor(prefs.name);
   try{
@@ -3264,10 +3263,23 @@ async function confirmNewAccount(){
   }catch(e){
     errEl.textContent='Error: '+e.message;return;
   }
+  // Only now is there an actual auth session to read ims-asb/users with —
+  // this couldn't run any earlier without a permission error, since
+  // reading it requires being logged in, and nobody's logged in yet
+  // before an account exists. If the role turns out to already be taken,
+  // undo the account we just made rather than leaving an orphaned one.
+  const claimedBy=await roleAlreadyClaimedBy(role);
+  if(claimedBy){
+    errEl.textContent=role+' is already registered to '+claimedBy+'.';
+    await hubAuth.currentUser.delete().catch(()=>{});
+    return;
+  }
   try{
     await lockRoleOrReject(nameToUid(prefs.name),role);
   }catch(lockErr){
-    errEl.textContent=lockErr.message;return;
+    errEl.textContent=lockErr.message;
+    await hubAuth.currentUser.delete().catch(()=>{});
+    return;
   }
   closeModal('new-account-modal');
   obRole=role;
@@ -4658,6 +4670,7 @@ function buildRoleGrid(){
     {role:'Vice President',icon:svgWrap('<path d="M3 6.5l5-3 5 3M3 10l5-3 5 3M3 13.5l5-3 5 3"/>')},
     {role:'Secretary',icon:svgWrap('<rect x="3.5" y="2.5" width="9" height="12" rx="1.2"/><rect x="6" y="1.3" width="4" height="2" rx=".5"/><path d="M6 6.5h4M6 9h4M6 11.5h2.5"/>')},
     {role:'Advisor',icon:svgWrap('<path d="M8 3.2l6.5 2.8-6.5 2.8-6.5-2.8z"/><path d="M4.7 7.5v3c0 1.1 1.6 2 3.3 2s3.3-.9 3.3-2v-3"/><path d="M13.7 6.4v4.4"/>')},
+    {role:'6th Grade Rep',icon:svgWrap('<circle cx="8" cy="6" r="3.3"/><path d="M6 8.8l-1.4 4.7 3.4-1.5 3.4 1.5-1.4-4.7"/>')},
     {role:'7th Grade Rep',icon:svgWrap('<circle cx="8" cy="6" r="3.3"/><path d="M6 8.8l-1.4 4.7 3.4-1.5 3.4 1.5-1.4-4.7"/>')},
     {role:'Member',icon:svgWrap('<circle cx="8" cy="5.3" r="2.8"/><path d="M2.3 14c0-3.1 2.5-5.7 5.7-5.7s5.7 2.6 5.7 5.7"/>')},
     {role:'Supporter',icon:svgWrap('<path d="M8 13.3S2.7 9.9 2.7 6.3C2.7 4.2 4.3 2.7 6.1 2.7c.9 0 1.6.4 1.9 1 .3-.6 1-1 1.9-1 1.8 0 3.4 1.5 3.4 3.6 0 3.6-5.3 7-5.3 7z"/>')},
