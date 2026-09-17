@@ -68,15 +68,16 @@ input[type=text],input[type=number],input[type=date],input[type=password],textar
 input:focus,.fsel:focus,textarea:focus{border-color:var(--accent)}
 input::placeholder,textarea::placeholder{color:var(--hint)}
 textarea{resize:vertical;min-height:80px;line-height:1.6}
-.btn{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:9px 16px;border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s}
-.btn:hover{background:var(--bg);border-color:var(--border-strong)}
+.btn{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:9px 16px;border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:background .15s,border-color .15s,transform .1s,box-shadow .15s}
+.btn:hover{background:var(--bg);border-color:var(--border-strong);transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.btn:active{transform:translateY(0) scale(.97);box-shadow:none}
 .btn.primary{background:var(--text);color:#fff;border-color:var(--text)}
 .btn.primary:hover{background:#333}
 body.dark .btn.primary{background:var(--accent);border-color:var(--accent)}
 body.dark .btn.primary:hover{background:#5080d0}
 .btn.sm{font-size:12px;padding:5px 10px}
 .btn.danger{color:var(--red)}.btn.danger:hover{background:#fff5f5;border-color:var(--red)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;box-shadow:none!important;pointer-events:none}
 .btn.full{width:100%}
 .empty{text-align:center;padding:2.5rem 0;color:var(--muted)}
 .empty .ico{font-size:32px;margin-bottom:8px;opacity:.4}
@@ -197,7 +198,8 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .tp-list li{padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;font-size:14px;line-height:1.5}
 .tp-list li:last-child{border-bottom:none}
 .tp-list li::before{content:"—";color:var(--hint);flex-shrink:0}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center}
+.modal-overlay{display:flex;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility .22s,background .22s ease}
+.modal-overlay.on{opacity:1;visibility:visible;pointer-events:auto}
 #onboard-modal{background:var(--accent);align-items:center;justify-content:center}
 #onboard-modal .modal{background:transparent;box-shadow:none;max-width:420px;width:92%;padding:0;text-align:left}
 #onboard-modal h2{color:#fff;font-size:28px;font-weight:700;letter-spacing:-.5px;text-align:left!important}
@@ -216,8 +218,8 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 #invite-modal .btn.primary{background:#fff;color:var(--accent);border-color:#fff}
 #invite-modal .btn.primary:hover{background:rgba(255,255,255,.9)}
 #invite-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.modal-overlay.on{display:flex}
-.modal{background:var(--surface);border-radius:var(--radius);padding:24px;max-width:480px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.12);max-height:90vh;overflow-y:auto}
+.modal{background:var(--surface);border-radius:var(--radius);padding:24px;max-width:480px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.12);max-height:90vh;overflow-y:auto;transform:scale(.94) translateY(6px);transition:transform .22s cubic-bezier(.2,.9,.3,1.2)}
+.modal-overlay.on .modal{transform:scale(1) translateY(0)}
 .modal h2{font-size:17px;font-weight:600;margin-bottom:6px}
 .modal p{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:12px}
 .modal a{color:var(--accent)}
@@ -228,8 +230,8 @@ body.dark .chip.red{background:#2a0d0d;border-color:#7a2020}
 .key-status.err{color:var(--red);display:block}
 .spin{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--muted);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-3px;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-size:13px;padding:9px 20px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:200;font-family:'DM Sans',sans-serif;white-space:nowrap}
-.toast.on{opacity:1}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--text);color:#fff;font-size:13px;padding:9px 20px;border-radius:20px;opacity:0;transition:opacity .25s ease,transform .25s cubic-bezier(.2,.9,.3,1.2);pointer-events:none;z-index:200;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(max-width:540px){.grid2,.grid3,.dashboard-grid{grid-template-columns:1fr}.tabs .tab{padding:6px 9px;font-size:12px}}
 .widget-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
 .widget-toggle:last-child{border-bottom:none}
@@ -1098,7 +1100,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div id="pw-modal-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:10px;font-family:'DM Mono',monospace"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="pwModalCancel()">Cancel</button>
-      <button class="btn primary" onclick="pwModalConfirm()">Confirm</button>
+      <button class="btn primary" id="pw-modal-confirm-btn" onclick="pwModalConfirm()">Confirm</button>
     </div>
   </div>
 </div>
@@ -1114,7 +1116,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div id="na-error" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px;font-family:'DM Mono',monospace"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="closeModal('new-account-modal');document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('on'))">Cancel</button>
-      <button class="btn primary" onclick="confirmNewAccount()">Create account</button>
+      <button class="btn primary" id="na-confirm-btn" onclick="confirmNewAccount()">Create account</button>
     </div>
   </div>
 </div>
@@ -3256,12 +3258,16 @@ async function confirmNewAccount(){
   if(invite.trim().toLowerCase()!==getPassword(role).toLowerCase()){errEl.textContent='Wrong invite code for '+role+'.';return;}
   if(pw.length<8){errEl.textContent='Choose a password at least 8 characters long.';return;}
   if(pw!==pw2){errEl.textContent="Passwords don't match.";return;}
+  const btn=document.getElementById('na-confirm-btn');
+  btn.disabled=true;btn.textContent='Creating…';
   ensureHubFirebaseAppReady();
   const email=hubAuthEmailFor(prefs.name);
   try{
     await hubAuth.createUserWithEmailAndPassword(email,pw);
   }catch(e){
-    errEl.textContent='Error: '+e.message;return;
+    errEl.textContent='Error: '+e.message;
+    btn.disabled=false;btn.textContent='Create account';
+    return;
   }
   // Only now is there an actual auth session to read ims-asb/users with —
   // this couldn't run any earlier without a permission error, since
@@ -3272,6 +3278,7 @@ async function confirmNewAccount(){
   if(claimedBy){
     errEl.textContent=role+' is already registered to '+claimedBy+'.';
     await hubAuth.currentUser.delete().catch(()=>{});
+    btn.disabled=false;btn.textContent='Create account';
     return;
   }
   try{
@@ -3279,9 +3286,11 @@ async function confirmNewAccount(){
   }catch(lockErr){
     errEl.textContent=lockErr.message;
     await hubAuth.currentUser.delete().catch(()=>{});
+    btn.disabled=false;btn.textContent='Create account';
     return;
   }
   closeModal('new-account-modal');
+  btn.disabled=false;btn.textContent='Create account';
   obRole=role;
   toast('Account created — remember your own password for next time!','ok');
   obFinish();
@@ -3432,6 +3441,10 @@ async function pwModalConfirm(){
 
   if(pwModalCallback){
     document.getElementById('pw-modal-input').disabled=true;
+    const confirmBtn=document.getElementById('pw-modal-confirm-btn');
+    const cancelBtn=confirmBtn.previousElementSibling;
+    confirmBtn.disabled=true;confirmBtn.textContent='Checking…';
+    if(cancelBtn)cancelBtn.disabled=true;
     let result;
     try{
       result=pwModalCallback(pw);
@@ -3439,6 +3452,8 @@ async function pwModalConfirm(){
     }catch(e){
       errEl.textContent='Sign-in error: '+e.message;
       document.getElementById('pw-modal-input').disabled=false;
+      confirmBtn.disabled=false;confirmBtn.textContent='Confirm';
+      if(cancelBtn)cancelBtn.disabled=false;
       return;
     }
     if(result===false){
@@ -3452,16 +3467,21 @@ async function pwModalConfirm(){
         document.getElementById('pw-modal-input').disabled=false;
         document.getElementById('pw-modal-input').focus();
       }
+      confirmBtn.disabled=false;confirmBtn.textContent='Confirm';
+      if(cancelBtn)cancelBtn.disabled=false;
       return;
     }
     rlClear('pw'); // success — reset counter
     errEl.style.color='var(--green)';
     errEl.textContent='✓ Correct!';
+    confirmBtn.textContent='Confirm';
     setTimeout(()=>{
       document.getElementById('pw-modal').classList.remove('on');
       errEl.textContent='';
       errEl.style.color='var(--red)';
       document.getElementById('pw-modal-input').disabled=false;
+      confirmBtn.disabled=false;
+      if(cancelBtn)cancelBtn.disabled=false;
     },600);
   }
 }
