@@ -1119,6 +1119,22 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </div>
 </div>
 
+<!-- SUPPORTER CONFIDENTIALITY NOTICE (shown every time Supporter is picked) -->
+<div id="supporter-notice-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('supporter-notice-modal')">
+  <div class="modal" style="max-width:400px">
+    <h2 style="margin-bottom:6px">Before you continue</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px">As a Supporter, you may see information shared inside ASB — messages, plans, budget details, or anything else — that isn't meant for people outside this group. Please don't share anything you see here with anyone outside ASB.</p>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" id="supporter-ack" onchange="document.getElementById('supporter-ack-btn').disabled=!this.checked" style="margin-top:2px">
+      <span>I understand and agree not to share ASB information with anyone outside this group.</span>
+    </label>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('supporter-notice-modal');document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('on'))">Cancel</button>
+      <button class="btn primary" id="supporter-ack-btn" disabled onclick="confirmSupporterAck()">Continue</button>
+    </div>
+  </div>
+</div>
+
 <!-- AGENDA ITEM MODAL -->
 <div id="agenda-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('agenda-modal')">
   <div class="modal" style="max-width:360px">
@@ -1571,9 +1587,6 @@ function go(t){
   if(t==='notes'){
     const canSeeNotes=(['Treasurer','President','Vice President','Secretary','Advisor'].includes(prefs.role));
     if(!canSeeNotes){toast('Notes are restricted to ASB senate members','err');t='home';}
-  }
-  if(['notes','chat','ideas','people'].includes(t)&&prefs.role==='Bookkeeper'){
-    toast('That section isn\'t available for Bookkeeper access','err');t='home';
   }
   // smooth section switch
   ['home','events','notes','ideas','chat','people','tasks','script','schedule','quahideas'].forEach(n=>{
@@ -2543,15 +2556,6 @@ function applyPrefs(){
   const isSecretary=role==='Secretary';
   const isSupporter=role==='Supporter';
   const isMember=role==='Member';
-  const isBookkeeper=role==='Bookkeeper';
-
-  // BOOKKEEPER: can only see Home + Events + Finance link. Hide notes/chat/ideas/people/customize.
-  ['tab-notes','tab-chat','tab-ideas','tab-people'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.style.display=isBookkeeper?'none':'';
-  });
-  const custBtn=document.querySelector('.customize-btn');
-  if(custBtn)custBtn.style.display=isBookkeeper?'none':'';
 
   // NOTES gate runs FIRST and is wrapped so nothing later in this function can ever skip it
   try{
@@ -2587,7 +2591,7 @@ function applyPrefs(){
   // (avoids false positives if another student shares the same name)
   applyTechButtons();
   const finLink=document.getElementById('btn-finance');
-  if(finLink)finLink.style.display=(isTreasurer||isAdvisor||isBookkeeper)?'':'none';
+  if(finLink)finLink.style.display=(isTreasurer||isAdvisor)?'':'none';
 
   // CLEAR CHAT + ARCHIVE: Treasurer + Advisor
   const ccw=document.getElementById('clear-chat-wrap');
@@ -3022,7 +3026,7 @@ const KNOWN_MEMBERS=[
   {patterns:['jionni tolosa','jionni tolosa'],role:'Secretary'},
   {patterns:['mz weed','mz. weed','ms weed','ms. weed','weed'],role:'Advisor'},
   {patterns:['ms gale','ms. gale','mrs gale','mrs. gale','mz gale','mz. gale','gale'],role:'Advisor'},
-  {patterns:['vasantha','ms vasantha','ms. vasantha','mrs vasantha','mrs. vasantha','singanallur'],role:'Bookkeeper'},
+  {patterns:['vasantha','ms vasantha','ms. vasantha','mrs vasantha','mrs. vasantha','singanallur'],role:'Advisor'}, // TODO: confirm — was Bookkeeper, that role is now removed, guessed Advisor as closest fit
 ];
 function detectRole(name){
   const lower=name.toLowerCase().trim();
@@ -3078,11 +3082,46 @@ const ROLE_PWS={
   'Member':'copper*cinder302',
   'Supporter':'copper&ripple565',
   '7th Grade Rep':'ripple#anchor703',
-  'Advisor':'granite!ember847',
-  'Bookkeeper':'harbor!granite110'
+  'Advisor':'granite!ember847'
 };
+// Member and Supporter are meant to hold many different real people —
+// every other role (Treasurer, President, VP, Secretary, Advisor, 7th
+// Grade Rep) is meant to be exactly one specific person. lockRoleOrReject
+// already stops ONE name from switching roles later, but on its own it
+// doesn't stop a SECOND different name from also registering as, say,
+// Treasurer using the same shared invite code — this is what actually
+// closes that.
+const OPEN_ROLES=['Member','Supporter'];
+async function roleAlreadyClaimedBy(role){
+  if(OPEN_ROLES.includes(role))return null;
+  if(!db||!isConnected)return null; // best effort only if offline
+  const snap=await db.ref('ims-asb/users').once('value');
+  const users=snap.val()||{};
+  for(const uid in users){
+    if(users[uid]&&users[uid].role===role)return users[uid].name||uid;
+  }
+  return null;
+}
 let pendingNewRole=null;
+let pendingSupporterBtn=null;
 function obSelectRole(btn,role){
+  // Supporter sees ASB info that shouldn't leave the group — make sure
+  // that's acknowledged before going any further, every time this role
+  // is chosen (not just on first signup).
+  if(role==='Supporter'){
+    pendingSupporterBtn=btn;
+    document.getElementById('supporter-ack').checked=false;
+    document.getElementById('supporter-ack-btn').disabled=true;
+    openModal('supporter-notice-modal');
+    return;
+  }
+  continueRoleSelect(btn,role);
+}
+function confirmSupporterAck(){
+  closeModal('supporter-notice-modal');
+  continueRoleSelect(pendingSupporterBtn,'Supporter');
+}
+function continueRoleSelect(btn,role){
   document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='';});
   if(btn)btn.classList.add('on');
   const app=ensureHubFirebaseAppReady();
@@ -3090,7 +3129,7 @@ function obSelectRole(btn,role){
     // Firebase unavailable (offline/local-only) — fall back to the old
     // shared-password check so the app still works without a connection.
     showPwModal(role+' password',ROLE_HINTS[role]||'',(pw)=>{
-      if(pw!==getPassword(role))return false;
+      if(pw.trim().toLowerCase()!==getPassword(role).toLowerCase())return false;
       obRole=role;
     });
     return;
@@ -3135,7 +3174,11 @@ function promptRolePassword(role){
     try{
       await hubAuth.signInWithEmailAndPassword(email,pw);
     }catch(authErr){
-      if(pw!==getPassword(role))return false; // wrong password, not a valid invite code either
+      if(pw.trim().toLowerCase()!==getPassword(role).toLowerCase())return false; // wrong password, not a valid invite code either
+      const claimedBy=await roleAlreadyClaimedBy(role);
+      if(claimedBy){
+        throw new Error(role+' is already registered to '+claimedBy+'. If that\'s wrong, an advisor needs to clear it.');
+      }
       // Valid invite code — don't make that code itself the permanent
       // password. Hand off to a dedicated step to pick and confirm a
       // real one instead.
@@ -3175,23 +3218,33 @@ function promptRolePassword(role){
     this.textContent=inviteMode?'Enter the invite code instead':'Already have a password? Sign in instead';
   };
 }
-// The actual security backstop for role-per-name. A blank role field
-// used to mean "anyone who knows the password can claim any role" —
-// this closes that permanently on first use instead of leaving it open
-// forever. Runs after every successful sign-in/account-creation.
+// The actual security backstop for role-per-name, and also what keeps a
+// person's DISPLAY name consistent. hubAuthEmailFor/nameToUid already
+// lowercase before matching, so "Luke Li" and "LUKE LI" were always the
+// same underlying account and the same locked role — no case-sensitivity
+// bug there. What wasn't locked was which capitalization shows up in
+// chat/UI: without this, typing a different case on a later visit would
+// silently change how your name displays everywhere, even though it's
+// the same account. This locks the display name in alongside the role,
+// the first time, and self-corrects prefs.name on every login after.
 async function lockRoleOrReject(uid,role){
   if(!db||!isConnected)return; // best effort only if offline
-  const ref=db.ref('ims-asb/users/'+uid+'/role');
+  const ref=db.ref('ims-asb/users/'+uid);
   const snap=await ref.once('value');
-  const stored=snap.val();
-  if(stored){
-    if(stored!==role){
+  const stored=snap.val()||{};
+  if(stored.role){
+    if(stored.role!==role){
       await hubAuth.signOut().catch(()=>{});
-      throw new Error('"'+prefs.name+'" is already registered as '+stored+'. Sign in as '+stored+' instead.');
+      throw new Error('"'+prefs.name+'" is already registered as '+stored.role+'. Sign in as '+stored.role+' instead.');
     }
-    return;
+  } else {
+    await ref.update({role:role});
   }
-  await ref.set(role);
+  if(stored.name){
+    prefs.name=stored.name; // always show the originally-registered casing
+  } else {
+    await ref.update({name:prefs.name});
+  }
 }
 async function confirmNewAccount(){
   const role=pendingNewRole;
@@ -3199,9 +3252,11 @@ async function confirmNewAccount(){
   const pw=document.getElementById('na-password').value;
   const pw2=document.getElementById('na-password2').value;
   const errEl=document.getElementById('na-error');
-  if(invite!==getPassword(role)){errEl.textContent='Wrong invite code for '+role+'.';return;}
+  if(invite.trim().toLowerCase()!==getPassword(role).toLowerCase()){errEl.textContent='Wrong invite code for '+role+'.';return;}
   if(pw.length<8){errEl.textContent='Choose a password at least 8 characters long.';return;}
   if(pw!==pw2){errEl.textContent="Passwords don't match.";return;}
+  const claimedBy=await roleAlreadyClaimedBy(role);
+  if(claimedBy){errEl.textContent=role+' is already registered to '+claimedBy+'.';return;}
   ensureHubFirebaseAppReady();
   const email=hubAuthEmailFor(prefs.name);
   try{
